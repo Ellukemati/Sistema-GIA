@@ -1,4 +1,4 @@
-# Taller de Programacion BUGBUSTERS
+# Taller de Programacion, Grupo 8: Bugbusters
 
 ## Integrantes
 * Franco Lamas – flamas@fi.uba.ar – 112306
