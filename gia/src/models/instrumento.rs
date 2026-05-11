@@ -27,4 +27,16 @@ impl Instrumento {
             imagen_principal_url: row.get("imagen_principal_url")?,
         })
     }
+
+    pub fn hay_stock(&self) -> bool {
+        self.stock > 0
+    }
+
+    pub fn cambiar_imagen(&mut self, nueva_url: String) {
+        self.imagen_principal_url = Some(nueva_url);
+    }
+    pub fn cambiar_manual(&mut self, nueva_url: String) {
+        self.manual_url = Some(nueva_url);
+    }
+
 }
