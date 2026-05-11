@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 /// Representa un modelo de instrumento en el sistema GIA.
 /// 
 /// - **id**: Entero (i32)
