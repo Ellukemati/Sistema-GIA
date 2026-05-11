@@ -1,6 +1,16 @@
 use rusqlite::{Row, Result as SqlResult};
 
 /// Representa un instrumento segun la tabla `instrumentos`
+use std::str::FromStr;
+
+/// Representa un modelo de instrumento en el sistema GIA.
+/// 
+/// - **id**: Entero (i32)
+/// - **nombre**: Texto
+/// - **descripcion**: Texto (No puede omitirse el campo, aunque puede estar vacío)
+/// - **stock**: Entero (i32)
+/// - **categoria**: Texto
+/// - **disponible**: "true" para disponible, "false" para no disponible
 pub struct Instrumento {
     pub id: i64,
     pub nombre: String,
