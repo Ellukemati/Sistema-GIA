@@ -5,7 +5,30 @@ pub struct AuthService;
 impl AuthService {
 
     pub fn registrar_cuenta(legajo:i32, nombre:String, apellido:String, email:String, tipo:char, password:String,) ->Result<Usuario,String>{
-        //validar mail fiuba, si el usuario ya existe, guardar en bd
+        
+        if !Self::validar_email_fiuba(&email) {
+            return Err(
+                "El email debe pertenecer a FIUBA".to_string()
+            );
+        }
+
+        match UsuarioRepository::buscar_por_email(
+            conn,
+            &email,
+        ) {
+
+            Ok(Some(_)) => {
+                return Err(
+                    "Ya existe un usuario con ese email".to_string()
+                );
+            }
+            Ok(None) => {}
+            Err(_) => {
+                return Err(
+                    "Error consultando usuarios".to_string()
+                );
+            }
+        }
 
     }
 
@@ -17,5 +40,6 @@ impl AuthService {
     pub fn validar_email_fiuba(email: &str) -> bool {
         email.ends_with("@fi.uba.ar")
     }
+    
     
 }
