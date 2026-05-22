@@ -12,7 +12,7 @@ impl UsuarioRepository {
     ) -> SqlResult<Option<Usuario>> {
 
         let mut stmt = conn.prepare(
-            "SELECT * FROM cuentas WHERE email = ?1"
+            "SELECT * FROM usuarios WHERE email = ?1"
         )?;
 
         let mut rows = stmt.query([email])?;
@@ -30,7 +30,7 @@ impl UsuarioRepository {
     ) -> SqlResult<Option<Usuario>> {
 
         let mut stmt = conn.prepare(
-            "SELECT * FROM cuentas WHERE id = ?1"
+            "SELECT * FROM usuarios WHERE id = ?1"
         )?;
 
         let mut rows = stmt.query([id])?;
@@ -48,7 +48,7 @@ impl UsuarioRepository {
     ) -> SqlResult<usize> {
 
         conn.execute(
-            "INSERT INTO cuentas
+            "INSERT INTO usuarios
             (nombre, apellido, email, legajo, tipo, password_hash, imagen)
             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
             rusqlite::params![
@@ -70,7 +70,7 @@ impl UsuarioRepository {
     ) -> SqlResult<usize> {
 
         conn.execute(
-            "UPDATE cuentas
+            "UPDATE usuarios
              SET imagen = ?1
              WHERE id = ?2",
             [imagen, &usuario_id.to_string()],
@@ -83,7 +83,7 @@ impl UsuarioRepository {
     ) -> SqlResult<usize> {
 
         conn.execute(
-            "DELETE FROM cuentas WHERE id = ?1",
+            "DELETE FROM usuarios WHERE id = ?1",
             [usuario_id],
         )
     }
