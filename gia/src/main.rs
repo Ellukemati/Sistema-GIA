@@ -1,8 +1,11 @@
 mod db;
 mod errors;
 mod models;
+mod server;
+mod network;
 
 const DB_PATH: &str = "gia.db";
+const ADDRESS: &str = "0.0.0.0:8080";
 
 fn main() {
     // Inicializar la base de datos
@@ -16,4 +19,7 @@ fn main() {
             return;
         }
     };
+
+    let server = server::Server::new(ADDRESS, _conn);
+    server.run();
 }
