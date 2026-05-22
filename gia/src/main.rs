@@ -4,6 +4,7 @@ mod errors;
 mod models;
 mod server;
 mod network;
+mod handlers;
 
 fn main() {
     // Inicializar la base de datos
