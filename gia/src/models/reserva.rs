@@ -23,10 +23,9 @@ impl Reserva {
             momento_creacion: row.get("momento_creacion")?,
         })
     }
-        /// Edita las fechas de la reserva
-    pub fn editar_fechas(&mut self, nueva_fecha_inicio: String, nueva_fecha_fin: String,) {
+    /// Edita las fechas de la reserva
+    pub fn editar_fechas(&mut self, nueva_fecha_inicio: String, nueva_fecha_fin: String) {
         self.fecha_inicio = nueva_fecha_inicio;
         self.fecha_fin = nueva_fecha_fin;
     }
 }
-
