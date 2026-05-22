@@ -2,6 +2,8 @@ mod constants;
 mod db;
 mod errors;
 mod models;
+mod server;
+mod network;
 
 fn main() {
     // Inicializar la base de datos
@@ -15,4 +17,7 @@ fn main() {
             return;
         }
     };
+
+    let server = server::Server::new(constants::ADDRESS, _conn);
+    server.run();
 }
