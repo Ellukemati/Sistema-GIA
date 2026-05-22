@@ -1,11 +1,9 @@
+use crate::constants::{TIPO_ADMIN, TIPO_ALUMNO, TIPO_PROFESOR};
 use rusqlite::{Result as SqlResult, Row};
-pub const TIPO_ADMIN: &str = "A";
-pub const TIPO_PROFESOR: &str = "P";
-pub const TIPO_ESTUDIANTE: &str = "E";
+
 /// Representa una Usuario segun la tabla `Usuario`
 pub struct Usuario {
-
-    pub id: i64,            // ver si quedarnos con id o legajo como clave primaria
+    pub id: i64,
     pub nombre: String,
     pub apellido: String,
     pub email: String,
@@ -18,15 +16,19 @@ pub struct Usuario {
 
 impl Usuario {
     pub fn from_row(row: &Row) -> SqlResult<Self> {
+        let tipo: String = row.get("tipo")?;
+        debug_assert!(
+            [TIPO_ALUMNO, TIPO_PROFESOR, TIPO_ADMIN].contains(&tipo.as_str()),
+            "tipo de usuario invalido"
+        );
+
         Ok(Usuario {
             id: row.get("id")?,
             nombre: row.get("nombre")?,
-            //segundo_nombre: row.get("segundo_nombre")?,
             apellido: row.get("apellido")?,
-            //segundo_apellido: row.get("segundo_apellido")?,
             email: row.get("email")?,
             legajo: row.get("legajo")?,
-            tipo: row.get("tipo")?,
+            tipo,
             password_hash: row.get("password_hash")?,
             momento_creacion: row.get("momento_creacion")?,
             imagen: row.get("imagen")?,
@@ -45,13 +47,10 @@ impl Usuario {
         self.tipo == TIPO_PROFESOR
     }
 
-    pub fn es_estudiante(&self) -> bool {
-        self.tipo == TIPO_ESTUDIANTE
+    pub fn es_alumno(&self) -> bool {
+        self.tipo == TIPO_ALUMNO
     }
-
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -76,21 +75,22 @@ mod tests {
                 imagen TEXT
             )",
             [],
-        ).unwrap();
+        )
+        .unwrap();
 
         conn.execute(
             "INSERT INTO Usuario (id, nombre, apellido, email, legajo, tipo, password_hash, momento_creacion) 
-             VALUES (1, 'nombre1', 'apellido1', 'napellido1@fi.uba.ar', 12345, 'E', 'hash123', '2026-05-11')",
+             VALUES (1, 'nombre1', 'apellido1', 'napellido1@fi.uba.ar', 12345, 'S', 'hash123', '2026-05-11')",
             [],
         ).unwrap();
 
         let mut stmt = conn.prepare("SELECT * FROM Usuario WHERE id = 1").unwrap();
-        let usuario = stmt.query_row([], |row| Usuario::from_row(row)).unwrap();
+        let usuario = stmt.query_row([], Usuario::from_row).unwrap();
 
         assert_eq!(usuario.nombre, "nombre1");
         assert_eq!(usuario.apellido, "apellido1");
         assert_eq!(usuario.legajo, 12345);
-        assert!(usuario.es_estudiante());
+        assert!(usuario.es_alumno());
         assert_eq!(usuario.nombre_completo(), "nombre1 apellido1");
     }
 }

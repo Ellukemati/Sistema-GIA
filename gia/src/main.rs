@@ -1,17 +1,15 @@
+mod constants;
 mod db;
 mod errors;
 mod models;
 mod server;
 mod network;
 
-const DB_PATH: &str = "gia.db";
-const ADDRESS: &str = "0.0.0.0:8080";
-
 fn main() {
     // Inicializar la base de datos
-    let _conn = match db::init_db(DB_PATH) {
+    let _conn = match db::init_db(constants::DB_PATH) {
         Ok(c) => {
-            println!("✓ Base de datos inicializada correctamente en: {}", DB_PATH);
+            println!("✓ Base de datos inicializada correctamente en: {}", constants::DB_PATH);
             c
         }
         Err(e) => {
@@ -20,6 +18,6 @@ fn main() {
         }
     };
 
-    let server = server::Server::new(ADDRESS, _conn);
+    let server = server::Server::new(constants::ADDRESS, _conn);
     server.run();
 }
