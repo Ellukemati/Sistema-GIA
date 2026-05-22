@@ -21,7 +21,8 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
             legajo INTEGER UNIQUE NOT NULL,
             tipo TEXT NOT NULL CHECK (tipo IN ({})),
             password_hash TEXT NOT NULL,
-            momento_creacion TEXT DEFAULT CURRENT_TIMESTAMP
+            momento_creacion TEXT DEFAULT CURRENT_TIMESTAMP,
+            imagen TEXT
         )",
             tipos_usuario
         ),

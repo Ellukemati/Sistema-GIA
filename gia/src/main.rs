@@ -5,6 +5,8 @@ mod models;
 mod server;
 mod network;
 mod handlers;
+mod repository;
+mod service;
 
 fn main() {
     // Inicializar la base de datos

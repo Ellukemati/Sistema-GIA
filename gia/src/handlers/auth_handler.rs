@@ -8,7 +8,7 @@ pub struct AuthHandler;
 
 impl AuthHandler {
     pub fn mostrar_formulario_registro() -> Response {
-        let html = include_str!("../../templates/registro.html");
+        let html = include_str!("../templates/registro.html");
         Response::html(html)
     }
 
@@ -54,7 +54,6 @@ impl AuthHandler {
         for par in cuerpo.split('&') {
             let mut partes = par.split('=');
             if let (Some(clave), Some(valor)) = (partes.next(), partes.next()) {
-                // Decodificación de URL manual y básica (ej: %40 a @ para los emails)
                 let valor_decodificado = valor
                     .replace("%40", "@")
                     .replace("+", " ");
