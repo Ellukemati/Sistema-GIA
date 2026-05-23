@@ -8,7 +8,7 @@ pub struct AuthHandler;
 
 impl AuthHandler {
     pub fn mostrar_formulario_registro() -> Response {
-        let html = include_str!("../templates/registro.html");
+        let html = include_str!("../../templates/registro.html");
         Response::html(html)
     }
 
@@ -18,10 +18,8 @@ impl AuthHandler {
             let _ = reader.read_to_string(&mut body);
         }
     
-        // deberia llegar algo asi: "nombre=Juan&apellido=Lopez&email=jlo..."
-        let datos_parseados = Self::parsear_formulario_manual(&body);
+        let datos_parseados = Self::parsear_formulario(&body);
 
-        // revisar si se puede extraer los campos asi
         let nombre = datos_parseados.get("nombre").cloned().unwrap_or_default();
         let apellido = datos_parseados.get("apellido").cloned().unwrap_or_default();
         let email = datos_parseados.get("email").cloned().unwrap_or_default();
@@ -46,10 +44,10 @@ impl AuthHandler {
                 Response::html(error_html)
             }
         }
-
     }
 
-    fn parsear_formulario_manual(cuerpo: &str) -> HashMap<String, String> {
+    fn parsear_formulario(cuerpo: &str) -> HashMap<String, String> {
+        // llega asi: "nombre=Juan&apellido=Lopez&email=jlo..."
         let mut mapa = HashMap::new();
         for par in cuerpo.split('&') {
             let mut partes = par.split('=');

@@ -3,7 +3,7 @@ use rouille::{router, Request, Response};
 use rusqlite::Connection;
 use std::sync::{Arc, Mutex};
 
-pub fn handle(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
+pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
     router!(request,
         (GET) (/registro) => {
             AuthHandler::mostrar_formulario_registro()
