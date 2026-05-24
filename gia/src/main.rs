@@ -3,7 +3,10 @@ mod db;
 mod errors;
 mod models;
 mod server;
-mod network;
+mod routes;
+mod handlers;
+mod repository;
+mod service;
 
 fn main() {
     // Inicializar la base de datos
