@@ -10,8 +10,8 @@ pub struct Usuario {
     pub legajo: i32,
     pub tipo: String,
     pub password_hash: String,
-    //pub momento_creacion: String,
-    pub imagen: Option<String>,
+    pub momento_creacion: String,
+    pub avatar_direccion: Option<String>,
 }
 
 impl Usuario {
@@ -30,8 +30,8 @@ impl Usuario {
             legajo: row.get("legajo")?,
             tipo,
             password_hash: row.get("password_hash")?,
-            //momento_creacion: row.get("momento_creacion")?,
-            imagen: row.get("direccion_avatar")?,
+            momento_creacion: row.get("momento_creacion")?,
+            avatar_direccion: row.get("avatar_direccion")?,
         })
     }
 
@@ -39,17 +39,14 @@ impl Usuario {
         format!("{} {}", self.nombre, self.apellido)
     }
 
-    #[allow(dead_code)]
     pub fn es_admin(&self) -> bool {
         self.tipo == TIPO_ADMIN
     }
 
-    #[allow(dead_code)]
     pub fn es_profesor(&self) -> bool {
         self.tipo == TIPO_PROFESOR
     }
 
-    #[allow(dead_code)]
     pub fn es_alumno(&self) -> bool {
         self.tipo == TIPO_ALUMNO
     }
@@ -75,7 +72,7 @@ mod tests {
                 tipo TEXT,
                 password_hash TEXT,
                 momento_creacion TEXT,
-                direccion_avatar TEXT
+                avatar_direccion TEXT
             )",
             [],
         )
