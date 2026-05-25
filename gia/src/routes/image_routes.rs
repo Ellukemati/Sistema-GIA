@@ -1,6 +1,6 @@
 use crate::errors::ImageStorageError;
 use crate::service::image_storage::{
-    eliminar_imagen_por_direccion, guardar_avatar_con_legajo, guardar_imagen_modelo_con_metadata,
+    eliminar_imagen_por_direccion, guardar_avatar_con_legajo, guardar_imagen_modelo,
 };
 use rouille::{Request, Response};
 use rusqlite::Connection;
@@ -89,7 +89,7 @@ fn subir_imagen_modelo_route(
         Err(mensaje) => return Response::text(mensaje).with_status_code(400),
     };
 
-    match guardar_imagen_modelo_con_metadata(modelo, orden_i, &bytes) {
+    match guardar_imagen_modelo(modelo, &bytes) {
         Ok(url) => {
             // Guardar en DB
             match conn.lock() {

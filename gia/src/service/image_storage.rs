@@ -61,23 +61,18 @@ pub fn eliminar_imagen_por_direccion(dir_publica: &str) -> Result<(), ImageStora
 }
 
 pub fn guardar_avatar_con_legajo(legajo: i64, bytes: &[u8]) -> Result<String, ImageStorageError> {
-    guardar_imagen_con_metadata(bytes, ImagenDestino::Avatar, legajo, None)
+    guardar_imagen_con_metadata(bytes, ImagenDestino::Avatar, legajo)
 }
 
-pub fn guardar_imagen_modelo_con_metadata(
-    modelo_id: i64,
-    orden: i32,
-    bytes: &[u8],
-) -> Result<String, ImageStorageError> {
-    guardar_imagen_con_metadata(bytes, ImagenDestino::Modelo, modelo_id, Some(orden))
+pub fn guardar_imagen_modelo(modelo_id: i64, bytes: &[u8]) -> Result<String, ImageStorageError> {
+    guardar_imagen_con_metadata(bytes, ImagenDestino::Modelo, modelo_id)
 }
 
-/// Guarda una imagen perteneciente a un avatar o a un modelo_id y su orden. Devuelve la URL publica relativa
+/// Guarda una imagen perteneciente a un avatar o a un modelo. Devuelve la URL publica relativa.
 fn guardar_imagen_con_metadata(
     bytes: &[u8],
     destino: ImagenDestino,
     entidad_id: i64,
-    orden: Option<i32>,
 ) -> Result<String, ImageStorageError> {
     let base = Path::new(destino.directorio());
 
@@ -94,7 +89,7 @@ fn guardar_imagen_con_metadata(
     let imagen = image::load_from_memory(bytes)?;
     let imagen = redimensionar_si_es_necesario(imagen, destino.max_dimension());
     let tiene_alpha = imagen.color().has_alpha();
-    let nombre = generar_nombre_archivo(tiene_alpha, entidad_id, orden);
+    let nombre = generar_nombre_archivo(tiene_alpha, entidad_id);
     let ruta = target_dir.join(&nombre);
 
     guardar_imagen_segun_alpha(&imagen, tiene_alpha, &ruta)?;
@@ -130,15 +125,12 @@ fn redimensionar_si_es_necesario(imagen: DynamicImage, max_dimension: u32) -> Dy
     }
 }
 
-/// Genera un nombre de archivo unico usando metadata de la entidad a la que pertenece y un UUID
-fn generar_nombre_archivo(tiene_alpha: bool, entidad_id: i64, orden: Option<i32>) -> String {
+/// Genera un nombre de archivo unico usando metadata de la entidad y un UUID.
+/// Formato: {id}_{uuid}.{ext}
+fn generar_nombre_archivo(tiene_alpha: bool, entidad_id: i64) -> String {
     let extension = if tiene_alpha { "png" } else { "jpg" };
     let uuid_part = format!("{}.{}", Uuid::new_v4(), extension);
-
-    match orden {
-        Some(ord) => format!("{}_{}_{}", entidad_id, ord, uuid_part),
-        None => format!("{}_{}", entidad_id, uuid_part),
-    }
+    format!("{}_{}", entidad_id, uuid_part)
 }
 
 /// Guarda la imagen en PNG si tiene canal alpha, o como JPEG optimizado si no lo tiene
