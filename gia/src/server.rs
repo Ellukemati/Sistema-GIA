@@ -1,5 +1,4 @@
-use crate::routes::auth_routes;
-use rouille::Response;
+use crate::routes;
 use rusqlite::Connection;
 use std::sync::{Arc, Mutex};
 
@@ -20,7 +19,7 @@ impl Server {
         println!("Servidor escuchando en {}", self.address);
         let conn = Arc::clone(&self.conn);
         rouille::start_server(&self.address, move |request| {
-            auth_routes::router(request, Arc::clone(&conn))
+            routes::dispatch(request, Arc::clone(&conn))
         });
     }
 }
