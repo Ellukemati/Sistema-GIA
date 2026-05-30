@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>GIA - Registro</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; }
+        form { display: flex; flex-direction: column; gap: 10px; }
+        input, select, button { padding: 8px; }
+        .mensaje { margin-top: 15px; padding: 10px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h2>Registro de modelo de instrumento</h2>
+    
+    <form hx-post="/modelo/registro" hx-target="#resultado">
+        <input type="text" name="marca" placeholder="Marca">
+        <input type="text" name="nombre_modelo" placeholder="Nombre del modelo" required>
+        <input type="text" name="categoria" placeholder="Categoria">
+        <input type="text" name="descripcion" placeholder="Descripcion">
+        <input type="text" name="manual_url" placeholder="URL del manual">
+        <input type="text" name="imagen_principal_url" placeholder="URL de la imagen principal">
+        <button type="submit">Registrar modelo</button>
+    </form>
+
+    <div id="resultado"></div>
+</body>
+</html>
