@@ -22,4 +22,17 @@ impl ModeloInstrumentoRepository {
             ],
         )
     }
+
+    pub fn listar_todos(conn: &Connection) -> SqlResult<Vec<ModeloInstrumento>> {
+        let mut stmt = conn.prepare(
+            "SELECT * FROM modelos_instrumentos ORDER BY nombre_modelo"
+        )?;
+        let filas = stmt.query_map([], ModeloInstrumento::from_row)?;
+
+        let mut modelos = Vec::new();
+        for modelo in filas {
+            modelos.push(modelo?);
+        }
+        Ok(modelos)
+    }
 }
