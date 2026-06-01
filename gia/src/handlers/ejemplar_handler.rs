@@ -33,6 +33,7 @@ impl EjemplarHandler {
     }
 
     pub fn procesar_registro(request: &Request, conn: &Connection) -> Response {
+        /* 
         let email = match request.header("X-Usuario-Email") {
             Some(e) => e,
             None => {
@@ -53,6 +54,7 @@ impl EjemplarHandler {
             return Response::text("El usuario no tiene permisos de administrador")
                 .with_status_code(403);
         }
+        */
 
         let mut body = String::new();
         if let Some(mut reader) = request.data() {
