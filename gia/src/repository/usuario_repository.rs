@@ -5,15 +5,8 @@ use crate::models::usuario::Usuario;
 pub struct UsuarioRepository;
 
 impl UsuarioRepository {
-
-    pub fn buscar_por_email(
-        conn: &Connection,
-        email: &str,
-    ) -> SqlResult<Option<Usuario>> {
-
-        let mut stmt = conn.prepare(
-            "SELECT * FROM usuarios WHERE email = ?1"
-        )?;
+    pub fn buscar_por_email(conn: &Connection, email: &str) -> SqlResult<Option<Usuario>> {
+        let mut stmt = conn.prepare("SELECT * FROM usuarios WHERE email = ?1")?;
 
         let mut rows = stmt.query([email])?;
 
@@ -24,14 +17,8 @@ impl UsuarioRepository {
         }
     }
 
-    pub fn buscar_por_id(
-        conn: &Connection,
-        id: i64,
-    ) -> SqlResult<Option<Usuario>> {
-
-        let mut stmt = conn.prepare(
-            "SELECT * FROM usuarios WHERE id = ?1"
-        )?;
+    pub fn buscar_por_id(conn: &Connection, id: i64) -> SqlResult<Option<Usuario>> {
+        let mut stmt = conn.prepare("SELECT * FROM usuarios WHERE id = ?1")?;
 
         let mut rows = stmt.query([id])?;
 
@@ -42,11 +29,7 @@ impl UsuarioRepository {
         }
     }
 
-    pub fn crear(
-        conn: &Connection,
-        usuario: &Usuario,
-    ) -> SqlResult<usize> {
-
+    pub fn crear(conn: &Connection, usuario: &Usuario) -> SqlResult<usize> {
         conn.execute(
             "INSERT INTO usuarios
             (nombre, apellido, email, legajo, tipo, password_hash, imagen)
@@ -63,12 +46,7 @@ impl UsuarioRepository {
         )
     }
 
-    pub fn actualizar_imagen(
-        conn: &Connection,
-        usuario_id: i64,
-        imagen: &str,
-    ) -> SqlResult<usize> {
-
+    pub fn actualizar_imagen(conn: &Connection, usuario_id: i64, imagen: &str) -> SqlResult<usize> {
         conn.execute(
             "UPDATE usuarios
              SET imagen = ?1
@@ -77,14 +55,7 @@ impl UsuarioRepository {
         )
     }
 
-    pub fn eliminar(
-        conn: &Connection,
-        usuario_id: i64,
-    ) -> SqlResult<usize> {
-
-        conn.execute(
-            "DELETE FROM usuarios WHERE id = ?1",
-            [usuario_id],
-        )
+    pub fn eliminar(conn: &Connection, usuario_id: i64) -> SqlResult<usize> {
+        conn.execute("DELETE FROM usuarios WHERE id = ?1", [usuario_id])
     }
 }

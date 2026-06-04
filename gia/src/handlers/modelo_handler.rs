@@ -1,19 +1,19 @@
-use crate::{models::usuario::Usuario, service::modelo_instrumento_service::ModeloInstrumentoService};
 use crate::repository::usuario_repository::UsuarioRepository;
+use crate::{models::usuario::Usuario, service::modelo_service::ModeloService};
 use rouille::{Request, Response};
 use rusqlite::Connection;
 use std::collections::HashMap;
 use std::io::Read;
-pub struct ModeloInstrumentoHandler;
+pub struct ModeloHandler;
 
-impl ModeloInstrumentoHandler {
+impl ModeloHandler {
     pub fn mostrar_formulario_registro() -> Response {
-        let html = include_str!("../../templates/modelo_instrumento_registro.html");
+        let html = include_str!("../../templates/modelo_registro.html");
         Response::html(html)
     }
-    
+
     pub fn procesar_registro(request: &Request, conn: &Connection) -> Response {
-        /* 
+        /*
         let email = match request.header("X-Usuario-Email") {
             Some(e) => e,
             None => {
@@ -44,17 +44,25 @@ impl ModeloInstrumentoHandler {
         let datos_parseados = Self::parsear_formulario(&body);
 
         let marca = datos_parseados.get("marca").cloned();
-        let nombre_modelo = datos_parseados.get("nombre_modelo").cloned().unwrap_or_default();
+        let modelo = datos_parseados.get("modelo").cloned().unwrap_or_default();
         let categoria = datos_parseados.get("categoria").cloned();
         let descripcion = datos_parseados.get("descripcion").cloned();
         let manual_url = datos_parseados.get("manual_url").cloned();
-        let imagen_principal_url = datos_parseados.get("imagen_principal_url").cloned();
+        let direccion_imagen_principal = datos_parseados.get("direccion_imagen_principal").cloned();
 
-        match ModeloInstrumentoService::crear_modelo_instrumento(conn, marca, nombre_modelo, categoria, descripcion, manual_url, imagen_principal_url) {
+        match ModeloService::crear_modelo(
+            conn,
+            marca,
+            modelo,
+            categoria,
+            descripcion,
+            manual_url,
+            direccion_imagen_principal,
+        ) {
             Ok(modelo) => {
                 let exito_html = format!(
                     "<div style='color:green;'>Modelo {} creado!</div>",
-                    modelo.nombre_modelo
+                    modelo.modelo
                 );
                 Response::html(exito_html)
             }
@@ -71,9 +79,7 @@ impl ModeloInstrumentoHandler {
         for par in cuerpo.split('&') {
             let mut partes = par.split('=');
             if let (Some(clave), Some(valor)) = (partes.next(), partes.next()) {
-                let valor_decodificado = valor
-                    .replace("%40", "@")
-                    .replace("+", " ");
+                let valor_decodificado = valor.replace("%40", "@").replace("+", " ");
                 mapa.insert(clave.to_string(), valor_decodificado);
             }
         }

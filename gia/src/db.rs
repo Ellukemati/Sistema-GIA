@@ -1,7 +1,9 @@
 //! Modulo para manejar la base de datos SQLite
 use crate::constants::{TIPO_ADMIN, TIPO_ALUMNO, TIPO_PROFESOR};
 use crate::errors::DbError;
+use crate::service::image_storage::eliminar_imagen_por_direccion;
 use rusqlite::{Connection, Result as SqlResult};
+use std::collections::HashSet;
 
 /// Inicializa la base de datos y crea las tablas necesarias
 pub fn init_db(db_path: &str) -> SqlResult<Connection> {
@@ -22,7 +24,7 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
             tipo TEXT NOT NULL CHECK (tipo IN ({})),
             password_hash TEXT NOT NULL,
             momento_creacion TEXT DEFAULT CURRENT_TIMESTAMP,
-            imagen TEXT
+            direccion_avatar TEXT
         )",
             tipos_usuario
         ),
@@ -31,14 +33,14 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
 
     // Crear tabla modelos_instrumentos (Catalogo de modelos)
     conn.execute(
-        "CREATE TABLE IF NOT EXISTS modelos_instrumentos (
+        "CREATE TABLE IF NOT EXISTS modelos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             marca TEXT NOT NULL,
             nombre_modelo TEXT NOT NULL,
             categoria TEXT,
             descripcion TEXT,
             manual_url TEXT,
-            imagen_principal_url TEXT
+            direccion_imagen_principal TEXT
         )",
         [],
     )?;
@@ -48,9 +50,9 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
         "CREATE TABLE IF NOT EXISTS modelo_imagen (
             modelo_id INTEGER NOT NULL,
             orden INTEGER NOT NULL, -- Orden de la imagen (0 = principal, 1, 2, ...)
-            imagen_url TEXT NOT NULL,
+            direccion_imagen TEXT NOT NULL,
             PRIMARY KEY (modelo_id, orden),
-            FOREIGN KEY (modelo_id) REFERENCES modelos_instrumentos(id) ON DELETE CASCADE
+            FOREIGN KEY (modelo_id) REFERENCES modelos(id) ON DELETE CASCADE
         )",
         [],
     )?;
@@ -64,9 +66,23 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
             codigo_qr TEXT UNIQUE,
             patrimonio TEXT UNIQUE,
             observaciones TEXT,
+            accesorios TEXT,
             esta_disponible BOOLEAN DEFAULT TRUE,
             ubicacion TEXT,
-            FOREIGN KEY (modelo_id) REFERENCES modelos_instrumentos(id) ON DELETE RESTRICT
+            direccion_imagen_principal TEXT,
+            FOREIGN KEY (modelo_id) REFERENCES modelos(id) ON DELETE RESTRICT
+        )",
+        [],
+    )?;
+
+    // Crear tabla para las imagenes asociadas a un ejemplar
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS ejemplar_imagen (
+            ejemplar_id INTEGER NOT NULL,
+            orden INTEGER NOT NULL, -- Orden de la imagen (0 = principal, 1, 2, ...)
+            direccion_imagen TEXT NOT NULL,
+            PRIMARY KEY (ejemplar_id, orden),
+            FOREIGN KEY (ejemplar_id) REFERENCES ejemplares(id) ON DELETE CASCADE
         )",
         [],
     )?;
@@ -88,7 +104,7 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
 
     // Crear tabla intermedia para relacionar reservas con ejemplares (sin cantidades)
     conn.execute(
-        "CREATE TABLE IF NOT EXISTS reserva_instrumentos (
+        "CREATE TABLE IF NOT EXISTS reserva_ejemplar (
             reserva_id INTEGER NOT NULL,
             ejemplar_id INTEGER NOT NULL,
             PRIMARY KEY (reserva_id, ejemplar_id),
@@ -123,7 +139,7 @@ pub fn insert_cuenta(
 
 /// Inserta un instrumento y sus imagenes asociadas de forma atomica
 /// Las imagenes son opcionales. Si se proporcionan, la primera se usa como principal
-pub fn insert_modelo_instrumento(
+pub fn insert_modelo(
     conn: &mut Connection,
     marca: &str,
     nombre_modelo: &str,
@@ -135,9 +151,9 @@ pub fn insert_modelo_instrumento(
     let tx = conn.transaction()?;
     let imagen_principal = imagenes.first().map(|s| s.as_str());
 
-    // Insertar el modelo en la tabla modelos_instrumentos
+    // Insertar el modelo en la tabla modelos
     tx.execute(
-        "INSERT INTO modelos_instrumentos (marca, nombre_modelo, descripcion, categoria, manual_url, imagen_principal_url)
+        "INSERT INTO modelos (marca, modelo, descripcion, categoria, manual_url, direccion_imagen_principal)
          VALUES (?, ?, ?, ?, ?, ?)",
         rusqlite::params![marca, nombre_modelo, descripcion, categoria, manual_url, imagen_principal],
     )?;
@@ -147,7 +163,7 @@ pub fn insert_modelo_instrumento(
     // Insertar las imagenes en orden en la tabla modelo_imagen
     for (i, ruta) in imagenes.iter().enumerate() {
         tx.execute(
-            "INSERT INTO modelo_imagen (modelo_id, orden, imagen_url)
+            "INSERT INTO modelo_imagen (modelo_id, orden, direccion_imagen)
              VALUES (?, ?, ?)",
             rusqlite::params![modelo_id, i as i32, ruta],
         )?;
@@ -158,7 +174,7 @@ pub fn insert_modelo_instrumento(
 }
 
 /// Actualiza un instrumento y reemplaza su galeria de imagenes
-pub struct ModeloInstrumentoUpdate<'a> {
+pub struct ModeloUpdate<'a> {
     pub id: i64,
     pub marca: &'a str,
     pub nombre_modelo: &'a str,
@@ -168,16 +184,13 @@ pub struct ModeloInstrumentoUpdate<'a> {
     pub nuevas_imagenes: &'a [String],
 }
 
-pub fn update_modelo_instrumento(
-    conn: &mut Connection,
-    data: ModeloInstrumentoUpdate<'_>,
-) -> Result<(), DbError> {
+pub fn update_modelo(conn: &mut Connection, data: ModeloUpdate<'_>) -> Result<(), DbError> {
     let tx = conn.transaction()?;
     let imagen_principal = data.nuevas_imagenes.first().map(|s| s.as_str());
 
     tx.execute(
-        "UPDATE modelos_instrumentos
-         SET marca = ?, nombre_modelo = ?, descripcion = ?, categoria = ?, manual_url = ?, imagen_principal_url = ?
+        "UPDATE modelos
+         SET marca = ?, modelo = ?, descripcion = ?, categoria = ?, manual_url = ?, direccion_imagen_principal = ?
          WHERE id = ?",
         rusqlite::params![
             data.marca,
@@ -194,8 +207,8 @@ pub fn update_modelo_instrumento(
 
     for (orden, ruta) in data.nuevas_imagenes.iter().enumerate() {
         tx.execute(
-            "INSERT INTO modelo_imagen (modelo_id, orden, imagen_url)
-             VALUES (?, ?, ?)",
+            "INSERT INTO modelo_imagen (modelo_id, orden, direccion_imagen)
+                 VALUES (?, ?, ?)",
             rusqlite::params![data.id, orden as i32, ruta],
         )?;
     }
@@ -227,6 +240,128 @@ pub fn insert_reserva(
     transaction.commit()?;
 
     Ok(reserva_id)
+}
+
+/// Datos para insertar un ejemplar junto con sus imagenes de galeria.
+pub struct EjemplarInsert<'a> {
+    pub modelo_id: i64,
+    pub numero_serie: Option<&'a str>,
+    pub codigo_qr: Option<&'a str>,
+    pub patrimonio: Option<&'a str>,
+    pub observaciones: Option<&'a str>,
+    pub accesorios: Option<&'a str>,
+    pub esta_disponible: bool,
+    pub ubicacion: Option<&'a str>,
+    pub imagenes: &'a [String],
+}
+
+/// Inserta un ejemplar y sus imagenes de forma atomica.
+pub fn insert_ejemplar(conn: &mut Connection, data: EjemplarInsert<'_>) -> Result<i64, DbError> {
+    let tx = conn.transaction()?;
+    let imagen_principal = data.imagenes.first().map(|s| s.as_str());
+
+    tx.execute(
+        "INSERT INTO ejemplares (
+            modelo_id, numero_serie, codigo_qr, patrimonio, observaciones,
+            accesorios, esta_disponible, ubicacion, direccion_imagen_principal
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        rusqlite::params![
+            data.modelo_id,
+            data.numero_serie,
+            data.codigo_qr,
+            data.patrimonio,
+            data.observaciones,
+            data.accesorios,
+            data.esta_disponible,
+            data.ubicacion,
+            imagen_principal,
+        ],
+    )?;
+
+    let ejemplar_id = tx.last_insert_rowid();
+
+    for (orden, ruta) in data.imagenes.iter().enumerate() {
+        tx.execute(
+            "INSERT INTO imagen_ejemplar (ejemplar_id, orden, imagen_direccion)
+             VALUES (?, ?, ?)",
+            rusqlite::params![ejemplar_id, orden as i32, ruta],
+        )?;
+    }
+
+    tx.commit()?;
+    Ok(ejemplar_id)
+}
+
+/// Datos para actualizar un ejemplar y reemplazar su galeria de imagenes.
+pub struct EjemplarUpdate<'a> {
+    pub id: i64,
+    pub modelo_id: i64,
+    pub numero_serie: Option<&'a str>,
+    pub codigo_qr: Option<&'a str>,
+    pub patrimonio: Option<&'a str>,
+    pub observaciones: Option<&'a str>,
+    pub accesorios: Option<&'a str>,
+    pub esta_disponible: bool,
+    pub ubicacion: Option<&'a str>,
+    pub imagenes: &'a [String],
+}
+
+/// Actualiza un ejemplar y reemplaza sus imagenes asociadas.
+pub fn update_ejemplar(conn: &mut Connection, data: EjemplarUpdate<'_>) -> Result<(), DbError> {
+    let tx = conn.transaction()?;
+
+    let imagenes_previas = {
+        let mut stmt =
+            tx.prepare("SELECT imagen_direccion FROM imagen_ejemplar WHERE ejemplar_id = ?1")?;
+        stmt.query_map([data.id], |row| row.get::<_, String>(0))?
+            .collect::<Result<Vec<_>, _>>()?
+    };
+
+    tx.execute(
+        "DELETE FROM imagen_ejemplar WHERE ejemplar_id = ?",
+        [data.id],
+    )?;
+
+    let imagen_principal = data.imagenes.first().map(|s| s.as_str());
+
+    tx.execute(
+        "UPDATE ejemplares
+         SET modelo_id = ?, numero_serie = ?, codigo_qr = ?, patrimonio = ?, observaciones = ?,
+             accesorios = ?, esta_disponible = ?, ubicacion = ?, direccion_imagen_principal = ?
+         WHERE id = ?",
+        rusqlite::params![
+            data.modelo_id,
+            data.numero_serie,
+            data.codigo_qr,
+            data.patrimonio,
+            data.observaciones,
+            data.accesorios,
+            data.esta_disponible,
+            data.ubicacion,
+            imagen_principal,
+            data.id,
+        ],
+    )?;
+
+    for (orden, ruta) in data.imagenes.iter().enumerate() {
+        tx.execute(
+            "INSERT INTO imagen_ejemplar (ejemplar_id, orden, imagen_direccion)
+             VALUES (?, ?, ?)",
+            rusqlite::params![data.id, orden as i32, ruta],
+        )?;
+    }
+
+    tx.commit()?;
+
+    let nuevas_direcciones: HashSet<&str> =
+        data.imagenes.iter().map(|ruta| ruta.as_str()).collect();
+    for direccion in imagenes_previas {
+        if !nuevas_direcciones.contains(direccion.as_str()) {
+            let _ = eliminar_imagen_por_direccion(&direccion);
+        }
+    }
+
+    Ok(())
 }
 
 /// Asocia varios instrumentos a una reserva existente

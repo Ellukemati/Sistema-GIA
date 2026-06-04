@@ -1,5 +1,5 @@
 use crate::handlers::ejemplar_handler::EjemplarHandler;
-use rouille::{router, Request, Response};
+use rouille::{Request, Response, router};
 use rusqlite::Connection;
 use std::sync::{Arc, Mutex};
 

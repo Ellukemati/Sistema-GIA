@@ -4,7 +4,7 @@ use rusqlite::{Result as SqlResult, Row};
 pub struct ModeloImagen {
     pub modelo_id: i64,
     pub orden: i32,
-    pub imagen_url: String,
+    pub direccion_imagen: String,
 }
 
 impl ModeloImagen {
@@ -12,7 +12,7 @@ impl ModeloImagen {
         Ok(ModeloImagen {
             modelo_id: row.get("modelo_id")?,
             orden: row.get("orden")?,
-            imagen_url: row.get("imagen_url")?,
+            direccion_imagen: row.get("direccion_imagen")?,
         })
     }
 }

@@ -8,8 +8,10 @@ pub struct Ejemplar {
     pub codigo_qr: Option<String>,
     pub patrimonio: Option<String>,
     pub observaciones: Option<String>,
+    pub accesorios: Option<String>,
     pub esta_disponible: bool,
     pub ubicacion: Option<String>,
+    pub direccion_imagen_principal: Option<String>,
 }
 
 impl Ejemplar {
@@ -23,8 +25,10 @@ impl Ejemplar {
             codigo_qr: row.get("codigo_qr")?,
             patrimonio: row.get("patrimonio")?,
             observaciones: row.get("observaciones")?,
+            accesorios: row.get("accesorios")?,
             esta_disponible: disponible != 0,
             ubicacion: row.get("ubicacion")?,
+            direccion_imagen_principal: row.get("direccion_imagen_principal")?,
         })
     }
 }

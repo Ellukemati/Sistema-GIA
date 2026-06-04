@@ -1,13 +1,9 @@
 use crate::handlers::reserva_handler::ReservaHandler;
-use rouille::{router, Request, Response};
+use rouille::{Request, Response, router};
 use rusqlite::Connection;
 use std::sync::{Arc, Mutex};
 
-pub fn router(
-    request: &Request,
-    conn: Arc<Mutex<Connection>>,
-) -> Response {
-
+pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
     router!(request,
 
         (GET) (/reservas/nueva) => {
