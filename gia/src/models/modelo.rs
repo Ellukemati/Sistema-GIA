@@ -1,6 +1,6 @@
 use rusqlite::{Result as SqlResult, Row};
 
-/// Representa un modelo de instrumento en la tabla `modelos` (antes `modelos_instrumentos`).
+/// Representa un modelo de instrumento en la tabla `modelos`
 pub struct Modelo {
     pub id: i64,
     pub marca: Option<String>,
@@ -17,7 +17,7 @@ impl Modelo {
         Ok(Modelo {
             id: row.get("id")?,
             marca: row.get::<_, Option<String>>("marca")?,
-            modelo: row.get("nombre_modelo")?,
+            modelo: row.get("modelo")?,
             categoria: row.get::<_, Option<String>>("categoria")?,
             descripcion: row.get("descripcion")?,
             manual_url: row.get("manual_url")?,
@@ -25,10 +25,10 @@ impl Modelo {
         })
     }
 
-    // pub fn cambiar_imagen(&mut self, nueva_direccion: String) {
-    //     self.direccion_imagen_principal = Some(nueva_direccion);
-    // }
-    // pub fn cambiar_manual(&mut self, nueva_url: String) {
-    //     self.manual_url = Some(nueva_url);
-    // }
+    pub fn cambiar_direccion_imagen_principal(&mut self, nueva_url: String) {
+        self.direccion_imagen_principal = Some(nueva_url);
+    }
+    pub fn cambiar_manual(&mut self, nueva_url: String) {
+        self.manual_url = Some(nueva_url);
+    }
 }

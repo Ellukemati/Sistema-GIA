@@ -114,7 +114,7 @@ fn subir_imagen_modelo_route(
 
                     if orden_i == 0
                         && let Err(e) = conn_ref.execute(
-                            "UPDATE modelos_instrumentos SET imagen_principal_direccion = ?1 WHERE id = ?2",
+                            "UPDATE modelos SET imagen_principal_direccion = ?1 WHERE id = ?2",
                             params![url.clone(), modelo],
                         )
                     {

@@ -1,7 +1,8 @@
-pub mod ejemplar;
-pub mod ejemplar_imagen;
+pub mod usuario;
 pub mod modelo;
-pub mod modelo_imagen;
+pub mod imagen_modelo;
+pub mod ejemplar;
+pub mod imagen_ejemplar;
 pub mod reserva;
 pub mod reserva_instrumento;
 pub mod sesion;
