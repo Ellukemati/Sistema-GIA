@@ -36,7 +36,7 @@ impl AuthService {
             email: email.clone(),
             tipo: tipo.to_string(),
             password_hash,
-            momento_creacion: String::new(), // se asigna en la db
+            //momento_creacion: String::new(), // se asigna en la db
             imagen: None,
         };
 
@@ -53,6 +53,7 @@ impl AuthService {
         }
     }
 
+    #[allow(dead_code)]
     pub fn login(conn: &Connection, email: &str, password: &str) -> Result<Usuario, String> {
         match UsuarioRepository::buscar_por_email(conn, email) {
             Ok(Some(usuario)) => {

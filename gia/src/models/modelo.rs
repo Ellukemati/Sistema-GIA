@@ -25,10 +25,10 @@ impl Modelo {
         })
     }
 
-    pub fn cambiar_imagen(&mut self, nueva_direccion: String) {
-        self.direccion_imagen_principal = Some(nueva_direccion);
-    }
-    pub fn cambiar_manual(&mut self, nueva_url: String) {
-        self.manual_url = Some(nueva_url);
-    }
+    // pub fn cambiar_imagen(&mut self, nueva_direccion: String) {
+    //     self.direccion_imagen_principal = Some(nueva_direccion);
+    // }
+    // pub fn cambiar_manual(&mut self, nueva_url: String) {
+    //     self.manual_url = Some(nueva_url);
+    // }
 }

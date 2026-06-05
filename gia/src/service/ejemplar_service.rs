@@ -17,16 +17,16 @@ pub struct CrearEjemplarData {
 impl EjemplarService {
     pub fn crear_ejemplar(conn: &Connection, data: CrearEjemplarData) -> Result<Ejemplar, String> {
         let ejemplar = Ejemplar {
-            id: 0, // se asigna en la db
+            //id: 0, // se asigna en la db
             modelo_id: data.modelo_id,
             numero_serie: data.numero_serie,
             codigo_qr: data.codigo_qr,
             patrimonio: data.patrimonio,
             observaciones: data.observaciones,
-            accesorios: None,
+            //accesorios: None,
             esta_disponible: data.esta_disponible,
             ubicacion: data.ubicacion,
-            direccion_imagen_principal: None,
+            //direccion_imagen_principal: None,
         };
 
         match EjemplarRepository::crear(conn, &ejemplar) {

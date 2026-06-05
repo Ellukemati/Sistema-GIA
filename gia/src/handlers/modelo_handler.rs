@@ -1,5 +1,4 @@
-use crate::repository::usuario_repository::UsuarioRepository;
-use crate::{models::usuario::Usuario, service::modelo_service::ModeloService};
+use crate::service::modelo_service::ModeloService;
 use rouille::{Request, Response};
 use rusqlite::Connection;
 use std::collections::HashMap;
