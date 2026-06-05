@@ -1,25 +1,20 @@
 use crate::models::usuario::Usuario;
 use crate::repository::usuario_repository::UsuarioRepository;
 use rusqlite::Connection;
-
 pub struct AuthService;
 
 impl AuthService {
-
     pub fn registrar_cuenta(
         conn: &Connection, // Agrego conexión
         legajo: i32,
         nombre: String,
         apellido: String,
         email: String,
-        tipo: &str, // asi esta en las constantes (&str) 
+        tipo: &str, // asi esta en las constantes (&str)
         password: &str,
     ) -> Result<Usuario, String> {
-        
         if !Self::validar_email_fiuba(&email) {
-            return Err(
-                "El email debe pertenecer a FIUBA".to_string()
-            );
+            return Err("El email debe pertenecer a FIUBA".to_string());
         }
 
         // Verificar que el usuario no exista
@@ -76,17 +71,15 @@ impl AuthService {
         email.ends_with("@fi.uba.ar")
     }
 
+    // Metodos auxiliares
 
-    
-// Metodos auxiliares
-
-// Aca podriamos usar un crate, por ahora queda asi
-fn hashear_password(password: &str) -> String {
+    // Aca podriamos usar un crate, por ahora queda asi
+    fn hashear_password(password: &str) -> String {
         // TODO: Implementar algoritmo real
-        format!("hash_{}", password) 
+        format!("hash_{}", password)
     }
 
-fn verificar_password(password: &str, hash_guardado: &str) -> bool {
+    fn verificar_password(password: &str, hash_guardado: &str) -> bool {
         let hash_calculado = Self::hashear_password(password);
         hash_calculado == hash_guardado
     }

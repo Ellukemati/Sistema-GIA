@@ -1,32 +1,32 @@
-use crate::models::modelo_instrumento::ModeloInstrumento;
-use crate::repository::modelo_instrumento_repository::ModeloInstrumentoRepository;
+use crate::models::modelo::Modelo;
+use crate::repository::modelo_repository::ModeloRepository;
 use rusqlite::Connection;
 
-pub struct ModeloInstrumentoService;
+pub struct ModeloService;
 
-impl ModeloInstrumentoService {
-    pub fn crear_modelo_instrumento(
+impl ModeloService {
+    pub fn crear_modelo(
         conn: &Connection, // Agrego conexión
         marca: Option<String>,
-        nombre_modelo: String,
+        modelo: String,
         categoria: Option<String>,
         descripcion: Option<String>,
         manual_url: Option<String>,
-        imagen_principal_url: Option<String>,
-    ) -> Result<ModeloInstrumento, String> {
+        direccion_imagen_principal: Option<String>,
+    ) -> Result<Modelo, String> {
         //validar que el usuario sea admin
 
-        let modelo = ModeloInstrumento {
+        let modelo = Modelo {
             id: 0, // se asigna en la db
             marca,
-            nombre_modelo,
+            modelo,
             categoria,
             descripcion,
             manual_url,
-            imagen_principal_url,
+            direccion_imagen_principal,
         };
 
-        match ModeloInstrumentoRepository::crear(conn, &modelo) {
+        match ModeloRepository::crear(conn, &modelo) {
             Ok(_) => Ok(modelo), //en el futuro, deberia buscar el modelo y retornarlo
             Err(e) => Err(format!("Error en la base de datos al crear modelo: {}", e)),
         }

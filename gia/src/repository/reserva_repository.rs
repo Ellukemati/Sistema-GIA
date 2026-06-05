@@ -4,10 +4,7 @@ use rusqlite::{Connection, Result as SqlResult};
 pub struct ReservaRepository;
 
 impl ReservaRepository {
-    pub fn crear(
-        conn: &Connection,
-        reserva: &Reserva,
-    ) -> SqlResult<usize> {
+    pub fn crear(conn: &Connection, reserva: &Reserva) -> SqlResult<usize> {
         conn.execute(
             "INSERT INTO reservas
             (id_usuario, fecha_inicio, fecha_fin, estado, motivo)
@@ -22,17 +19,10 @@ impl ReservaRepository {
         )
     }
 
-    pub fn buscar_por_id(
-        conn: &Connection,
-        id: i64,
-    ) -> SqlResult<Option<Reserva>> {
-        let mut stmt =
-            conn.prepare("SELECT * FROM reservas WHERE id = ?1")?;
+    pub fn buscar_por_id(conn: &Connection, id: i64) -> SqlResult<Option<Reserva>> {
+        let mut stmt = conn.prepare("SELECT * FROM reservas WHERE id = ?1")?;
 
-        let resultado = stmt.query_row(
-            [id],
-            Reserva::from_row,
-        );
+        let resultado = stmt.query_row([id], Reserva::from_row);
 
         match resultado {
             Ok(reserva) => Ok(Some(reserva)),
@@ -41,19 +31,15 @@ impl ReservaRepository {
         }
     }
 
-    pub fn listar_por_usuario(
-        conn: &Connection,
-        usuario_id: i64,
-    ) -> SqlResult<Vec<Reserva>> {
+    pub fn listar_por_usuario(conn: &Connection, usuario_id: i64) -> SqlResult<Vec<Reserva>> {
         let mut stmt = conn.prepare(
             "SELECT *
              FROM reservas
              WHERE id_usuario = ?1
-             ORDER BY fecha_inicio"
+             ORDER BY fecha_inicio",
         )?;
 
-        let filas =
-            stmt.query_map([usuario_id], Reserva::from_row)?;
+        let filas = stmt.query_map([usuario_id], Reserva::from_row)?;
 
         let mut reservas = Vec::new();
 
@@ -64,10 +50,7 @@ impl ReservaRepository {
         Ok(reservas)
     }
 
-    pub fn cancelar(
-        conn: &Connection,
-        reserva_id: i64,
-    ) -> SqlResult<usize> {
+    pub fn cancelar(conn: &Connection, reserva_id: i64) -> SqlResult<usize> {
         conn.execute(
             "UPDATE reservas
              SET estado = 'cancelada'
@@ -76,18 +59,14 @@ impl ReservaRepository {
         )
     }
 
-    pub fn listar_todas(
-        conn: &Connection,
-    ) -> SqlResult<Vec<Reserva>> {
-        let mut stmt =
-            conn.prepare(
-                "SELECT *
+    pub fn listar_todas(conn: &Connection) -> SqlResult<Vec<Reserva>> {
+        let mut stmt = conn.prepare(
+            "SELECT *
                  FROM reservas
-                 ORDER BY fecha_inicio"
-            )?;
+                 ORDER BY fecha_inicio",
+        )?;
 
-        let filas =
-            stmt.query_map([], Reserva::from_row)?;
+        let filas = stmt.query_map([], Reserva::from_row)?;
 
         let mut reservas = Vec::new();
 

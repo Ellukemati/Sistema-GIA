@@ -1,7 +1,7 @@
 use crate::models::usuario::Usuario;
-use crate::repository::modelo_instrumento_repository::ModeloInstrumentoRepository;
+use crate::repository::modelo_repository::ModeloRepository;
 use crate::repository::usuario_repository::UsuarioRepository;
-use crate::service::ejemplar_service::EjemplarService;
+use crate::service::ejemplar_service::{CrearEjemplarData, EjemplarService};
 use rouille::{Request, Response};
 use rusqlite::Connection;
 use std::collections::HashMap;
@@ -11,11 +11,11 @@ pub struct EjemplarHandler;
 
 impl EjemplarHandler {
     pub fn mostrar_formulario_registro(conn: &Connection) -> Response {
-        let modelos = match ModeloInstrumentoRepository::listar_todos(conn) {
+        let modelos = match ModeloRepository::listar_todos(conn) {
             Ok(m) => m,
             Err(e) => {
                 return Response::text(format!("Error al listar modelos: {}", e))
-                    .with_status_code(500)
+                    .with_status_code(500);
             }
         };
 
@@ -23,7 +23,7 @@ impl EjemplarHandler {
         for modelo in modelos {
             opciones.push_str(&format!(
                 "<option value=\"{}\">{}</option>",
-                modelo.id, modelo.nombre_modelo
+                modelo.id, modelo.modelo
             ));
         }
 
@@ -33,7 +33,7 @@ impl EjemplarHandler {
     }
 
     pub fn procesar_registro(request: &Request, conn: &Connection) -> Response {
-        /* 
+        /*
         let email = match request.header("X-Usuario-Email") {
             Some(e) => e,
             None => {
@@ -69,7 +69,7 @@ impl EjemplarHandler {
         {
             Some(id) => id,
             None => {
-                return Response::text("Debe seleccionar un modelo valido").with_status_code(400)
+                return Response::text("Debe seleccionar un modelo valido").with_status_code(400);
             }
         };
 
@@ -83,8 +83,7 @@ impl EjemplarHandler {
             .map(|v| v == "true")
             .unwrap_or(true);
 
-        match EjemplarService::crear_ejemplar(
-            conn,
+        let data = CrearEjemplarData {
             modelo_id,
             numero_serie,
             codigo_qr,
@@ -92,7 +91,9 @@ impl EjemplarHandler {
             observaciones,
             esta_disponible,
             ubicacion,
-        ) {
+        };
+
+        match EjemplarService::crear_ejemplar(conn, data) {
             Ok(ejemplar) => {
                 let exito_html = format!(
                     "<div style='color:green;'>Ejemplar creado para el modelo {}!</div>",
@@ -121,9 +122,7 @@ impl EjemplarHandler {
         for par in body.split('&') {
             let mut partes = par.split('=');
             if let (Some(clave), Some(valor)) = (partes.next(), partes.next()) {
-                let valor_decodificado = valor
-                    .replace("%40", "@")
-                    .replace("+", " ");
+                let valor_decodificado = valor.replace("%40", "@").replace("+", " ");
                 mapa.insert(clave.to_string(), valor_decodificado);
             }
         }
