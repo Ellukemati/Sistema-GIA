@@ -110,5 +110,34 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
         )",
         [],
     )?;
+
+    // Crear tabla sesiones
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS sesiones (
+            token TEXT PRIMARY KEY,
+            usuario_id INTEGER NOT NULL,
+            momento_creacion TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+        )",
+        [],
+    )?;
+
+    // Creacion de un admin por defecto
+    // Revisar si ya existe algún admin para no duplicarlo si reiniciamos el server
+    let admin_count: i32 = conn.query_row(
+        "SELECT COUNT(*) FROM usuarios WHERE tipo = ?1",
+        [TIPO_ADMIN],
+        |row| row.get::<_, i32>(0),
+    )?;
+
+    if admin_count == 0 {
+        conn.execute(
+            "INSERT INTO usuarios (nombre, apellido, email, legajo, tipo, password_hash)
+             VALUES ('Admin', 'Maestro', 'admin@fi.uba.ar', 0, ?1, 'hash_admin123')",
+            [TIPO_ADMIN],
+        )?;
+        println!("✓ Admin maestro creado exitosamente (Email: admin@fi.uba.ar | Clave: admin123)");
+    }
+
     Ok(conn)
 }
