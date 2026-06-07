@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>GIA - Iniciar Sesión</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; }
+        form { display: flex; flex-direction: column; gap: 10px; }
+        input, button { padding: 8px; }
+        .mensaje { margin-top: 15px; padding: 10px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h2>Iniciar Sesión</h2>
+    
+    <form hx-post="/login" hx-target="#resultado">
+        <input type="email" name="email" placeholder="Email (@fi.uba.ar)" required>
+        <input type="password" name="password" placeholder="Contraseña" required>
+        
+        <button type="submit">Ingresar</button>
+    </form>
+
+    <div id="resultado"></div>
+</body>
+</html>

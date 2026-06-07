@@ -31,7 +31,7 @@ impl Usuario {
             tipo,
             password_hash: row.get("password_hash")?,
             //momento_creacion: row.get("momento_creacion")?,
-            imagen: row.get("imagen")?,
+            imagen: row.get("direccion_avatar")?,
         })
     }
 

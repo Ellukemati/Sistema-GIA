@@ -1,5 +1,6 @@
-use rustsqlite::{Result as SqlResult, Row};
+use rusqlite::{Result as SqlResult, Row};
 
+#[allow(dead_code)]
 /// Representa una sesion activa en la tabla `sesiones`
 pub struct Sesion {
     pub token: String,

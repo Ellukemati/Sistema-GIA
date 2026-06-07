@@ -51,7 +51,7 @@ impl UsuarioRepository {
     pub fn actualizar_imagen(conn: &Connection, usuario_id: i64, imagen: &str) -> SqlResult<usize> {
         conn.execute(
             "UPDATE usuarios
-             SET imagen = ?1
+             SET direccion_avatar = ?1
              WHERE id = ?2",
             [imagen, &usuario_id.to_string()],
         )

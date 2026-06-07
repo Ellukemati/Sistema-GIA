@@ -17,7 +17,7 @@ impl Modelo {
         Ok(Modelo {
             id: row.get("id")?,
             marca: row.get::<_, Option<String>>("marca")?,
-            modelo: row.get("modelo")?,
+            modelo: row.get("nombre_modelo")?,
             categoria: row.get::<_, Option<String>>("categoria")?,
             descripcion: row.get("descripcion")?,
             manual_url: row.get("manual_url")?,
