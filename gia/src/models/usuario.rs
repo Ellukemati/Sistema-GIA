@@ -75,7 +75,7 @@ mod tests {
                 tipo TEXT,
                 password_hash TEXT,
                 momento_creacion TEXT,
-                imagen TEXT
+                direccion_avatar TEXT
             )",
             [],
         )
