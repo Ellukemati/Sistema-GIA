@@ -17,7 +17,7 @@ pub struct CrearEjemplarData {
 impl EjemplarService {
     pub fn crear_ejemplar(conn: &Connection, data: CrearEjemplarData) -> Result<Ejemplar, String> {
         let ejemplar = Ejemplar {
-            //id: 0, // se asigna en la db
+            id: 0, // se asigna en la db
             modelo_id: data.modelo_id,
             numero_serie: data.numero_serie,
             codigo_qr: data.codigo_qr,

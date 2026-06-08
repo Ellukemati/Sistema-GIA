@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Reserva de Ejemplares</title>
+</head>
+
+<body>
+
+    <h1>
+        Ejemplares de {{nombre_modelo}}
+    </h1>
+
+    <form
+        method="POST"
+        action="/reservas/nueva">
+
+        <input
+            type="number"
+            name="usuario_id"
+            placeholder="ID Usuario"
+            required>
+
+        <br><br>
+
+        {{ejemplares}}
+
+        <br>
+
+        <input
+            type="date"
+            name="fecha_inicio"
+            required>
+
+        <input
+            type="date"
+            name="fecha_fin"
+            required>
+
+        <br><br>
+
+        <input
+            type="text"
+            name="motivo"
+            placeholder="Motivo">
+
+        <br><br>
+
+        <button type="submit">
+            Reservar
+        </button>
+
+    </form>
+
+</body>
+
+</html>

@@ -2,7 +2,7 @@ use rusqlite::{Result as SqlResult, Row};
 
 /// Representa un ejemplar en la tabla `ejemplares`
 pub struct Ejemplar {
-    //pub id: i64,
+    pub id: i64,
     pub modelo_id: i64,
     pub numero_serie: Option<String>,
     pub codigo_qr: Option<String>,
@@ -20,7 +20,7 @@ impl Ejemplar {
         // la columna `esta_disponible` puede estar guardada como 0/1 al ser boolean en la BDD, por eso la convertimos a bool
         let disponible: i32 = row.get("esta_disponible")?;
         Ok(Ejemplar {
-            //id: row.get("id")?,
+            id: row.get("id")?,
             modelo_id: row.get("modelo_id")?,
             numero_serie: row.get("numero_serie")?,
             codigo_qr: row.get("codigo_qr")?,
