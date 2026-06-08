@@ -1,6 +1,9 @@
 use crate::models::usuario::Usuario;
+use crate::repository::sesion_repository::SesionRepository;
 use crate::repository::usuario_repository::UsuarioRepository;
 use rusqlite::Connection;
+use std::time::{SystemTime, UNIX_EPOCH};
+
 pub struct AuthService;
 
 impl AuthService {
@@ -36,7 +39,7 @@ impl AuthService {
             email: email.clone(),
             tipo: tipo.to_string(),
             password_hash,
-            momento_creacion: String::new(), // se asigna en la db
+            //momento_creacion: String::new(), // se asigna en la db
             imagen: None,
         };
 
@@ -53,11 +56,26 @@ impl AuthService {
         }
     }
 
-    pub fn login(conn: &Connection, email: &str, password: &str) -> Result<Usuario, String> {
+    #[allow(dead_code)]
+    pub fn login(
+        conn: &Connection,
+        email: &str,
+        password: &str,
+    ) -> Result<(Usuario, String), String> {
         match UsuarioRepository::buscar_por_email(conn, email) {
             Ok(Some(usuario)) => {
                 if Self::verificar_password(password, &usuario.password_hash) {
-                    Ok(usuario)
+                    // Generar un token único basado en el tiempo actual
+                    let time = SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .unwrap()
+                        .as_millis();
+                    let token = format!("token_{}_{}", usuario.id, time);
+
+                    match SesionRepository::crear(conn, &token, usuario.id) {
+                        Ok(_) => Ok((usuario, token)),
+                        Err(e) => Err(format!("Error al crear sesión: {}", e)),
+                    }
                 } else {
                     Err("Contraseña incorrecta".to_string())
                 }

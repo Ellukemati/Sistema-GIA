@@ -1,9 +1,6 @@
 //! Modulo para manejar la base de datos SQLite
 use crate::constants::{TIPO_ADMIN, TIPO_ALUMNO, TIPO_PROFESOR};
-use crate::errors::DbError;
-use crate::service::image_storage::eliminar_imagen_por_direccion;
 use rusqlite::{Connection, Result as SqlResult};
-use std::collections::HashSet;
 
 /// Inicializa la base de datos y crea las tablas necesarias
 pub fn init_db(db_path: &str) -> SqlResult<Connection> {
@@ -31,7 +28,7 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
         [],
     )?;
 
-    // Crear tabla modelos_instrumentos (Catalogo de modelos)
+    // Crear tabla modelos (Catalogo de modelos)
     conn.execute(
         "CREATE TABLE IF NOT EXISTS modelos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -113,273 +110,34 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
         )",
         [],
     )?;
-    Ok(conn)
-}
 
-/// Inserta un nuevo usuario en la tabla usuarios
-pub fn insert_cuenta(
-    conn: &Connection,
-    nombre: &str,
-    apellido: &str,
-    email: &str,
-    legajo: i32,
-    tipo: &str,
-    password_hash: &str,
-) -> SqlResult<usize> {
-    debug_assert!(
-        [TIPO_ALUMNO, TIPO_PROFESOR, TIPO_ADMIN].contains(&tipo),
-        "tipo de usuario invalido"
-    );
+    // Crear tabla sesiones
     conn.execute(
-        "INSERT INTO usuarios (nombre, apellido, email, legajo, tipo, password_hash)
-         VALUES (?, ?, ?, ?, ?, ?)",
-        rusqlite::params![nombre, apellido, email, legajo, tipo, password_hash],
-    )
-}
-
-/// Inserta un instrumento y sus imagenes asociadas de forma atomica
-/// Las imagenes son opcionales. Si se proporcionan, la primera se usa como principal
-pub fn insert_modelo(
-    conn: &mut Connection,
-    marca: &str,
-    nombre_modelo: &str,
-    descripcion: &str,
-    categoria: &str,
-    manual_url: &str,
-    imagenes: &[String], // Puede estar vacio. Si hay imagenes, la primera se asigna a imagen_principal_url
-) -> Result<(), DbError> {
-    let tx = conn.transaction()?;
-    let imagen_principal = imagenes.first().map(|s| s.as_str());
-
-    // Insertar el modelo en la tabla modelos
-    tx.execute(
-        "INSERT INTO modelos (marca, modelo, descripcion, categoria, manual_url, direccion_imagen_principal)
-         VALUES (?, ?, ?, ?, ?, ?)",
-        rusqlite::params![marca, nombre_modelo, descripcion, categoria, manual_url, imagen_principal],
+        "CREATE TABLE IF NOT EXISTS sesiones (
+            token TEXT PRIMARY KEY,
+            usuario_id INTEGER NOT NULL,
+            momento_creacion TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+        )",
+        [],
     )?;
 
-    let modelo_id = tx.last_insert_rowid();
+    // Creacion de un admin por defecto
+    // Revisar si ya existe algún admin para no duplicarlo si reiniciamos el server
+    let admin_count: i32 = conn.query_row(
+        "SELECT COUNT(*) FROM usuarios WHERE tipo = ?1",
+        [TIPO_ADMIN],
+        |row| row.get::<_, i32>(0),
+    )?;
 
-    // Insertar las imagenes en orden en la tabla modelo_imagen
-    for (i, ruta) in imagenes.iter().enumerate() {
-        tx.execute(
-            "INSERT INTO modelo_imagen (modelo_id, orden, direccion_imagen)
-             VALUES (?, ?, ?)",
-            rusqlite::params![modelo_id, i as i32, ruta],
+    if admin_count == 0 {
+        conn.execute(
+            "INSERT INTO usuarios (nombre, apellido, email, legajo, tipo, password_hash)
+             VALUES ('Admin', 'Maestro', 'admin@fi.uba.ar', 0, ?1, 'hash_admin123')",
+            [TIPO_ADMIN],
         )?;
+        println!("✓ Admin maestro creado exitosamente (Email: admin@fi.uba.ar | Clave: admin123)");
     }
 
-    tx.commit()?;
-    Ok(())
-}
-
-/// Actualiza un instrumento y reemplaza su galeria de imagenes
-pub struct ModeloUpdate<'a> {
-    pub id: i64,
-    pub marca: &'a str,
-    pub nombre_modelo: &'a str,
-    pub descripcion: &'a str,
-    pub categoria: &'a str,
-    pub manual_url: &'a str,
-    pub nuevas_imagenes: &'a [String],
-}
-
-pub fn update_modelo(conn: &mut Connection, data: ModeloUpdate<'_>) -> Result<(), DbError> {
-    let tx = conn.transaction()?;
-    let imagen_principal = data.nuevas_imagenes.first().map(|s| s.as_str());
-
-    tx.execute(
-        "UPDATE modelos
-         SET marca = ?, modelo = ?, descripcion = ?, categoria = ?, manual_url = ?, direccion_imagen_principal = ?
-         WHERE id = ?",
-        rusqlite::params![
-            data.marca,
-            data.nombre_modelo,
-            data.descripcion,
-            data.categoria,
-            data.manual_url,
-            imagen_principal,
-            data.id,
-        ],
-    )?;
-
-    tx.execute("DELETE FROM modelo_imagen WHERE modelo_id = ?", [data.id])?;
-
-    for (orden, ruta) in data.nuevas_imagenes.iter().enumerate() {
-        tx.execute(
-            "INSERT INTO modelo_imagen (modelo_id, orden, direccion_imagen)
-                 VALUES (?, ?, ?)",
-            rusqlite::params![data.id, orden as i32, ruta],
-        )?;
-    }
-
-    tx.commit()?;
-    Ok(())
-}
-
-/// Inserta una nueva reserva y devuelve su id
-pub fn insert_reserva(
-    conn: &mut Connection,
-    id_usuario: i32,
-    fecha_inicio: &str,
-    fecha_fin: &str,
-    estado: &str,
-    motivo: &str,
-) -> SqlResult<i64> {
-    let transaction = conn.transaction()?;
-
-    transaction.execute(
-        "INSERT INTO reservas (id_usuario, fecha_inicio, fecha_fin, estado, motivo)
-         VALUES (?, ?, ?, ?, ?)",
-        rusqlite::params![id_usuario, fecha_inicio, fecha_fin, estado, motivo],
-    )?;
-
-    let reserva_id =
-        transaction.query_row("SELECT last_insert_rowid()", [], |row| row.get::<_, i64>(0))?;
-
-    transaction.commit()?;
-
-    Ok(reserva_id)
-}
-
-/// Datos para insertar un ejemplar junto con sus imagenes de galeria.
-pub struct EjemplarInsert<'a> {
-    pub modelo_id: i64,
-    pub numero_serie: Option<&'a str>,
-    pub codigo_qr: Option<&'a str>,
-    pub patrimonio: Option<&'a str>,
-    pub observaciones: Option<&'a str>,
-    pub accesorios: Option<&'a str>,
-    pub esta_disponible: bool,
-    pub ubicacion: Option<&'a str>,
-    pub imagenes: &'a [String],
-}
-
-/// Inserta un ejemplar y sus imagenes de forma atomica.
-pub fn insert_ejemplar(conn: &mut Connection, data: EjemplarInsert<'_>) -> Result<i64, DbError> {
-    let tx = conn.transaction()?;
-    let imagen_principal = data.imagenes.first().map(|s| s.as_str());
-
-    tx.execute(
-        "INSERT INTO ejemplares (
-            modelo_id, numero_serie, codigo_qr, patrimonio, observaciones,
-            accesorios, esta_disponible, ubicacion, direccion_imagen_principal
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        rusqlite::params![
-            data.modelo_id,
-            data.numero_serie,
-            data.codigo_qr,
-            data.patrimonio,
-            data.observaciones,
-            data.accesorios,
-            data.esta_disponible,
-            data.ubicacion,
-            imagen_principal,
-        ],
-    )?;
-
-    let ejemplar_id = tx.last_insert_rowid();
-
-    for (orden, ruta) in data.imagenes.iter().enumerate() {
-        tx.execute(
-            "INSERT INTO imagen_ejemplar (ejemplar_id, orden, imagen_direccion)
-             VALUES (?, ?, ?)",
-            rusqlite::params![ejemplar_id, orden as i32, ruta],
-        )?;
-    }
-
-    tx.commit()?;
-    Ok(ejemplar_id)
-}
-
-/// Datos para actualizar un ejemplar y reemplazar su galeria de imagenes.
-pub struct EjemplarUpdate<'a> {
-    pub id: i64,
-    pub modelo_id: i64,
-    pub numero_serie: Option<&'a str>,
-    pub codigo_qr: Option<&'a str>,
-    pub patrimonio: Option<&'a str>,
-    pub observaciones: Option<&'a str>,
-    pub accesorios: Option<&'a str>,
-    pub esta_disponible: bool,
-    pub ubicacion: Option<&'a str>,
-    pub imagenes: &'a [String],
-}
-
-/// Actualiza un ejemplar y reemplaza sus imagenes asociadas.
-pub fn update_ejemplar(conn: &mut Connection, data: EjemplarUpdate<'_>) -> Result<(), DbError> {
-    let tx = conn.transaction()?;
-
-    let imagenes_previas = {
-        let mut stmt =
-            tx.prepare("SELECT imagen_direccion FROM imagen_ejemplar WHERE ejemplar_id = ?1")?;
-        stmt.query_map([data.id], |row| row.get::<_, String>(0))?
-            .collect::<Result<Vec<_>, _>>()?
-    };
-
-    tx.execute(
-        "DELETE FROM imagen_ejemplar WHERE ejemplar_id = ?",
-        [data.id],
-    )?;
-
-    let imagen_principal = data.imagenes.first().map(|s| s.as_str());
-
-    tx.execute(
-        "UPDATE ejemplares
-         SET modelo_id = ?, numero_serie = ?, codigo_qr = ?, patrimonio = ?, observaciones = ?,
-             accesorios = ?, esta_disponible = ?, ubicacion = ?, direccion_imagen_principal = ?
-         WHERE id = ?",
-        rusqlite::params![
-            data.modelo_id,
-            data.numero_serie,
-            data.codigo_qr,
-            data.patrimonio,
-            data.observaciones,
-            data.accesorios,
-            data.esta_disponible,
-            data.ubicacion,
-            imagen_principal,
-            data.id,
-        ],
-    )?;
-
-    for (orden, ruta) in data.imagenes.iter().enumerate() {
-        tx.execute(
-            "INSERT INTO imagen_ejemplar (ejemplar_id, orden, imagen_direccion)
-             VALUES (?, ?, ?)",
-            rusqlite::params![data.id, orden as i32, ruta],
-        )?;
-    }
-
-    tx.commit()?;
-
-    let nuevas_direcciones: HashSet<&str> =
-        data.imagenes.iter().map(|ruta| ruta.as_str()).collect();
-    for direccion in imagenes_previas {
-        if !nuevas_direcciones.contains(direccion.as_str()) {
-            let _ = eliminar_imagen_por_direccion(&direccion);
-        }
-    }
-
-    Ok(())
-}
-
-/// Asocia varios instrumentos a una reserva existente
-pub fn add_instrumentos_to_reserva(
-    conn: &mut Connection,
-    reserva_id: i64,
-    ejemplares: &[i32],
-) -> SqlResult<()> {
-    let transaction = conn.transaction()?;
-
-    for ejemplar_id in ejemplares {
-        transaction.execute(
-            "INSERT INTO reserva_instrumentos (reserva_id, ejemplar_id)
-             VALUES (?, ?)",
-            rusqlite::params![reserva_id, ejemplar_id],
-        )?;
-    }
-
-    transaction.commit()?;
-    Ok(())
+    Ok(conn)
 }

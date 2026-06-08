@@ -7,6 +7,7 @@ mod repository;
 mod routes;
 mod server;
 mod service;
+mod utils;
 
 fn main() {
     // Inicializar la base de datos

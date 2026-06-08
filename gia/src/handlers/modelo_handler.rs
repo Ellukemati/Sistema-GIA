@@ -1,5 +1,7 @@
+use crate::repository::sesion_repository::SesionRepository;
 use crate::repository::usuario_repository::UsuarioRepository;
-use crate::{models::usuario::Usuario, service::modelo_service::ModeloService};
+use crate::service::modelo_service::ModeloService;
+use crate::utils::extraer_token_sesion;
 use rouille::{Request, Response};
 use rusqlite::Connection;
 use std::collections::HashMap;
@@ -13,28 +15,42 @@ impl ModeloHandler {
     }
 
     pub fn procesar_registro(request: &Request, conn: &Connection) -> Response {
-        /*
-        let email = match request.header("X-Usuario-Email") {
-            Some(e) => e,
+        // Extraer token de la cookie
+        let token = match extraer_token_sesion(request) {
+            Some(t) => t,
             None => {
-                return Response::text("Falta el header X-Usuario-Email").with_status_code(400)
+                return Response::html(
+                    "<div style='color:red;'>No autorizado. Debe iniciar sesión.</div>",
+                )
+                .with_status_code(401);
             }
         };
 
-        let usuario: Usuario = match UsuarioRepository::buscar_por_email(conn, email) {
+        // Buscar la sesión en la base de datos
+        let sesion =
+            match SesionRepository::buscar_por_token(conn, &token) {
+                Ok(Some(s)) => s,
+                _ => return Response::html(
+                    "<div style='color:red;'>Sesión inválida o expirada. Vuelva a loguearse.</div>",
+                )
+                .with_status_code(401),
+            };
+
+        // Buscar al usuario dueño de la sesión
+        let usuario = match UsuarioRepository::buscar_por_id(conn, sesion.usuario_id) {
             Ok(Some(u)) => u,
-            Ok(None) => return Response::text("Usuario no encontrado").with_status_code(401),
-            Err(e) => {
-                return Response::text(format!("Error consultando usuarios: {}", e))
-                    .with_status_code(500)
+            _ => {
+                return Response::html(
+                    "<div style='color:red;'>Error interno cargando el usuario.</div>",
+                )
+                .with_status_code(500);
             }
         };
 
+        // Verificar permisos (Solo administradores)
         if !usuario.es_admin() {
-            return Response::text("El usuario no tiene permisos de administrador")
-                .with_status_code(403);
+            return Response::html("<div style='color:red;'>Acceso denegado: Esta acción requiere permisos de Administrador.</div>").with_status_code(403);
         }
-        */
 
         let mut body = String::new();
         if let Some(mut reader) = request.data() {

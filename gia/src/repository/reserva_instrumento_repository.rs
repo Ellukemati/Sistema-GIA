@@ -13,6 +13,7 @@ impl ReservaInstrumentoRepository {
         )
     }
 
+    #[allow(dead_code)]
     pub fn obtener_por_reserva(
         conn: &Connection,
         reserva_id: i64,

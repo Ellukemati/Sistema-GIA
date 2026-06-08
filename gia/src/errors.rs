@@ -1,7 +1,9 @@
 //! Modulo de errores
+
 use std::fmt;
 
 /// Errores especificos de operaciones en la base de datos
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum DbError {
     /// Error de SQLite

@@ -24,13 +24,13 @@ impl ReservaService {
         }
 
         let reserva = Reserva {
-            id: 0,
+            //id: 0,
             id_usuario,
             fecha_inicio,
             fecha_fin,
             estado: "pendiente".to_string(),
             motivo,
-            momento_creacion: "".to_string(),
+            //momento_creacion: "".to_string(),
         };
 
         ReservaRepository::crear(conn, &reserva).map_err(|e| e.to_string())?;
@@ -45,6 +45,7 @@ impl ReservaService {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub fn cancelar_reserva(conn: &Connection, reserva_id: i64) -> Result<(), String> {
         match ReservaRepository::buscar_por_id(conn, reserva_id) {
             Ok(Some(_)) => {}
@@ -63,6 +64,7 @@ impl ReservaService {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub fn obtener_reservas_usuario(
         conn: &Connection,
         usuario_id: i64,
@@ -70,6 +72,7 @@ impl ReservaService {
         ReservaRepository::listar_por_usuario(conn, usuario_id).map_err(|e| e.to_string())
     }
 
+    #[allow(dead_code)]
     pub fn obtener_todas(conn: &Connection) -> Result<Vec<Reserva>, String> {
         ReservaRepository::listar_todas(conn).map_err(|e| e.to_string())
     }

@@ -1,5 +1,6 @@
 use std::fs;
 
+#[allow(dead_code)]
 /// Elimina un archivo de imagen dado su path. Ignora si no existe.
 pub fn eliminar_imagen_por_direccion(direccion: &str) -> Result<(), std::io::Error> {
     match fs::remove_file(direccion) {

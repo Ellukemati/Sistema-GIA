@@ -1,6 +1,4 @@
-use crate::models::usuario::Usuario;
 use crate::repository::modelo_repository::ModeloRepository;
-use crate::repository::usuario_repository::UsuarioRepository;
 use crate::service::ejemplar_service::{CrearEjemplarData, EjemplarService};
 use rouille::{Request, Response};
 use rusqlite::Connection;

@@ -17,6 +17,7 @@ impl UsuarioRepository {
         }
     }
 
+    #[allow(dead_code)]
     pub fn buscar_por_id(conn: &Connection, id: i64) -> SqlResult<Option<Usuario>> {
         let mut stmt = conn.prepare("SELECT * FROM usuarios WHERE id = ?1")?;
 
@@ -46,15 +47,17 @@ impl UsuarioRepository {
         )
     }
 
-    pub fn actualizar_imagen(conn: &Connection, usuario_id: i64, imagen: &str) -> SqlResult<usize> {
+    #[allow(dead_code)]
+    pub fn actualizar_avatar(conn: &Connection, usuario_id: i64, imagen: &str) -> SqlResult<usize> {
         conn.execute(
             "UPDATE usuarios
-             SET imagen = ?1
+             SET direccion_avatar = ?1
              WHERE id = ?2",
             [imagen, &usuario_id.to_string()],
         )
     }
 
+    #[allow(dead_code)]
     pub fn eliminar(conn: &Connection, usuario_id: i64) -> SqlResult<usize> {
         conn.execute("DELETE FROM usuarios WHERE id = ?1", [usuario_id])
     }

@@ -17,7 +17,7 @@ impl Modelo {
         Ok(Modelo {
             id: row.get("id")?,
             marca: row.get::<_, Option<String>>("marca")?,
-            modelo: row.get("modelo")?,
+            modelo: row.get("nombre_modelo")?,
             categoria: row.get::<_, Option<String>>("categoria")?,
             descripcion: row.get("descripcion")?,
             manual_url: row.get("manual_url")?,
@@ -25,10 +25,10 @@ impl Modelo {
         })
     }
 
-    pub fn cambiar_imagen(&mut self, nueva_direccion: String) {
-        self.direccion_imagen_principal = Some(nueva_direccion);
-    }
-    pub fn cambiar_manual(&mut self, nueva_url: String) {
-        self.manual_url = Some(nueva_url);
-    }
+    // pub fn cambiar_imagen(&mut self, nueva_direccion: String) {
+    //     self.direccion_imagen_principal = Some(nueva_direccion);
+    // }
+    // pub fn cambiar_manual(&mut self, nueva_url: String) {
+    //     self.manual_url = Some(nueva_url);
+    // }
 }
