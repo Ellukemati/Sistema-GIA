@@ -4,17 +4,13 @@ use crate::service::image_storage::{
     guardar_imagen_modelo,
 };
 use rouille::{Request, Response};
-use rusqlite::params;
 use rusqlite::Connection;
 use rusqlite::OptionalExtension;
+use rusqlite::params;
 use std::io::Read;
 use std::sync::{Arc, Mutex};
 
 pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
-    // Se esperan rutas del tipo:
-    // POST /imagenes/avatares/{legajo}
-    // POST /imagenes/modelos/{modelo_id}/{orden}
-    // POST /imagenes/ejemplares/{ejemplar_id}/{orden}
     if request.method() != "POST" {
         return Response::empty_404();
     }
@@ -78,7 +74,6 @@ fn read_body_bytes(request: &Request) -> Result<Vec<u8>, String> {
     Ok(bytes)
 }
 
-/// Maneja la subida de una imagen para un modelo_id y orden especificos, guardando la direccion en la DB
 fn subir_imagen_modelo_route(
     request: &Request,
     modelo_id: &str,
@@ -124,23 +119,23 @@ fn subir_imagen_modelo_route(
                             .with_status_code(500);
                     }
 
-                    if orden_i == 0 {
-                        if let Err(e) = conn_ref.execute(
+                    if orden_i == 0
+                        && let Err(e) = conn_ref.execute(
                             "UPDATE modelos SET imagen_principal_direccion = ?1 WHERE id = ?2",
                             params![url.clone(), modelo],
-                        ) {
-                            return Response::from_data(
-                                "text/plain",
-                                format!("Error actualizando imagen principal del modelo: {}", e),
-                            )
-                            .with_status_code(500);
-                        }
+                        )
+                    {
+                        return Response::from_data(
+                            "text/plain",
+                            format!("Error actualizando imagen principal del modelo: {}", e),
+                        )
+                        .with_status_code(500);
                     }
 
-                    if let Some(direccion_anterior) = imagen_anterior {
-                        if direccion_anterior != url {
-                            imagen_a_borrar = Some(direccion_anterior);
-                        }
+                    if let Some(direccion_anterior) = imagen_anterior
+                        && direccion_anterior != url
+                    {
+                        imagen_a_borrar = Some(direccion_anterior);
                     }
                 }
                 Err(_) => {
@@ -160,7 +155,6 @@ fn subir_imagen_modelo_route(
     }
 }
 
-/// Maneja la subida de una imagen para un ejemplar y un orden especificos, guardando la direccion en la DB
 fn subir_imagen_ejemplar_route(
     request: &Request,
     ejemplar_id: &str,
@@ -209,23 +203,23 @@ fn subir_imagen_ejemplar_route(
                         .with_status_code(500);
                     }
 
-                    if orden_i == 0 {
-                        if let Err(e) = conn_ref.execute(
+                    if orden_i == 0
+                        && let Err(e) = conn_ref.execute(
                             "UPDATE ejemplares SET direccion_imagen_principal = ?1 WHERE id = ?2",
                             params![url.clone(), ejemplar],
-                        ) {
-                            return Response::from_data(
-                                "text/plain",
-                                format!("Error actualizando imagen principal del ejemplar: {}", e),
-                            )
-                            .with_status_code(500);
-                        }
+                        )
+                    {
+                        return Response::from_data(
+                            "text/plain",
+                            format!("Error actualizando imagen principal del ejemplar: {}", e),
+                        )
+                        .with_status_code(500);
                     }
 
-                    if let Some(direccion_anterior) = imagen_anterior {
-                        if direccion_anterior != url {
-                            imagen_a_borrar = Some(direccion_anterior);
-                        }
+                    if let Some(direccion_anterior) = imagen_anterior
+                        && direccion_anterior != url
+                    {
+                        imagen_a_borrar = Some(direccion_anterior);
                     }
                 }
                 Err(_) => {
@@ -245,7 +239,6 @@ fn subir_imagen_ejemplar_route(
     }
 }
 
-/// Maneja la subida de una imagen para un avatar, guardando la URL en la DB
 fn subir_imagen_avatar_route(
     request: &Request,
     legajo: &str,
@@ -288,10 +281,10 @@ fn subir_imagen_avatar_route(
                         .with_status_code(500);
                     }
 
-                    if let Some(direccion_anterior) = avatar_anterior {
-                        if direccion_anterior != url {
-                            avatar_a_borrar = Some(direccion_anterior);
-                        }
+                    if let Some(direccion_anterior) = avatar_anterior
+                        && direccion_anterior != url
+                    {
+                        avatar_a_borrar = Some(direccion_anterior);
                     }
                 }
                 Err(_) => {

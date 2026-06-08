@@ -84,7 +84,6 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
         [],
     )?;
 
-
     // Crear tabla reservas
     conn.execute(
         "CREATE TABLE IF NOT EXISTS reservas (

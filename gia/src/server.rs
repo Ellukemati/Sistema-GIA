@@ -1,4 +1,4 @@
-use crate::routes::{auth_routes, image_routes, static_routes};
+use crate::routes;
 use rusqlite::Connection;
 use std::sync::{Arc, Mutex};
 
@@ -18,15 +18,10 @@ impl Server {
     pub fn run(&self) {
         println!("Servidor escuchando en {}", self.address);
         let conn = Arc::clone(&self.conn);
+
         rouille::start_server(&self.address, move |request| {
-            // Primero intentamos servir archivos estaticos para mejor performance
-            if let Some(response) = static_routes::serve(request) {
-                response
-            } else if request.method() == "POST" && request.url().starts_with("/imagenes/") {
-                image_routes::router(request, Arc::clone(&conn))
-            } else {
-                auth_routes::router(request, Arc::clone(&conn))
-            }
+            // El servidor delega TODA la lógica de URLs al Enrutador Principal
+            routes::dispatch(request, Arc::clone(&conn))
         });
     }
 }
