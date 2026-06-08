@@ -10,7 +10,7 @@ impl ModeloRepository {
             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
             rusqlite::params![
                 modelo.marca,
-                modelo.modelo,
+                modelo.nombre_modelo,
                 modelo.categoria,
                 modelo.descripcion,
                 modelo.manual_url,

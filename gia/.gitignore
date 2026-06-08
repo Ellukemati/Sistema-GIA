@@ -1,0 +1,29 @@
+# --- Rust ---
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# --- Entornos Virtuales (Python) ---
+.venv/
+venv/
+ENV/
+env/
+
+# --- Editores e IDEs ---
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# --- Base de Datos Local ---
+*.db
+*.db-journal
+*.db-wal
+
+# --- Archivos Multimedia / Servidor ---
+/static/uploads/avatares/
+/static/uploads/modelos/
+/static/uploads/ejemplares/

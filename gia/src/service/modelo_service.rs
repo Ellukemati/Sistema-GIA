@@ -8,7 +8,7 @@ impl ModeloService {
     pub fn crear_modelo(
         conn: &Connection, // Agrego conexión
         marca: Option<String>,
-        modelo: String,
+        nombre_modelo: String,
         categoria: Option<String>,
         descripcion: Option<String>,
         manual_url: Option<String>,
@@ -19,7 +19,7 @@ impl ModeloService {
         let modelo = Modelo {
             id: 0, // se asigna en la db
             marca,
-            modelo,
+            nombre_modelo,
             categoria,
             descripcion,
             manual_url,

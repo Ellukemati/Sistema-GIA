@@ -21,7 +21,7 @@ impl EjemplarHandler {
         for modelo in modelos {
             opciones.push_str(&format!(
                 "<option value=\"{}\">{}</option>",
-                modelo.id, modelo.modelo
+                modelo.id, modelo.nombre_modelo
             ));
         }
 

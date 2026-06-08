@@ -28,7 +28,7 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
         [],
     )?;
 
-    // Crear tabla modelos (Catalogo de modelos)
+    // Crear tabla modelos para el catalogo de modelos de instrumentos
     conn.execute(
         "CREATE TABLE IF NOT EXISTS modelos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -54,7 +54,7 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
         [],
     )?;
 
-    // Crear tabla ejemplares (Cada entrada unica del inventario)
+    // Crear tabla ejemplares para cada entrada unica del inventario de instrumentos
     conn.execute(
         "CREATE TABLE IF NOT EXISTS ejemplares (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -84,7 +84,7 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
         [],
     )?;
 
-    // Crear tabla reservas (Prestamos de instrumentos)
+    // Crear tabla reservas
     conn.execute(
         "CREATE TABLE IF NOT EXISTS reservas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -99,7 +99,7 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
         [],
     )?;
 
-    // Crear tabla intermedia para relacionar reservas con ejemplares (sin cantidades)
+    // Crear tabla intermedia para relacionar reservas con ejemplares
     conn.execute(
         "CREATE TABLE IF NOT EXISTS reserva_ejemplar (
             reserva_id INTEGER NOT NULL,

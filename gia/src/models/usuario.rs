@@ -10,8 +10,8 @@ pub struct Usuario {
     pub legajo: i32,
     pub tipo: String,
     pub password_hash: String,
-    //pub momento_creacion: String,
-    pub imagen: Option<String>,
+    pub momento_creacion: String,
+    pub direccion_avatar: Option<String>,
 }
 
 impl Usuario {
@@ -30,8 +30,8 @@ impl Usuario {
             legajo: row.get("legajo")?,
             tipo,
             password_hash: row.get("password_hash")?,
-            //momento_creacion: row.get("momento_creacion")?,
-            imagen: row.get("direccion_avatar")?,
+            momento_creacion: row.get("momento_creacion")?,
+            direccion_avatar: row.get("direccion_avatar")?,
         })
     }
 
@@ -82,8 +82,8 @@ mod tests {
         .unwrap();
 
         conn.execute(
-            "INSERT INTO Usuario (id, nombre, apellido, email, legajo, tipo, password_hash, momento_creacion) 
-             VALUES (1, 'nombre1', 'apellido1', 'napellido1@fi.uba.ar', 12345, 'S', 'hash123', '2026-05-11')",
+            "INSERT INTO Usuario (id, nombre, apellido, email, legajo, tipo, password_hash, momento_creacion, direccion_avatar) 
+             VALUES (1, 'nombre1', 'apellido1', 'napellido1@fi.uba.ar', 12345, 'S', 'hash123', '2026-05-11', 'direccion_avatar1')",
             [],
         ).unwrap();
 
