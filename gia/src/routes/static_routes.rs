@@ -13,6 +13,7 @@ pub fn serve(request: &Request) -> Option<Response> {
     let path = raw_url.split('?').next().unwrap_or("");
     let path = path.strip_prefix("/static/")?;
 
+    // Para evitar ataques de path traversal, se rechaza cualquier ruta que intente subir directorios
     if path.contains("..") {
         return Some(Response::empty_404());
     }

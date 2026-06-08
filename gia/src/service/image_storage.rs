@@ -1,6 +1,7 @@
 use crate::constants::{
-    AVATARES_MAX_DIMENSION, AVATARES_PUBLIC_PREFIX, AVATARES_UPLOAD_DIR, MODELOS_MAX_DIMENSION,
-    MODELOS_PUBLIC_PREFIX, MODELOS_UPLOAD_DIR, STATIC_DIR, UPLOADS_DIR,
+    AVATARES_MAX_DIMENSION, AVATARES_PUBLIC_PREFIX, AVATARES_UPLOAD_DIR, EJEMPLARES_PUBLIC_PREFIX,
+    EJEMPLARES_UPLOAD_DIR, INSTRUMENTOS_MAX_DIMENSION, MODELOS_PUBLIC_PREFIX, MODELOS_UPLOAD_DIR,
+    STATIC_DIR, UPLOADS_DIR,
 };
 use crate::errors::ImageStorageError;
 use image::codecs::jpeg::JpegEncoder;
@@ -15,6 +16,7 @@ use uuid::Uuid;
 pub enum ImagenDestino {
     Modelo,
     Avatar,
+    Ejemplar,
 }
 
 impl ImagenDestino {
@@ -22,6 +24,7 @@ impl ImagenDestino {
         match self {
             ImagenDestino::Modelo => MODELOS_UPLOAD_DIR,
             ImagenDestino::Avatar => AVATARES_UPLOAD_DIR,
+            ImagenDestino::Ejemplar => EJEMPLARES_UPLOAD_DIR,
         }
     }
 
@@ -29,12 +32,14 @@ impl ImagenDestino {
         match self {
             ImagenDestino::Modelo => MODELOS_PUBLIC_PREFIX,
             ImagenDestino::Avatar => AVATARES_PUBLIC_PREFIX,
+            ImagenDestino::Ejemplar => EJEMPLARES_PUBLIC_PREFIX,
         }
     }
 
     fn max_dimension(self) -> u32 {
         match self {
-            ImagenDestino::Modelo => MODELOS_MAX_DIMENSION,
+            ImagenDestino::Modelo => INSTRUMENTOS_MAX_DIMENSION,
+            ImagenDestino::Ejemplar => INSTRUMENTOS_MAX_DIMENSION,
             ImagenDestino::Avatar => AVATARES_MAX_DIMENSION,
         }
     }
@@ -45,6 +50,7 @@ pub fn ensure_storage_directories() -> Result<(), std::io::Error> {
     fs::create_dir_all(STATIC_DIR)?;
     fs::create_dir_all(UPLOADS_DIR)?;
     fs::create_dir_all(MODELOS_UPLOAD_DIR)?;
+    fs::create_dir_all(EJEMPLARES_UPLOAD_DIR)?;
     fs::create_dir_all(AVATARES_UPLOAD_DIR)?;
     Ok(())
 }
@@ -68,6 +74,13 @@ pub fn guardar_imagen_modelo(modelo_id: i64, bytes: &[u8]) -> Result<String, Ima
     guardar_imagen_con_metadata(bytes, ImagenDestino::Modelo, modelo_id)
 }
 
+pub fn guardar_imagen_ejemplar(
+    ejemplar_id: i64,
+    bytes: &[u8],
+) -> Result<String, ImageStorageError> {
+    guardar_imagen_con_metadata(bytes, ImagenDestino::Ejemplar, ejemplar_id)
+}
+
 /// Guarda una imagen perteneciente a un avatar o a un modelo. Devuelve la URL publica relativa.
 fn guardar_imagen_con_metadata(
     bytes: &[u8],
@@ -82,7 +95,7 @@ fn guardar_imagen_con_metadata(
         ));
     }
 
-    // Se usa un unico directorio por tipo (modelos/ y avatares/) y se codifica la entidad en el nombre del archivo
+    // Se usa un unico directorio por tipo (modelos/, ejemplares/ y avatares/) y se codifica la entidad en el nombre del archivo
     let target_dir = base.to_path_buf();
     fs::create_dir_all(&target_dir)?;
 
@@ -105,6 +118,8 @@ fn ruta_desde_direccion_publica(dir_publica: &str) -> Result<PathBuf, ImageStora
         Path::new(MODELOS_UPLOAD_DIR).join(resto.trim_start_matches('/'))
     } else if let Some(resto) = dir_publica.strip_prefix(AVATARES_PUBLIC_PREFIX) {
         Path::new(AVATARES_UPLOAD_DIR).join(resto.trim_start_matches('/'))
+    } else if let Some(resto) = dir_publica.strip_prefix(EJEMPLARES_PUBLIC_PREFIX) {
+        Path::new(EJEMPLARES_UPLOAD_DIR).join(resto.trim_start_matches('/'))
     } else {
         return Err(ImageStorageError::InvalidImage(
             "La direccion no pertenece a una imagen administrada por el servidor".to_string(),
@@ -137,7 +152,7 @@ fn generar_nombre_archivo(tiene_alpha: bool, entidad_id: i64) -> String {
 fn guardar_imagen_segun_alpha(
     imagen: &DynamicImage,
     tiene_alpha: bool,
-    ruta: &PathBuf,
+    ruta: &Path,
 ) -> Result<(), ImageStorageError> {
     if tiene_alpha {
         imagen.save_with_format(ruta, image::ImageFormat::Png)?;
@@ -149,7 +164,7 @@ fn guardar_imagen_segun_alpha(
 }
 
 /// Guarda la imagen como JPEG comprimido
-fn guardar_como_jpeg(imagen: &DynamicImage, ruta: &PathBuf) -> Result<(), ImageStorageError> {
+fn guardar_como_jpeg(imagen: &DynamicImage, ruta: &Path) -> Result<(), ImageStorageError> {
     let file = File::create(ruta)?;
     let mut writer = BufWriter::new(file);
     let rgb = imagen.to_rgb8();
@@ -161,4 +176,55 @@ fn guardar_como_jpeg(imagen: &DynamicImage, ruta: &PathBuf) -> Result<(), ImageS
         image::ExtendedColorType::Rgb8,
     )?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_ruta_desde_direccion_publica_valida() {
+        // Testea que el parseo de strings funcione como lo esperado
+        let dir_publica = "/static/uploads/modelos/1_un-uuid-falso.jpg";
+        let resultado = ruta_desde_direccion_publica(dir_publica).unwrap();
+
+        assert!(resultado.starts_with(MODELOS_UPLOAD_DIR));
+        assert!(resultado.ends_with("1_un-uuid-falso.jpg"));
+    }
+
+    #[test]
+    fn test_ruta_desde_direccion_publica_invalida() {
+        let dir_invalida = "/static/uploads/hack/foto.jpg";
+        let resultado = ruta_desde_direccion_publica(dir_invalida);
+
+        assert!(resultado.is_err());
+    }
+
+    #[test]
+    fn test_guardar_imagen_vacia_retorna_error() {
+        let bytes_vacios: [u8; 0] = [];
+        let resultado = guardar_imagen_modelo(42, &bytes_vacios);
+
+        assert!(resultado.is_err());
+        if let Err(ImageStorageError::InvalidImage(msg)) = resultado {
+            assert_eq!(msg, "La imagen esta vacia");
+        } else {
+            panic!("Deberia haber devuelto un InvalidImage");
+        }
+    }
+
+    #[test]
+    fn test_generar_nombre_archivo() {
+        let entidad_id = 123;
+
+        // Probar el camino de JPEG
+        let nombre_jpeg = generar_nombre_archivo(false, entidad_id);
+        assert!(nombre_jpeg.starts_with("123_"));
+        assert!(nombre_jpeg.ends_with(".jpg"));
+
+        // Probar el camino de PNG
+        let nombre_png = generar_nombre_archivo(true, entidad_id);
+        assert!(nombre_png.starts_with("123_"));
+        assert!(nombre_png.ends_with(".png"));
+    }
 }
