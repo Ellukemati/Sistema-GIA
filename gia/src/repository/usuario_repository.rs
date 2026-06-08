@@ -48,7 +48,7 @@ impl UsuarioRepository {
     }
 
     #[allow(dead_code)]
-    pub fn actualizar_imagen(conn: &Connection, usuario_id: i64, imagen: &str) -> SqlResult<usize> {
+    pub fn actualizar_avatar(conn: &Connection, usuario_id: i64, imagen: &str) -> SqlResult<usize> {
         conn.execute(
             "UPDATE usuarios
              SET direccion_avatar = ?1
