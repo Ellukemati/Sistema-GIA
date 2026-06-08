@@ -39,7 +39,7 @@ impl AuthService {
             email: email.clone(),
             tipo: tipo.to_string(),
             password_hash,
-            //momento_creacion: String::new(), // se asigna en la db
+            momento_creacion: String::new(), // se asigna en la db
             direccion_avatar: None,
         };
 

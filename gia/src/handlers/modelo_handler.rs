@@ -78,7 +78,7 @@ impl ModeloHandler {
             Ok(modelo) => {
                 let exito_html = format!(
                     "<div style='color:green;'>Modelo {} creado!</div>",
-                    modelo.modelo
+                    modelo.nombre_modelo
                 );
                 Response::html(exito_html)
             }
