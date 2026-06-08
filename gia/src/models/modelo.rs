@@ -4,20 +4,21 @@ use rusqlite::{Result as SqlResult, Row};
 pub struct Modelo {
     pub id: i64,
     pub marca: Option<String>,
-    pub modelo: String,
+    pub nombre_modelo: String,
     pub categoria: Option<String>,
     pub descripcion: Option<String>,
     pub manual_url: Option<String>,
     pub direccion_imagen_principal: Option<String>,
 }
 
+#[allow(dead_code)]
 impl Modelo {
     /// Crea un `Modelo` a partir de una fila retornada por rusqlite.
     pub fn from_row(row: &Row) -> SqlResult<Self> {
         Ok(Modelo {
             id: row.get("id")?,
             marca: row.get::<_, Option<String>>("marca")?,
-            modelo: row.get("modelo")?,
+            nombre_modelo: row.get("nombre_modelo")?,
             categoria: row.get::<_, Option<String>>("categoria")?,
             descripcion: row.get("descripcion")?,
             manual_url: row.get("manual_url")?,

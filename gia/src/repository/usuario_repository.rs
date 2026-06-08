@@ -17,6 +17,7 @@ impl UsuarioRepository {
         }
     }
 
+    #[allow(dead_code)]
     pub fn buscar_por_id(conn: &Connection, id: i64) -> SqlResult<Option<Usuario>> {
         let mut stmt = conn.prepare("SELECT * FROM usuarios WHERE id = ?1")?;
 
@@ -32,7 +33,7 @@ impl UsuarioRepository {
     pub fn crear(conn: &Connection, usuario: &Usuario) -> SqlResult<usize> {
         conn.execute(
             "INSERT INTO usuarios
-            (nombre, apellido, email, legajo, tipo, password_hash, avatar_direccion)
+            (nombre, apellido, email, legajo, tipo, password_hash, direccion_avatar)
             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
             rusqlite::params![
                 usuario.nombre,
@@ -41,24 +42,26 @@ impl UsuarioRepository {
                 usuario.legajo,
                 usuario.tipo,
                 usuario.password_hash,
-                usuario.avatar_direccion,
+                usuario.direccion_avatar,
             ],
         )
     }
 
-    pub fn actualizar_avatar_direccion(
+    #[allow(dead_code)]
+    pub fn actualizar_direccion_avatar(
         conn: &Connection,
         usuario_id: i64,
-        avatar_direccion: &str,
+        direccion_avatar: &str,
     ) -> SqlResult<usize> {
         conn.execute(
             "UPDATE usuarios
-             SET avatar_direccion = ?1
+             SET direccion_avatar = ?1
              WHERE id = ?2",
-            [avatar_direccion, &usuario_id.to_string()],
+            [direccion_avatar, &usuario_id.to_string()],
         )
     }
 
+    #[allow(dead_code)]
     pub fn eliminar(conn: &Connection, usuario_id: i64) -> SqlResult<usize> {
         conn.execute("DELETE FROM usuarios WHERE id = ?1", [usuario_id])
     }

@@ -4,15 +4,16 @@ use rusqlite::{Result as SqlResult, Row};
 pub struct ImagenModelo {
     pub modelo_id: i64,
     pub orden: i32,
-    pub imagen_direccion: String,
+    pub direccion_imagen: String,
 }
 
+#[allow(dead_code)]
 impl ImagenModelo {
     pub fn from_row(row: &Row) -> SqlResult<Self> {
         Ok(ImagenModelo {
             modelo_id: row.get("modelo_id")?,
             orden: row.get("orden")?,
-            imagen_direccion: row.get("imagen_direccion")?,
+            direccion_imagen: row.get("direccion_imagen")?,
         })
     }
 }

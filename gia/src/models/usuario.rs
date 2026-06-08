@@ -11,7 +11,7 @@ pub struct Usuario {
     pub tipo: String,
     pub password_hash: String,
     pub momento_creacion: String,
-    pub avatar_direccion: Option<String>,
+    pub direccion_avatar: Option<String>,
 }
 
 impl Usuario {
@@ -31,7 +31,7 @@ impl Usuario {
             tipo,
             password_hash: row.get("password_hash")?,
             momento_creacion: row.get("momento_creacion")?,
-            avatar_direccion: row.get("avatar_direccion")?,
+            direccion_avatar: row.get("direccion_avatar")?,
         })
     }
 
@@ -39,14 +39,17 @@ impl Usuario {
         format!("{} {}", self.nombre, self.apellido)
     }
 
+    #[allow(dead_code)]
     pub fn es_admin(&self) -> bool {
         self.tipo == TIPO_ADMIN
     }
 
+    #[allow(dead_code)]
     pub fn es_profesor(&self) -> bool {
         self.tipo == TIPO_PROFESOR
     }
 
+    #[allow(dead_code)]
     pub fn es_alumno(&self) -> bool {
         self.tipo == TIPO_ALUMNO
     }
@@ -72,15 +75,15 @@ mod tests {
                 tipo TEXT,
                 password_hash TEXT,
                 momento_creacion TEXT,
-                avatar_direccion TEXT
+                direccion_avatar TEXT
             )",
             [],
         )
         .unwrap();
 
         conn.execute(
-            "INSERT INTO Usuario (id, nombre, apellido, email, legajo, tipo, password_hash, momento_creacion) 
-             VALUES (1, 'nombre1', 'apellido1', 'napellido1@fi.uba.ar', 12345, 'S', 'hash123', '2026-05-11')",
+            "INSERT INTO Usuario (id, nombre, apellido, email, legajo, tipo, password_hash, momento_creacion, direccion_avatar) 
+             VALUES (1, 'nombre1', 'apellido1', 'napellido1@fi.uba.ar', 12345, 'S', 'hash123', '2026-05-11', 'direccion_avatar1')",
             [],
         ).unwrap();
 
