@@ -21,19 +21,14 @@ impl ReservaService {
         ejemplares: Vec<i64>,
     ) -> Result<(), String> {
 
-        if ejemplares.is_empty() {
-            return Err(
-                "Debe seleccionar al menos un ejemplar"
-                    .to_string()
-            );
-        }
+        Self::validar_ejemplares(
+            &ejemplares,
+        )?;
 
-        if fecha_inicio > fecha_fin {
-            return Err(
-                "La fecha de inicio debe ser anterior a la fecha de fin"
-                    .to_string()
-            );
-        }
+        Self::validar_fechas(
+            &fecha_inicio,
+            &fecha_fin,
+        )?;
 
         let reserva = Reserva {
             id_usuario,
@@ -60,6 +55,35 @@ impl ReservaService {
                 ejemplar_id,
             )
             .map_err(|e| e.to_string())?;
+        }
+
+        Ok(())
+    }
+
+    fn validar_ejemplares(
+        ejemplares: &[i64],
+    ) -> Result<(), String> {
+
+        if ejemplares.is_empty() {
+            return Err(
+                "Debe seleccionar al menos un ejemplar"
+                    .to_string()
+            );
+        }
+
+        Ok(())
+    }
+
+    fn validar_fechas(
+        fecha_inicio: &str,
+        fecha_fin: &str,
+    ) -> Result<(), String> {
+
+        if fecha_inicio > fecha_fin {
+            return Err(
+                "La fecha de inicio debe ser anterior a la fecha de fin"
+                    .to_string()
+            );
         }
 
         Ok(())
@@ -120,5 +144,79 @@ impl ReservaService {
 
         ReservaRepository::listar_todas(conn)
             .map_err(|e| e.to_string())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn validar_ejemplares_lista_vacia() {
+
+        let resultado =
+            ReservaService::validar_ejemplares(
+                &vec![],
+            );
+
+        assert!(
+            resultado.is_err()
+        );
+    }
+
+    #[test]
+    fn validar_ejemplares_lista_no_vacia() {
+
+        let resultado =
+            ReservaService::validar_ejemplares(
+                &vec![1],
+            );
+
+        assert!(
+            resultado.is_ok()
+        );
+    }
+
+    #[test]
+    fn validar_fechas_es_mayor() {
+
+        let resultado =
+            ReservaService::validar_fechas(
+                "2026-07-10",
+                "2026-07-01",
+            );
+
+        assert!(
+            resultado.is_err()
+        );
+    }
+
+    #[test]
+    fn validar_fechas_acepta_fechas_validas() {
+
+        let resultado =
+            ReservaService::validar_fechas(
+                "2026-07-01",
+                "2026-07-10",
+            );
+
+        assert!(
+            resultado.is_ok()
+        );
+    }
+
+    #[test]
+    fn validar_fechas_acepta_mismo_dia() {
+
+        let resultado =
+            ReservaService::validar_fechas(
+                "2026-07-01",
+                "2026-07-01",
+            );
+
+        assert!(
+            resultado.is_ok()
+        );
     }
 }
