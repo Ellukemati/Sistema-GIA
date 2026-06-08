@@ -24,4 +24,6 @@ env/
 *.db-wal
 
 # --- Archivos Multimedia / Servidor ---
-/static/uploads/
+/static/uploads/avatares/
+/static/uploads/modelos/
+/static/uploads/ejemplares/

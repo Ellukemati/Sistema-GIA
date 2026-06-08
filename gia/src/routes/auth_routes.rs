@@ -1,4 +1,7 @@
 use crate::handlers::auth_handler::AuthHandler;
+use crate::handlers::ejemplar_handler::EjemplarHandler;
+use crate::handlers::modelo_handler::ModeloHandler;
+use crate::handlers::reserva_handler::ReservaHandler;
 use rouille::{Request, Response, router};
 use rusqlite::Connection;
 use std::sync::{Arc, Mutex};
@@ -7,6 +10,19 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
     router!(request,
         (GET) (/registro) => {
             AuthHandler::mostrar_formulario_registro()
+        },
+
+        (GET) (/modelo/registro) => {
+            ModeloHandler::mostrar_formulario_registro()
+        },
+
+        (GET) (/ejemplar/registro) => {
+            let conn_guard = conn.lock().unwrap();
+            EjemplarHandler::mostrar_formulario_registro(&conn_guard)
+        },
+
+        (GET) (/reservas/nueva) => {
+            ReservaHandler::mostrar_formulario_reserva()
         },
 
         (POST) (/registro) => {
