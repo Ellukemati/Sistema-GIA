@@ -1,8 +1,5 @@
 use crate::errors::ImageStorageError;
-use crate::service::image_storage::{
-    eliminar_imagen_por_direccion, guardar_avatar_con_legajo, guardar_imagen_ejemplar,
-    guardar_imagen_modelo,
-};
+use crate::service::image_storage::{procesar_avatar, procesar_ejemplar, procesar_modelo};
 use rouille::{Request, Response};
 use rusqlite::Connection;
 use rusqlite::OptionalExtension;
@@ -11,10 +8,6 @@ use std::io::Read;
 use std::sync::{Arc, Mutex};
 
 pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
-    if request.method() != "POST" {
-        return Response::empty_404();
-    }
-
     let raw = request.url();
     let path = raw.split('?').next().unwrap_or("");
     let tail = match path.strip_prefix("/imagenes/") {
@@ -27,31 +20,42 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
         return Response::empty_404();
     }
 
-    match parts[0] {
-        "avatares" => {
+    match (request.method(), parts[0]) {
+        ("POST", "avatares") => {
             if parts.len() != 2 {
-                return Response::text("Ruta de avatar invalida. Se requiere /avatares/{legajo}")
-                    .with_status_code(400);
+                return Response::empty_404();
             }
-            subir_imagen_avatar_route(request, parts[1], conn)
+            subir_avatar_route(request, parts[1], conn)
         }
-        "modelos" => {
+        ("POST", "modelos") => {
             if parts.len() != 3 {
-                return Response::text(
-                    "Ruta de modelo invalida. Se requiere /modelos/{id}/{orden}",
-                )
-                .with_status_code(400);
+                return Response::empty_404();
             }
-            subir_imagen_modelo_route(request, parts[1], parts[2], conn)
+            subir_modelo_route(request, parts[1], parts[2], conn)
         }
-        "ejemplares" => {
+        ("POST", "ejemplares") => {
             if parts.len() != 3 {
-                return Response::text(
-                    "Ruta de ejemplar invalida. Se requiere /ejemplares/{id}/{orden}",
-                )
-                .with_status_code(400);
+                return Response::empty_404();
             }
-            subir_imagen_ejemplar_route(request, parts[1], parts[2], conn)
+            subir_ejemplar_route(request, parts[1], parts[2], conn)
+        }
+        ("GET", "avatares") => {
+            if parts.len() != 2 {
+                return Response::empty_404();
+            }
+            servir_avatar_route(parts[1], conn)
+        }
+        ("GET", "modelos") => {
+            if parts.len() != 3 {
+                return Response::empty_404();
+            }
+            servir_modelo_route(parts[1], parts[2], conn)
+        }
+        ("GET", "ejemplares") => {
+            if parts.len() != 3 {
+                return Response::empty_404();
+            }
+            servir_ejemplar_route(parts[1], parts[2], conn)
         }
         _ => Response::empty_404(),
     }
@@ -62,246 +66,215 @@ fn read_body_bytes(request: &Request) -> Result<Vec<u8>, String> {
     let Some(mut reader) = request.data() else {
         return Err("No se recibio ninguna imagen".to_string());
     };
-
-    reader
-        .read_to_end(&mut bytes)
-        .map_err(|e| format!("No se pudo leer la imagen: {}", e))?;
-
+    reader.read_to_end(&mut bytes).map_err(|e| e.to_string())?;
     if bytes.is_empty() {
-        return Err("La imagen esta vacia".to_string());
+        return Err("Vacia".to_string());
     }
-
     Ok(bytes)
 }
 
-fn subir_imagen_modelo_route(
+fn subir_modelo_route(
     request: &Request,
     modelo_id: &str,
     orden: &str,
     conn: Arc<Mutex<Connection>>,
 ) -> Response {
-    let modelo = match modelo_id.parse::<i64>() {
+    let m_id = match modelo_id.parse::<i64>() {
         Ok(v) => v,
-        Err(_) => return Response::text("modelo_id invalido").with_status_code(400),
+        Err(_) => return Response::empty_404(),
     };
-
-    let orden_i = match orden.parse::<i32>() {
+    let ord = match orden.parse::<i32>() {
         Ok(v) => v,
-        Err(_) => return Response::text("orden invalido").with_status_code(400),
+        Err(_) => return Response::empty_404(),
     };
 
     let bytes = match read_body_bytes(request) {
         Ok(b) => b,
-        Err(mensaje) => return Response::text(mensaje).with_status_code(400),
+        Err(m) => return Response::text(m).with_status_code(400),
     };
 
-    match guardar_imagen_modelo(modelo, &bytes) {
-        Ok(url) => {
-            let mut imagen_a_borrar: Option<String> = None;
-
+    match procesar_modelo(&bytes) {
+        Ok((blob_final, mime)) => {
             match conn.lock() {
                 Ok(guard) => {
                     let conn_ref: &Connection = &guard;
-                    let imagen_anterior: Option<String> = conn_ref
-                        .query_row(
-                            "SELECT imagen_direccion FROM modelo_imagen WHERE modelo_id = ?1 AND orden = ?2",
-                            params![modelo, orden_i],
-                            |row| row.get(0),
-                        )
-                        .optional()
-                        .unwrap_or(None);
-
                     if let Err(e) = conn_ref.execute(
-                        "INSERT OR REPLACE INTO modelo_imagen (modelo_id, orden, imagen_direccion) VALUES (?1, ?2, ?3)",
-                        params![modelo, orden_i, url.clone()],
+                        "INSERT OR REPLACE INTO modelo_imagen (modelo_id, orden, imagen_blob, imagen_mime) VALUES (?1, ?2, ?3, ?4)",
+                        params![m_id, ord, blob_final, mime],
                     ) {
-                        return Response::from_data("text/plain", format!("Error guardando en DB: {}", e))
-                            .with_status_code(500);
-                    }
-
-                    if orden_i == 0
-                        && let Err(e) = conn_ref.execute(
-                            "UPDATE modelos SET imagen_principal_direccion = ?1 WHERE id = ?2",
-                            params![url.clone(), modelo],
-                        )
-                    {
-                        return Response::from_data(
-                            "text/plain",
-                            format!("Error actualizando imagen principal del modelo: {}", e),
-                        )
-                        .with_status_code(500);
-                    }
-
-                    if let Some(direccion_anterior) = imagen_anterior
-                        && direccion_anterior != url
-                    {
-                        imagen_a_borrar = Some(direccion_anterior);
+                        return Response::text(e.to_string()).with_status_code(500);
                     }
                 }
-                Err(_) => {
-                    return Response::from_data("text/plain", "Mutex envenenado")
-                        .with_status_code(500);
-                }
+                Err(_) => return Response::text("Mutex envenenado").with_status_code(500),
             }
-
-            if let Some(direccion_vieja) = imagen_a_borrar {
-                let _ = eliminar_imagen_por_direccion(&direccion_vieja);
-            }
-
-            Response::text(url)
+            Response::text(format!("/imagenes/modelos/{}/{}", m_id, ord))
         }
         Err(ImageStorageError::InvalidImage(msg)) => Response::text(msg).with_status_code(400),
-        Err(err) => Response::from_data("text/plain", err.to_string()).with_status_code(500),
+        Err(err) => Response::text(err.to_string()).with_status_code(500),
     }
 }
 
-fn subir_imagen_ejemplar_route(
+fn servir_modelo_route(modelo_id: &str, orden: &str, conn: Arc<Mutex<Connection>>) -> Response {
+    let m_id = match modelo_id.parse::<i64>() {
+        Ok(v) => v,
+        Err(_) => return Response::empty_404(),
+    };
+    let ord = match orden.parse::<i32>() {
+        Ok(v) => v,
+        Err(_) => return Response::empty_404(),
+    };
+
+    match conn.lock() {
+        Ok(guard) => {
+            let conn_ref: &Connection = &guard;
+            let datos: Option<(Vec<u8>, String)> = conn_ref
+                .query_row(
+                    "SELECT imagen_blob, imagen_mime FROM modelo_imagen WHERE modelo_id = ?1 AND orden = ?2",
+                    params![m_id, ord],
+                    |row| Ok((row.get(0)?, row.get(1)?)),
+                )
+                .optional()
+                .unwrap_or(None);
+
+            if let Some((blob, mime)) = datos {
+                Response::from_data(mime, blob)
+            } else {
+                Response::empty_404()
+            }
+        }
+        Err(_) => Response::text("Mutex envenenado").with_status_code(500),
+    }
+}
+
+fn subir_ejemplar_route(
     request: &Request,
     ejemplar_id: &str,
     orden: &str,
     conn: Arc<Mutex<Connection>>,
 ) -> Response {
-    let ejemplar = match ejemplar_id.parse::<i64>() {
+    let e_id = match ejemplar_id.parse::<i64>() {
         Ok(v) => v,
-        Err(_) => return Response::text("ejemplar_id invalido").with_status_code(400),
+        Err(_) => return Response::empty_404(),
     };
-
-    let orden_i = match orden.parse::<i32>() {
+    let ord = match orden.parse::<i32>() {
         Ok(v) => v,
-        Err(_) => return Response::text("orden invalido").with_status_code(400),
+        Err(_) => return Response::empty_404(),
     };
 
     let bytes = match read_body_bytes(request) {
         Ok(b) => b,
-        Err(mensaje) => return Response::text(mensaje).with_status_code(400),
+        Err(m) => return Response::text(m).with_status_code(400),
     };
 
-    match guardar_imagen_ejemplar(ejemplar, &bytes) {
-        Ok(url) => {
-            let mut imagen_a_borrar: Option<String> = None;
-
+    match procesar_ejemplar(&bytes) {
+        Ok((blob_final, mime)) => {
             match conn.lock() {
                 Ok(guard) => {
                     let conn_ref: &Connection = &guard;
-                    let imagen_anterior: Option<String> = conn_ref
-                        .query_row(
-                            "SELECT imagen_direccion FROM imagen_ejemplar WHERE ejemplar_id = ?1 AND orden = ?2",
-                            params![ejemplar, orden_i],
-                            |row| row.get(0),
-                        )
-                        .optional()
-                        .unwrap_or(None);
-
                     if let Err(e) = conn_ref.execute(
-                        "INSERT OR REPLACE INTO imagen_ejemplar (ejemplar_id, orden, imagen_direccion) VALUES (?1, ?2, ?3)",
-                        params![ejemplar, orden_i, url.clone()],
+                        "INSERT OR REPLACE INTO ejemplar_imagen (ejemplar_id, orden, imagen_blob, imagen_mime) VALUES (?1, ?2, ?3, ?4)",
+                        params![e_id, ord, blob_final, mime],
                     ) {
-                        return Response::from_data(
-                            "text/plain",
-                            format!("Error guardando en DB: {}", e),
-                        )
-                        .with_status_code(500);
-                    }
-
-                    if orden_i == 0
-                        && let Err(e) = conn_ref.execute(
-                            "UPDATE ejemplares SET direccion_imagen_principal = ?1 WHERE id = ?2",
-                            params![url.clone(), ejemplar],
-                        )
-                    {
-                        return Response::from_data(
-                            "text/plain",
-                            format!("Error actualizando imagen principal del ejemplar: {}", e),
-                        )
-                        .with_status_code(500);
-                    }
-
-                    if let Some(direccion_anterior) = imagen_anterior
-                        && direccion_anterior != url
-                    {
-                        imagen_a_borrar = Some(direccion_anterior);
+                        return Response::text(e.to_string()).with_status_code(500);
                     }
                 }
-                Err(_) => {
-                    return Response::from_data("text/plain", "Mutex envenenado")
-                        .with_status_code(500);
-                }
+                Err(_) => return Response::text("Mutex envenenado").with_status_code(500),
             }
-
-            if let Some(direccion_vieja) = imagen_a_borrar {
-                let _ = eliminar_imagen_por_direccion(&direccion_vieja);
-            }
-
-            Response::text(url)
+            Response::text(format!("/imagenes/ejemplares/{}/{}", e_id, ord))
         }
         Err(ImageStorageError::InvalidImage(msg)) => Response::text(msg).with_status_code(400),
-        Err(err) => Response::from_data("text/plain", err.to_string()).with_status_code(500),
+        Err(err) => Response::text(err.to_string()).with_status_code(500),
     }
 }
 
-fn subir_imagen_avatar_route(
-    request: &Request,
-    legajo: &str,
-    conn: Arc<Mutex<Connection>>,
-) -> Response {
+fn servir_ejemplar_route(ejemplar_id: &str, orden: &str, conn: Arc<Mutex<Connection>>) -> Response {
+    let e_id = match ejemplar_id.parse::<i64>() {
+        Ok(v) => v,
+        Err(_) => return Response::empty_404(),
+    };
+    let ord = match orden.parse::<i32>() {
+        Ok(v) => v,
+        Err(_) => return Response::empty_404(),
+    };
+
+    match conn.lock() {
+        Ok(guard) => {
+            let conn_ref: &Connection = &guard;
+            let datos: Option<(Vec<u8>, String)> = conn_ref
+                .query_row(
+                    "SELECT imagen_blob, imagen_mime FROM ejemplar_imagen WHERE ejemplar_id = ?1 AND orden = ?2",
+                    params![e_id, ord],
+                    |row| Ok((row.get(0)?, row.get(1)?)),
+                )
+                .optional()
+                .unwrap_or(None);
+
+            if let Some((blob, mime)) = datos {
+                Response::from_data(mime, blob)
+            } else {
+                Response::empty_404()
+            }
+        }
+        Err(_) => Response::text("Mutex envenenado").with_status_code(500),
+    }
+}
+
+fn subir_avatar_route(request: &Request, legajo: &str, conn: Arc<Mutex<Connection>>) -> Response {
     let leg = match legajo.parse::<i64>() {
         Ok(v) => v,
-        Err(_) => return Response::text("Legajo invalido").with_status_code(400),
+        Err(_) => return Response::empty_404(),
     };
 
     let bytes = match read_body_bytes(request) {
         Ok(b) => b,
-        Err(mensaje) => return Response::text(mensaje).with_status_code(400),
+        Err(m) => return Response::text(m).with_status_code(400),
     };
 
-    match guardar_avatar_con_legajo(leg, &bytes) {
-        Ok(url) => {
-            let mut avatar_a_borrar: Option<String> = None;
-
+    match procesar_avatar(&bytes) {
+        Ok((blob_final, mime)) => {
             match conn.lock() {
                 Ok(guard) => {
                     let conn_ref: &Connection = &guard;
-                    let avatar_anterior: Option<String> = conn_ref
-                        .query_row(
-                            "SELECT avatar_direccion FROM usuarios WHERE legajo = ?1",
-                            params![leg],
-                            |row| row.get(0),
-                        )
-                        .optional()
-                        .unwrap_or(None);
-
                     if let Err(e) = conn_ref.execute(
-                        "UPDATE usuarios SET avatar_direccion = ?1 WHERE legajo = ?2",
-                        params![url.clone(), leg],
+                        "UPDATE usuarios SET avatar_blob = ?1, avatar_mime = ?2 WHERE legajo = ?3",
+                        params![blob_final, mime, leg],
                     ) {
-                        return Response::from_data(
-                            "text/plain",
-                            format!("Error guardando avatar en BD: {}", e),
-                        )
-                        .with_status_code(500);
-                    }
-
-                    if let Some(direccion_anterior) = avatar_anterior
-                        && direccion_anterior != url
-                    {
-                        avatar_a_borrar = Some(direccion_anterior);
+                        return Response::text(e.to_string()).with_status_code(500);
                     }
                 }
-                Err(_) => {
-                    return Response::from_data("text/plain", "Mutex poisoned")
-                        .with_status_code(500);
-                }
+                Err(_) => return Response::text("Mutex envenenado").with_status_code(500),
             }
+            Response::text(format!("/imagenes/avatares/{}", leg))
+        }
+        Err(ImageStorageError::InvalidImage(msg)) => Response::text(msg).with_status_code(400),
+        Err(err) => Response::text(err.to_string()).with_status_code(500),
+    }
+}
 
-            if let Some(direccion_vieja) = avatar_a_borrar {
-                let _ = eliminar_imagen_por_direccion(&direccion_vieja);
+fn servir_avatar_route(legajo: &str, conn: Arc<Mutex<Connection>>) -> Response {
+    let leg = match legajo.parse::<i64>() {
+        Ok(v) => v,
+        Err(_) => return Response::empty_404(),
+    };
+
+    match conn.lock() {
+        Ok(guard) => {
+            let conn_ref: &Connection = &guard;
+            let datos: Option<(Vec<u8>, String)> = conn_ref
+                .query_row(
+                    "SELECT avatar_blob, avatar_mime FROM usuarios WHERE legajo = ?1",
+                    params![leg],
+                    |row| Ok((row.get(0)?, row.get(1)?)),
+                )
+                .optional()
+                .unwrap_or(None);
+
+            if let Some((blob, mime)) = datos {
+                Response::from_data(mime, blob)
+            } else {
+                Response::empty_404()
             }
-
-            Response::text(url)
         }
-        Err(ImageStorageError::InvalidImage(mensaje)) => {
-            Response::text(mensaje).with_status_code(400)
-        }
-        Err(err) => Response::from_data("text/plain", err.to_string()).with_status_code(500),
+        Err(_) => Response::text("Mutex envenenado").with_status_code(500),
     }
 }

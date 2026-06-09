@@ -11,13 +11,13 @@ use rusqlite::Connection;
 use std::sync::{Arc, Mutex};
 
 pub fn dispatch(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
-    // 1. Prioridad alta: Archivos estáticos
+    // 1. Prioridad alta: Archivos estáticos de frontend (Tailwind CSS, JS, etc.)
     if let Some(response) = static_routes::serve(request) {
         return response;
     }
 
-    // 2. Rutas especiales: Subida de imágenes
-    if request.method() == "POST" && request.url().starts_with("/imagenes/") {
+    // 2. Rutas especiales: Operaciones sobre imágenes (Tanto GET para mostrar como POST para subir)
+    if request.url().starts_with("/imagenes/") {
         return image_routes::router(request, Arc::clone(&conn));
     }
 
@@ -42,6 +42,5 @@ pub fn dispatch(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
         return response;
     }
 
-    // 4. Si nadie supo qué hacer con la ruta, se devuelve el 404 global
     Response::empty_404()
 }
