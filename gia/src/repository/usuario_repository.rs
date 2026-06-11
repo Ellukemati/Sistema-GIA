@@ -66,3 +66,67 @@ impl UsuarioRepository {
         conn.execute("DELETE FROM usuarios WHERE id = ?1", [usuario_id])
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::usuario::Usuario;
+    use rusqlite::Connection;
+
+    fn crear_db_test() -> Connection {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute(
+            "CREATE TABLE usuarios (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre TEXT NOT NULL,
+                apellido TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                legajo INTEGER UNIQUE NOT NULL,
+                tipo TEXT NOT NULL,
+                password_hash TEXT NOT NULL,
+                momento_creacion TEXT DEFAULT CURRENT_TIMESTAMP,
+                avatar_blob BLOB,
+                avatar_mime TEXT
+            )",
+            [],
+        )
+        .unwrap();
+        conn
+    }
+
+    #[test]
+    fn test_crear_y_buscar_usuario_por_email() {
+        let conn = crear_db_test();
+        let nuevo_usuario = Usuario {
+            id: 0,
+            nombre: "Lionel".to_string(),
+            apellido: "Messi".to_string(),
+            email: "lmessi@fi.uba.ar".to_string(),
+            legajo: 101010,
+            tipo: "S".to_string(),
+            password_hash: "hash_messi".to_string(),
+            momento_creacion: String::new(),
+            avatar_blob: None,
+            avatar_mime: None,
+        };
+
+        let filas_afectadas = UsuarioRepository::crear(&conn, &nuevo_usuario).unwrap();
+        assert_eq!(filas_afectadas, 1);
+
+        let usuario_db = UsuarioRepository::buscar_por_email(&conn, "lmessi@fi.uba.ar")
+            .unwrap()
+            .expect("Debería encontrar a Messi");
+
+        assert_eq!(usuario_db.nombre, "Lionel");
+        assert_eq!(usuario_db.legajo, 101010);
+        assert_eq!(usuario_db.tipo, "S");
+    }
+
+    #[test]
+    fn test_buscar_usuario_inexistente_devuelve_none() {
+        let conn = crear_db_test();
+        // el bicho siuuu no estudia en FIUBA
+        let resultado = UsuarioRepository::buscar_por_email(&conn, "cr7@fi.uba.ar").unwrap();
+        assert!(resultado.is_none());
+    }
+}
