@@ -30,5 +30,5 @@ if [ $RESULT -ne 0 ]; then
     exit 1
 fi
 
-echo "✅ [ÉXITO] Todo en orden: Código limpio, validado y testeado. Commit aprobado."
+echo "✅ [ÉXITO] Todo en orden: Commit aprobado."
 exit 0
