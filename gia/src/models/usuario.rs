@@ -11,7 +11,8 @@ pub struct Usuario {
     pub tipo: String,
     pub password_hash: String,
     pub momento_creacion: String,
-    pub direccion_avatar: Option<String>,
+    pub avatar_blob: Option<Vec<u8>>,
+    pub avatar_mime: Option<String>,
 }
 
 impl Usuario {
@@ -31,7 +32,8 @@ impl Usuario {
             tipo,
             password_hash: row.get("password_hash")?,
             momento_creacion: row.get("momento_creacion")?,
-            direccion_avatar: row.get("direccion_avatar")?,
+            avatar_blob: row.get("avatar_blob")?,
+            avatar_mime: row.get("avatar_mime")?,
         })
     }
 
@@ -75,7 +77,8 @@ mod tests {
                 tipo TEXT,
                 password_hash TEXT,
                 momento_creacion TEXT,
-                direccion_avatar TEXT
+                avatar_blob BLOB,
+                avatar_mime TEXT
             )",
             [],
         )

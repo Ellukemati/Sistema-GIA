@@ -33,8 +33,8 @@ impl UsuarioRepository {
     pub fn crear(conn: &Connection, usuario: &Usuario) -> SqlResult<usize> {
         conn.execute(
             "INSERT INTO usuarios
-            (nombre, apellido, email, legajo, tipo, password_hash, direccion_avatar)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            (nombre, apellido, email, legajo, tipo, password_hash)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
             rusqlite::params![
                 usuario.nombre,
                 usuario.apellido,
@@ -42,22 +42,22 @@ impl UsuarioRepository {
                 usuario.legajo,
                 usuario.tipo,
                 usuario.password_hash,
-                usuario.direccion_avatar,
             ],
         )
     }
 
     #[allow(dead_code)]
-    pub fn actualizar_direccion_avatar(
+    pub fn actualizar_avatar(
         conn: &Connection,
         usuario_id: i64,
-        direccion_avatar: &str,
+        avatar_blob: &[u8],
+        avatar_mime: &str,
     ) -> SqlResult<usize> {
         conn.execute(
             "UPDATE usuarios
-             SET direccion_avatar = ?1
-             WHERE id = ?2",
-            [direccion_avatar, &usuario_id.to_string()],
+             SET avatar_blob = ?1, avatar_mime = ?2
+             WHERE id = ?3",
+            rusqlite::params![avatar_blob, avatar_mime, usuario_id],
         )
     }
 
