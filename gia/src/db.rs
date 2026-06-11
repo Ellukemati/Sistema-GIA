@@ -37,7 +37,7 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
             nombre_modelo TEXT NOT NULL,
             categoria TEXT,
             descripcion TEXT,
-            manual_url TEXT,
+            manual_url TEXT
         )",
         [],
     )?;
@@ -124,7 +124,6 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
     )?;
 
     // Creacion de un admin por defecto
-    // Revisar si ya existe algún admin para no duplicarlo si reiniciamos el server
     let admin_count: i32 = conn.query_row(
         "SELECT COUNT(*) FROM usuarios WHERE tipo = ?1",
         [TIPO_ADMIN],
@@ -132,10 +131,12 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
     )?;
 
     if admin_count == 0 {
+        let admin_hash = bcrypt::hash("admin123", 4).unwrap_or_default();
+
         conn.execute(
             "INSERT INTO usuarios (nombre, apellido, email, legajo, tipo, password_hash)
-             VALUES ('Admin', 'Maestro', 'admin@fi.uba.ar', 0, ?1, 'hash_admin123')",
-            [TIPO_ADMIN],
+             VALUES ('Admin', 'Maestro', 'admin@fi.uba.ar', 0, ?1, ?2)",
+            rusqlite::params![TIPO_ADMIN, admin_hash],
         )?;
         println!("✓ Admin maestro creado exitosamente (Email: admin@fi.uba.ar | Clave: admin123)");
     }
