@@ -13,19 +13,16 @@ pub fn serve(request: &Request) -> Option<Response> {
     let path = raw_url.split('?').next().unwrap_or("");
     let path = path.strip_prefix("/static/")?;
 
-    // Para evitar ataques de path traversal, se rechaza cualquier ruta que intente subir directorios
     if path.contains("..") {
         return Some(Response::empty_404());
     }
 
-    // Se arma la ruta fisica del archivo dentro de static/
     let disk_path = Path::new(STATIC_DIR).join(path);
 
     if !disk_path.is_file() {
-        return Some(Response::empty_404());
+        return None;
     }
 
-    // Se lee el archivo y se devuelve el MIME correcto para que el navegador lo interprete
     match fs::read(&disk_path) {
         Ok(bytes) => {
             let mime = from_path(&disk_path).first_or_octet_stream().to_string();
