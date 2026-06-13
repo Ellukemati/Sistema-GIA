@@ -222,10 +222,10 @@ impl ReservaHandler {
         let mut ids = Vec::new();
 
         for par in body.split('&') {
-            if let Some(valor) = par.strip_prefix("ejemplar_id=") {
-                if let Ok(id) = valor.parse::<i64>() {
-                    ids.push(id);
-                }
+            if let Some(valor) = par.strip_prefix("ejemplar_id=")
+                && let Ok(id) = valor.parse::<i64>()
+            {
+                ids.push(id);
             }
         }
 

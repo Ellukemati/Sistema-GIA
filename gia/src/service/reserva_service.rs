@@ -138,14 +138,14 @@ mod tests {
 
     #[test]
     fn validar_ejemplares_lista_vacia() {
-        let resultado = ReservaService::validar_ejemplares(&vec![]);
+        let resultado = ReservaService::validar_ejemplares(&[]);
 
         assert!(resultado.is_err());
     }
 
     #[test]
     fn validar_ejemplares_lista_no_vacia() {
-        let resultado = ReservaService::validar_ejemplares(&vec![1]);
+        let resultado = ReservaService::validar_ejemplares(&[1]);
 
         assert!(resultado.is_ok());
     }
