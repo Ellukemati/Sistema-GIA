@@ -9,6 +9,7 @@ mod repository;
 mod routes;
 mod server;
 mod service;
+mod templates;
 mod utils;
 
 fn main() {

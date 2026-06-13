@@ -1,15 +1,21 @@
 use crate::service::auth_service::AuthService;
+use crate::templates;
 use rouille::{Request, Response};
 use rusqlite::Connection;
 use std::collections::HashMap;
 use std::io::Read;
+use tera::Context;
 
 pub struct AuthHandler;
 
 impl AuthHandler {
     pub fn mostrar_formulario_registro() -> Response {
-        let html = include_str!("../../templates/usuario_registro.html");
-        Response::html(html)
+        let ctx = Context::new();
+        match templates::render("usuario_registro.html", &ctx) {
+            Ok(html) => Response::html(html),
+            Err(e) => Response::text(format!("Error renderizando plantilla: {}", e))
+                .with_status_code(500),
+        }
     }
 
     pub fn mostrar_formulario_login() -> Response {
