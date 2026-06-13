@@ -39,8 +39,8 @@ impl AuthService {
             email: email.clone(),
             tipo: tipo.to_string(),
             password_hash,
-            //momento_creacion: String::new(), // se asigna en la db
-            imagen: None,
+            momento_creacion: String::new(), // se asigna en la db
+            direccion_avatar: None,
         };
 
         // Insertar en la base de datos y volver a obtener el usuario con los campos actualizados

@@ -17,7 +17,7 @@ pub struct Ejemplar {
 impl Ejemplar {
     #[allow(dead_code)]
     pub fn from_row(row: &Row) -> SqlResult<Self> {
-        // la columna `esta_disponible` puede estar guardada como 0/1 al ser boolean en la BDD, por eso la convertimos a bool
+        // La columna `esta_disponible` es 0 o 1 al ser boolean en la BDD, por eso se convierte a bool
         let disponible: i32 = row.get("esta_disponible")?;
         Ok(Ejemplar {
             id: row.get("id")?,

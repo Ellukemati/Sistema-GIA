@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 mod constants;
 mod db;
 mod errors;
@@ -10,7 +12,6 @@ mod service;
 mod utils;
 
 fn main() {
-    // Inicializar la base de datos
     let _conn = match db::init_db(constants::DB_PATH) {
         Ok(c) => {
             println!(

@@ -42,18 +42,22 @@ impl UsuarioRepository {
                 usuario.legajo,
                 usuario.tipo,
                 usuario.password_hash,
-                usuario.imagen,
+                usuario.direccion_avatar,
             ],
         )
     }
 
     #[allow(dead_code)]
-    pub fn actualizar_avatar(conn: &Connection, usuario_id: i64, imagen: &str) -> SqlResult<usize> {
+    pub fn actualizar_direccion_avatar(
+        conn: &Connection,
+        usuario_id: i64,
+        direccion_avatar: &str,
+    ) -> SqlResult<usize> {
         conn.execute(
             "UPDATE usuarios
              SET direccion_avatar = ?1
              WHERE id = ?2",
-            [imagen, &usuario_id.to_string()],
+            [direccion_avatar, &usuario_id.to_string()],
         )
     }
 

@@ -21,14 +21,15 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
             tipo TEXT NOT NULL CHECK (tipo IN ({})),
             password_hash TEXT NOT NULL,
             momento_creacion TEXT DEFAULT CURRENT_TIMESTAMP,
-            direccion_avatar TEXT
+            avatar_blob BLOB, -- Imagen del avatar almacenada como BLOB
+            avatar_mime TEXT -- Tipo MIME de la imagen del avatar (ej.: 'image/png' o 'image/jpeg')
         )",
             tipos_usuario
         ),
         [],
     )?;
 
-    // Crear tabla modelos (Catalogo de modelos)
+    // Crear tabla modelos para el catalogo de modelos de instrumentos
     conn.execute(
         "CREATE TABLE IF NOT EXISTS modelos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -37,7 +38,6 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
             categoria TEXT,
             descripcion TEXT,
             manual_url TEXT,
-            direccion_imagen_principal TEXT
         )",
         [],
     )?;
@@ -47,14 +47,15 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
         "CREATE TABLE IF NOT EXISTS modelo_imagen (
             modelo_id INTEGER NOT NULL,
             orden INTEGER NOT NULL, -- Orden de la imagen (0 = principal, 1, 2, ...)
-            direccion_imagen TEXT NOT NULL,
+            imagen_blob BLOB NOT NULL,
+            imagen_mime TEXT NOT NULL,
             PRIMARY KEY (modelo_id, orden),
             FOREIGN KEY (modelo_id) REFERENCES modelos(id) ON DELETE CASCADE
         )",
         [],
     )?;
 
-    // Crear tabla ejemplares (Cada entrada unica del inventario)
+    // Crear tabla ejemplares para cada entrada unica del inventario de instrumentos
     conn.execute(
         "CREATE TABLE IF NOT EXISTS ejemplares (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -66,7 +67,6 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
             accesorios TEXT,
             esta_disponible BOOLEAN DEFAULT TRUE,
             ubicacion TEXT,
-            direccion_imagen_principal TEXT,
             FOREIGN KEY (modelo_id) REFERENCES modelos(id) ON DELETE RESTRICT
         )",
         [],
@@ -77,14 +77,15 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
         "CREATE TABLE IF NOT EXISTS ejemplar_imagen (
             ejemplar_id INTEGER NOT NULL,
             orden INTEGER NOT NULL, -- Orden de la imagen (0 = principal, 1, 2, ...)
-            direccion_imagen TEXT NOT NULL,
+            imagen_blob BLOB NOT NULL,
+            imagen_mime TEXT NOT NULL,
             PRIMARY KEY (ejemplar_id, orden),
             FOREIGN KEY (ejemplar_id) REFERENCES ejemplares(id) ON DELETE CASCADE
         )",
         [],
     )?;
 
-    // Crear tabla reservas (Prestamos de instrumentos)
+    // Crear tabla reservas
     conn.execute(
         "CREATE TABLE IF NOT EXISTS reservas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -99,7 +100,7 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
         [],
     )?;
 
-    // Crear tabla intermedia para relacionar reservas con ejemplares (sin cantidades)
+    // Crear tabla intermedia para relacionar reservas con ejemplares
     conn.execute(
         "CREATE TABLE IF NOT EXISTS reserva_ejemplar (
             reserva_id INTEGER NOT NULL,

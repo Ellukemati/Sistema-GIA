@@ -60,16 +60,22 @@ impl ModeloHandler {
         let datos_parseados = Self::parsear_formulario(&body);
 
         let marca = datos_parseados.get("marca").cloned();
-        let modelo = datos_parseados.get("modelo").cloned().unwrap_or_default();
+        let nombre_modelo = datos_parseados
+            .get("nombre_modelo")
+            .cloned()
+            .unwrap_or_default();
         let categoria = datos_parseados.get("categoria").cloned();
         let descripcion = datos_parseados.get("descripcion").cloned();
         let manual_url = datos_parseados.get("manual_url").cloned();
-        let direccion_imagen_principal = datos_parseados.get("direccion_imagen_principal").cloned();
+        let direccion_imagen_principal = datos_parseados
+            .get("direccion_imagen_principal")
+            .cloned()
+            .or_else(|| datos_parseados.get("imagen_principal_url").cloned());
 
         match ModeloService::crear_modelo(
             conn,
             marca,
-            modelo,
+            nombre_modelo,
             categoria,
             descripcion,
             manual_url,
@@ -78,7 +84,7 @@ impl ModeloHandler {
             Ok(modelo) => {
                 let exito_html = format!(
                     "<div style='color:green;'>Modelo {} creado!</div>",
-                    modelo.modelo
+                    modelo.nombre_modelo
                 );
                 Response::html(exito_html)
             }

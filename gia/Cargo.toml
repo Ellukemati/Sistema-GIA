@@ -7,3 +7,5 @@ edition = "2024"
 rusqlite = { version = "0.32", features = ["bundled"] }
 rouille = "3"
 chrono = "0.4"
+image = "0.25"
+mime_guess = "2"
