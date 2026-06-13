@@ -2,7 +2,7 @@ use rusqlite::{Result as SqlResult, Row};
 
 /// Representa una reserva segun la tabla `reservas`
 pub struct Reserva {
-    //pub id: i64,
+    pub id: i64,
     pub id_usuario: i64,
     pub fecha_inicio: String,
     pub fecha_fin: String,
@@ -15,7 +15,7 @@ impl Reserva {
     #[allow(dead_code)]
     pub fn from_row(row: &Row) -> SqlResult<Self> {
         Ok(Reserva {
-            //id: row.get("id")?,
+            id: row.get("id")?,
             id_usuario: row.get("id_usuario")?,
             fecha_inicio: row.get("fecha_inicio")?,
             fecha_fin: row.get("fecha_fin")?,

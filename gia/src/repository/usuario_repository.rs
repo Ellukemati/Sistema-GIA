@@ -33,7 +33,7 @@ impl UsuarioRepository {
     pub fn crear(conn: &Connection, usuario: &Usuario) -> SqlResult<usize> {
         conn.execute(
             "INSERT INTO usuarios
-            (nombre, apellido, email, legajo, tipo, password_hash, imagen)
+            (nombre, apellido, email, legajo, tipo, password_hash, direccion_avatar)
             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
             rusqlite::params![
                 usuario.nombre,

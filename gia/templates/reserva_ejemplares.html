@@ -16,11 +16,6 @@
         method="POST"
         action="/reservas/nueva">
 
-        <input
-            type="number"
-            name="usuario_id"
-            placeholder="ID Usuario"
-            required>
 
         <br><br>
 
@@ -31,11 +26,15 @@
         <input
             type="date"
             name="fecha_inicio"
+            min="{{fecha_minima}}"
+            max="{{fecha_maxima}}"
             required>
 
         <input
             type="date"
             name="fecha_fin"
+            min="{{fecha_minima}}"
+            max="{{fecha_maxima}}"
             required>
 
         <br><br>

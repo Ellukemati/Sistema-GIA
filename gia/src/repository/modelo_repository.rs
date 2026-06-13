@@ -29,35 +29,19 @@ impl ModeloRepository {
         }
         Ok(modelos)
     }
-    pub fn buscar_por_id(
-        conn: &Connection,
-        id: i64,
-    ) -> SqlResult<Option<Modelo>> {
-
-        let mut stmt =
-            conn.prepare(
-                "SELECT *
+    pub fn buscar_por_id(conn: &Connection, id: i64) -> SqlResult<Option<Modelo>> {
+        let mut stmt = conn.prepare(
+            "SELECT *
                 FROM modelos
-                WHERE id = ?1"
-            )?;
+                WHERE id = ?1",
+        )?;
 
-        let resultado =
-            stmt.query_row(
-                [id],
-                Modelo::from_row,
-            );
+        let resultado = stmt.query_row([id], Modelo::from_row);
 
         match resultado {
+            Ok(modelo) => Ok(Some(modelo)),
 
-            Ok(modelo) => {
-                Ok(Some(modelo))
-            }
-
-            Err(
-                rusqlite::Error::QueryReturnedNoRows
-            ) => {
-                Ok(None)
-            }
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
 
             Err(e) => Err(e),
         }

@@ -21,54 +21,37 @@ impl EjemplarRepository {
         )
     }
 
-pub fn listar_todos(
-    conn: &Connection,
-) -> SqlResult<Vec<Ejemplar>> {
-
-    let mut stmt =
-        conn.prepare(
+    pub fn listar_todos(conn: &Connection) -> SqlResult<Vec<Ejemplar>> {
+        let mut stmt = conn.prepare(
             "SELECT *
-             FROM ejemplares"
+             FROM ejemplares",
         )?;
 
-    let filas =
-        stmt.query_map(
-            [],
-            Ejemplar::from_row,
-        )?;
+        let filas = stmt.query_map([], Ejemplar::from_row)?;
 
-    let mut ejemplares = Vec::new();
+        let mut ejemplares = Vec::new();
 
-    for ejemplar in filas {
-        ejemplares.push(ejemplar?);
+        for ejemplar in filas {
+            ejemplares.push(ejemplar?);
+        }
+
+        Ok(ejemplares)
     }
-
-    Ok(ejemplares)
-}
-pub fn listar_por_modelo(
-    conn: &Connection,
-    modelo_id: i64,
-) -> SqlResult<Vec<Ejemplar>> {
-
-    let mut stmt =
-        conn.prepare(
+    pub fn listar_por_modelo(conn: &Connection, modelo_id: i64) -> SqlResult<Vec<Ejemplar>> {
+        let mut stmt = conn.prepare(
             "SELECT *
              FROM ejemplares
-             WHERE modelo_id = ?1"
+             WHERE modelo_id = ?1",
         )?;
 
-    let filas =
-        stmt.query_map(
-            [modelo_id],
-            Ejemplar::from_row,
-        )?;
+        let filas = stmt.query_map([modelo_id], Ejemplar::from_row)?;
 
-    let mut ejemplares = Vec::new();
+        let mut ejemplares = Vec::new();
 
-    for ejemplar in filas {
-        ejemplares.push(ejemplar?);
+        for ejemplar in filas {
+            ejemplares.push(ejemplar?);
+        }
+
+        Ok(ejemplares)
     }
-
-    Ok(ejemplares)
-}
 }
