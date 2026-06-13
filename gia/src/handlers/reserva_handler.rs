@@ -74,7 +74,7 @@ impl ReservaHandler {
 
                 </div>
                 "#,
-                modelo.modelo, marca, categoria, descripcion, modelo.id
+                modelo.nombre_modelo, marca, categoria, descripcion, modelo.id
             ));
         }
 
@@ -159,7 +159,7 @@ impl ReservaHandler {
 
         let html = include_str!("../../templates/reserva_ejemplares.html");
 
-        let html = html.replace("{{nombre_modelo}}", &modelo.modelo);
+        let html = html.replace("{{nombre_modelo}}", &modelo.nombre_modelo);
 
         let html = html.replace("{{ejemplares}}", &opciones);
 
