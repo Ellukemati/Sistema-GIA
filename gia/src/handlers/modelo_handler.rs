@@ -7,12 +7,14 @@ use rouille::{Request, Response};
 use rusqlite::Connection;
 use std::collections::HashMap;
 use std::io::Read;
+use tera::Context;
+
 pub struct ModeloHandler;
 
 impl ModeloHandler {
     pub fn mostrar_formulario_registro() -> Response {
-        let html = include_str!("../../templates/modelo_registro.html");
-        Response::html(html)
+        let ctx = Context::new();
+        templates::response_html(templates::render("modelo_registro.html", &ctx))
     }
 
     pub fn procesar_registro(request: &Request, conn: &Connection) -> Response {

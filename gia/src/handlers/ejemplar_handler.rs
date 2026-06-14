@@ -3,8 +3,16 @@ use crate::service::ejemplar_service::{CrearEjemplarData, EjemplarService};
 use crate::templates;
 use rouille::{Request, Response};
 use rusqlite::Connection;
+use serde::Serialize;
 use std::collections::HashMap;
 use std::io::Read;
+use tera::Context;
+
+#[derive(Serialize)]
+struct ModeloOption {
+    id: i64,
+    nombre_modelo: String,
+}
 
 pub struct EjemplarHandler;
 
@@ -18,17 +26,18 @@ impl EjemplarHandler {
             }
         };
 
-        let mut opciones = String::new();
-        for modelo in modelos {
-            opciones.push_str(&format!(
-                "<option value=\"{}\">{}</option>",
-                modelo.id, modelo.nombre_modelo
-            ));
-        }
+        let opciones: Vec<ModeloOption> = modelos
+            .into_iter()
+            .map(|m| ModeloOption {
+                id: m.id,
+                nombre_modelo: m.nombre_modelo,
+            })
+            .collect();
 
-        let html = include_str!("../../templates/ejemplar_registro.html");
-        let html = html.replace("{{opciones_modelos}}", &opciones);
-        Response::html(html)
+        let mut ctx = Context::new();
+        ctx.insert("modelos", &opciones);
+
+        templates::response_html(templates::render("ejemplar_registro.html", &ctx))
     }
 
     pub fn procesar_registro(request: &Request, conn: &Connection) -> Response {
@@ -68,7 +77,11 @@ impl EjemplarHandler {
         {
             Some(id) => id,
             None => {
-                return Response::text("Debe seleccionar un modelo valido").with_status_code(400);
+                return templates::response_mensaje_error_con_status(
+                    "Datos inválidos",
+                    "Debe seleccionar un modelo válido.",
+                    400,
+                );
             }
         };
 
