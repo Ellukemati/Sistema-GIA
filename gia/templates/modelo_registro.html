@@ -8,7 +8,19 @@
         body { font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; }
         form { display: flex; flex-direction: column; gap: 10px; }
         input, select, button { padding: 8px; }
-        .mensaje { margin-top: 15px; padding: 10px; border-radius: 5px; }
+    </style>
+    <style>
+        #resultado { margin-top: 1rem; }
+        #resultado .mensaje {
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            border: 1.5px solid transparent;
+        }
+        #resultado .mensaje strong { display: block; margin-bottom: 0.5rem; font-size: 0.95rem; }
+        #resultado .mensaje p { margin: 0; }
+        #resultado .mensaje--exito { color: #15803d; background-color: #e8f7ee; border-color: #86c9a0; }
+        #resultado .mensaje--error { color: #b91c1c; background-color: #fdeeed; border-color: #e8a0a0; }
     </style>
 </head>
 <body>

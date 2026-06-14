@@ -1,26 +1,39 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>GIA - Iniciar Sesión</title>
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; }
-        form { display: flex; flex-direction: column; gap: 10px; }
-        input, button { padding: 8px; }
-        .mensaje { margin-top: 15px; padding: 10px; border-radius: 5px; }
-    </style>
-</head>
-<body>
-    <h2>Iniciar Sesión</h2>
-    
-    <form hx-post="/login" hx-target="#resultado">
-        <input type="email" name="email" placeholder="Email (@fi.uba.ar)" required>
-        <input type="password" name="password" placeholder="Contraseña" required>
-        
-        <button type="submit">Ingresar</button>
-    </form>
+{% extends "base.html" %}
 
-    <div id="resultado"></div>
-</body>
-</html>
+{% block title %}GIA - Iniciar sesión{% endblock %}
+
+{% block extra_head %}
+    {% include "estilos/auth.html" %}
+{% endblock %}
+
+{% block content %}
+<main class="auth-page">
+    <section class="auth-card">
+        <header class="auth-header">
+            <p class="auth-brand">GIA</p>
+            <h1>Iniciar sesión</h1>
+            <p class="auth-subtitle">Acceso institucional FIUBA</p>
+        </header>
+
+        <form class="auth-form" hx-post="/login" hx-target="#resultado">
+            <div class="field">
+                <label for="email">Email</label>
+                <input id="email" type="email" name="email" placeholder="usuario@fi.uba.ar" autocomplete="email" required>
+            </div>
+
+            <div class="field">
+                <label for="password">Contraseña</label>
+                <input id="password" type="password" name="password" autocomplete="current-password" required>
+            </div>
+
+            <button type="submit" class="btn-primary">Ingresar</button>
+        </form>
+
+        <footer class="auth-footer">
+            <p>¿No tenés cuenta? <a href="/registro">Registrarse</a></p>
+        </footer>
+
+        {% include "partials/resultado.html" %}
+    </section>
+</main>
+{% endblock %}
