@@ -34,3 +34,97 @@ impl SesionRepository {
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rusqlite::Connection;
+
+    fn crear_db_test() -> Connection {
+        let conn = Connection::open_in_memory().unwrap();
+
+        conn.execute(
+            "CREATE TABLE usuarios (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre TEXT, apellido TEXT, email TEXT, legajo INTEGER,
+                tipo TEXT, password_hash TEXT, momento_creacion TEXT,
+                avatar_blob BLOB, avatar_mime TEXT
+            )",
+            [],
+        )
+        .unwrap();
+
+        conn.execute(
+            "CREATE TABLE sesiones (
+                token TEXT PRIMARY KEY,
+                usuario_id INTEGER NOT NULL,
+                momento_creacion TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+            )",
+            [],
+        )
+        .unwrap();
+
+        // Insertamos a Elon Musk
+        conn.execute(
+            "INSERT INTO usuarios (nombre, apellido, email, legajo, tipo, password_hash) 
+             VALUES ('Elon', 'Musk', 'emusk@fi.uba.ar', 1, 'S', 'hash_spacex')",
+            [],
+        )
+        .unwrap();
+
+        conn
+    }
+
+    #[test]
+    fn test_crear_y_buscar_sesion() {
+        let conn = crear_db_test();
+        let token = "token_tesla_secreto_123";
+        let usuario_id = 1;
+
+        SesionRepository::crear(&conn, token, usuario_id).unwrap();
+
+        let sesion = SesionRepository::buscar_por_token(&conn, token)
+            .unwrap()
+            .expect("La sesión de Elon debería existir");
+
+        assert_eq!(sesion.token, token);
+        assert_eq!(sesion.usuario_id, usuario_id);
+    }
+
+    #[test]
+    fn test_limpiar_expiradas_borra_solo_viejas() {
+        let conn = crear_db_test();
+
+        // Sesión expirada
+        conn.execute(
+            "INSERT INTO sesiones (token, usuario_id, momento_creacion) 
+             VALUES ('token_viejo_twitter', 1, datetime('now', '-2 days'))",
+            [],
+        )
+        .unwrap();
+
+        // Sesión actual
+        conn.execute(
+            "INSERT INTO sesiones (token, usuario_id, momento_creacion) 
+             VALUES ('token_nuevo_x', 1, datetime('now'))",
+            [],
+        )
+        .unwrap();
+
+        let borradas = SesionRepository::limpiar_expiradas(&conn).unwrap();
+
+        assert_eq!(borradas, 1, "Debería borrar exactamente 1 sesión");
+
+        assert!(
+            SesionRepository::buscar_por_token(&conn, "token_viejo_twitter")
+                .unwrap()
+                .is_none()
+        );
+        assert!(
+            SesionRepository::buscar_por_token(&conn, "token_nuevo_x")
+                .unwrap()
+                .is_some()
+        );
+    }
+}
