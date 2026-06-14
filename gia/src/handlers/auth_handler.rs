@@ -5,22 +5,23 @@ use rusqlite::Connection;
 use std::collections::HashMap;
 use std::io::Read;
 use tera::Context;
-
 pub struct AuthHandler;
 
 impl AuthHandler {
+
     pub fn mostrar_formulario_registro() -> Response {
         let ctx = Context::new();
-        match templates::render("usuario_registro.html", &ctx) {
-            Ok(html) => Response::html(html),
-            Err(e) => Response::text(format!("Error renderizando plantilla: {}", e))
-                .with_status_code(500),
-        }
+        templates::response_html(templates::render("usuario_registro.html", &ctx))
     }
 
+
+
     pub fn mostrar_formulario_login() -> Response {
-        let html = include_str!("../../templates/usuario_login.html");
-        Response::html(html)
+
+        let ctx = Context::new();
+
+        templates::response_html(templates::render("usuario_login.html", &ctx))
+
     }
 
     pub fn procesar_registro(request: &Request, conn: &Connection) -> Response {
@@ -42,23 +43,29 @@ impl AuthHandler {
             .parse::<i32>()
         {
             Ok(val) => val,
-            Err(_) => return Response::html("<div style='color:red;'>Legajo inválido</div>"),
+            Err(_) => {
+                return templates::response_mensaje_error(
+                    "Datos inválidos",
+                    "Legajo inválido. Ingresá un número válido.",
+                );
+            }
         };
 
         match AuthService::registrar_cuenta(conn, legajo, nombre, apellido, email, &tipo, &password)
         {
-            Ok(usuario) => {
-                let exito_html = format!(
-                    "<div style='color:green;'>¡Éxito! Bienvenido/a {} (ID: {})</div>",
+            Ok(usuario) => templates::response_mensaje_exito(
+                "¡Cuenta creada!",
+                &format!(
+                    "Bienvenido/a {} (ID: {}).",
                     usuario.nombre_completo(),
                     usuario.id
-                );
-                Response::html(exito_html)
-            }
-            Err(e) => {
-                let error_html = format!("<div style='color:red;'>Error: {}</div>", e);
-                Response::html(error_html)
-            }
+                ),
+            ),
+
+            Err(e) => templates::response_mensaje_error(
+                "No se pudo completar el registro",
+                &e.to_string(),
+            ),
         }
     }
 
@@ -69,31 +76,29 @@ impl AuthHandler {
         }
 
         let datos_parseados = Self::parsear_formulario(&body);
-
         let email = datos_parseados.get("email").cloned().unwrap_or_default();
         let password = datos_parseados.get("password").cloned().unwrap_or_default();
 
         match AuthService::login(conn, &email, &password) {
             Ok((usuario, token)) => {
-                // cookie. HttpOnly por seguridad, Max-Age de 24 hs (86400 segundos)
                 let cookie_str =
                     format!("session_token={}; HttpOnly; Path=/; Max-Age=86400", token);
-
-                let exito_html = format!(
-                    "<div style='color:green;'>¡Login exitoso! Bienvenido/a {}</div>",
-                    usuario.nombre_completo()
-                );
-
-                // Se retorna el HTML inyectando el header de la cookie
-                Response::html(exito_html).with_additional_header("Set-Cookie", cookie_str)
+                templates::response_mensaje_exito(
+                    "¡Inicio de sesión exitoso!",
+                    &format!("Bienvenido/a {}.", usuario.nombre_completo()),
+                )
+                .with_additional_header("Set-Cookie", cookie_str)
             }
-            Err(e) => {
-                let error_html = format!("<div style='color:red;'>Error: {}</div>", e);
-                Response::html(error_html).with_status_code(401)
-            }
+
+            Err(e) => templates::response_mensaje_error_con_status(
+                "No se pudo iniciar sesión",
+                &e.to_string(),
+                401,
+            ),
         }
     }
 
+    
     fn parsear_formulario(cuerpo: &str) -> HashMap<String, String> {
         let mut mapa = HashMap::new();
         for par in cuerpo.split('&') {

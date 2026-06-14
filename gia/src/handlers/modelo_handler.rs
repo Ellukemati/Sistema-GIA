@@ -1,6 +1,7 @@
 use crate::repository::sesion_repository::SesionRepository;
 use crate::repository::usuario_repository::UsuarioRepository;
 use crate::service::modelo_service::ModeloService;
+use crate::templates;
 use crate::utils::extraer_token_sesion;
 use rouille::{Request, Response};
 use rusqlite::Connection;
@@ -19,10 +20,11 @@ impl ModeloHandler {
         let token = match extraer_token_sesion(request) {
             Some(t) => t,
             None => {
-                return Response::html(
-                    "<div style='color:red;'>No autorizado. Debe iniciar sesión.</div>",
-                )
-                .with_status_code(401);
+                return templates::response_mensaje_error_con_status(
+                    "No autorizado",
+                    "Debe iniciar sesión.",
+                    401,
+                );
             }
         };
 
@@ -30,26 +32,34 @@ impl ModeloHandler {
         let sesion =
             match SesionRepository::buscar_por_token(conn, &token) {
                 Ok(Some(s)) => s,
-                _ => return Response::html(
-                    "<div style='color:red;'>Sesión inválida o expirada. Vuelva a loguearse.</div>",
-                )
-                .with_status_code(401),
+                _ => {
+                    return templates::response_mensaje_error_con_status(
+                        "Sesión inválida",
+                        "Su sesión expiró. Volvé a iniciar sesión.",
+                        401,
+                    );
+                }
             };
 
         // Buscar al usuario dueño de la sesión
         let usuario = match UsuarioRepository::buscar_por_id(conn, sesion.usuario_id) {
             Ok(Some(u)) => u,
             _ => {
-                return Response::html(
-                    "<div style='color:red;'>Error interno cargando el usuario.</div>",
-                )
-                .with_status_code(500);
+                return templates::response_mensaje_error_con_status(
+                    "Error interno",
+                    "No se pudo cargar el usuario.",
+                    500,
+                );
             }
         };
 
         // Verificar permisos (Solo administradores)
         if !usuario.es_admin() {
-            return Response::html("<div style='color:red;'>Acceso denegado: Esta acción requiere permisos de Administrador.</div>").with_status_code(403);
+            return templates::response_mensaje_error_con_status(
+                "Acceso denegado",
+                "Esta acción requiere permisos de administrador.",
+                403,
+            );
         }
 
         let mut body = String::new();
@@ -81,17 +91,11 @@ impl ModeloHandler {
             manual_url,
             direccion_imagen_principal,
         ) {
-            Ok(modelo) => {
-                let exito_html = format!(
-                    "<div style='color:green;'>Modelo {} creado!</div>",
-                    modelo.nombre_modelo
-                );
-                Response::html(exito_html)
-            }
-            Err(e) => {
-                let error_html = format!("<div style='color:red;'>Error: {}</div>", e);
-                Response::html(error_html)
-            }
+            Ok(modelo) => templates::response_mensaje_exito(
+                "Modelo creado",
+                &format!("El modelo \"{}\" fue registrado correctamente.", modelo.nombre_modelo),
+            ),
+            Err(e) => templates::response_mensaje_error("No se pudo crear el modelo", &e),
         }
     }
 

@@ -1,5 +1,6 @@
 use crate::repository::modelo_repository::ModeloRepository;
 use crate::service::ejemplar_service::{CrearEjemplarData, EjemplarService};
+use crate::templates;
 use rouille::{Request, Response};
 use rusqlite::Connection;
 use std::collections::HashMap;
@@ -92,17 +93,14 @@ impl EjemplarHandler {
         };
 
         match EjemplarService::crear_ejemplar(conn, data) {
-            Ok(ejemplar) => {
-                let exito_html = format!(
-                    "<div style='color:green;'>Ejemplar creado para el modelo {}!</div>",
+            Ok(ejemplar) => templates::response_mensaje_exito(
+                "Ejemplar creado",
+                &format!(
+                    "El ejemplar fue registrado correctamente (modelo ID: {}).",
                     ejemplar.modelo_id
-                );
-                Response::html(exito_html)
-            }
-            Err(e) => {
-                let error_html = format!("<div style='color:red;'>Error: {}</div>", e);
-                Response::html(error_html)
-            }
+                ),
+            ),
+            Err(e) => templates::response_mensaje_error("No se pudo crear el ejemplar", &e),
         }
     }
 

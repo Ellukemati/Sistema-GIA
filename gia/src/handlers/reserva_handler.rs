@@ -1,4 +1,5 @@
 use crate::service::reserva_service::ReservaService;
+use crate::templates;
 use rouille::{Request, Response};
 use rusqlite::Connection;
 use std::collections::HashMap;
@@ -50,22 +51,12 @@ impl ReservaHandler {
             motivo,
             vec![ejemplar_id],
         ) {
-            Ok(_) => Response::html(
-                "<div style='color:green;'>
-                        Reserva creada correctamente
-                    </div>",
+            Ok(_) => templates::response_mensaje_exito(
+                "Reserva creada",
+                "La reserva fue registrada correctamente.",
             ),
 
-            Err(e) => {
-                let html = format!(
-                    "<div style='color:red;'>
-                        {}
-                    </div>",
-                    e
-                );
-
-                Response::html(html)
-            }
+            Err(e) => templates::response_mensaje_error("No se pudo crear la reserva", &e),
         }
     }
 
