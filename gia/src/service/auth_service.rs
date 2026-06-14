@@ -1,6 +1,7 @@
 use crate::models::usuario::Usuario;
 use crate::repository::sesion_repository::SesionRepository;
 use crate::repository::usuario_repository::UsuarioRepository;
+use bcrypt::{hash, verify};
 use rusqlite::Connection;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -40,7 +41,8 @@ impl AuthService {
             tipo: tipo.to_string(),
             password_hash,
             momento_creacion: String::new(), // se asigna en la db
-            direccion_avatar: None,
+            avatar_blob: None,
+            avatar_mime: None,
         };
 
         // Insertar en la base de datos y volver a obtener el usuario con los campos actualizados
@@ -62,6 +64,8 @@ impl AuthService {
         email: &str,
         password: &str,
     ) -> Result<(Usuario, String), String> {
+        let _ = SesionRepository::limpiar_expiradas(conn);
+
         match UsuarioRepository::buscar_por_email(conn, email) {
             Ok(Some(usuario)) => {
                 if Self::verificar_password(password, &usuario.password_hash) {
@@ -93,12 +97,10 @@ impl AuthService {
 
     // Aca podriamos usar un crate, por ahora queda asi
     fn hashear_password(password: &str) -> String {
-        // TODO: Implementar algoritmo real
-        format!("hash_{}", password)
+        hash(password, 4).unwrap_or_else(|_| String::new())
     }
 
     fn verificar_password(password: &str, hash_guardado: &str) -> bool {
-        let hash_calculado = Self::hashear_password(password);
-        hash_calculado == hash_guardado
+        verify(password, hash_guardado).unwrap_or(false)
     }
 }

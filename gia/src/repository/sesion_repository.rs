@@ -25,4 +25,12 @@ impl SesionRepository {
     pub fn eliminar_por_token(conn: &Connection, token: &str) -> SqlResult<usize> {
         conn.execute("DELETE FROM sesiones WHERE token = ?1", [token])
     }
+
+    /// Elimina todas las sesiones que tengan más de 24 horas de antigüedad
+    pub fn limpiar_expiradas(conn: &Connection) -> SqlResult<usize> {
+        conn.execute(
+            "DELETE FROM sesiones WHERE momento_creacion <= datetime('now', '-1 day')",
+            [],
+        )
+    }
 }
