@@ -1,41 +1,61 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>GIA - Registro</title>
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; }
-        form { display: flex; flex-direction: column; gap: 10px; }
-        input, select, button { padding: 8px; }
-    </style>
-    <style>
-        #resultado { margin-top: 1rem; }
-        #resultado .mensaje {
-            padding: 0.75rem 1rem;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            border: 1.5px solid transparent;
-        }
-        #resultado .mensaje strong { display: block; margin-bottom: 0.5rem; font-size: 0.95rem; }
-        #resultado .mensaje p { margin: 0; }
-        #resultado .mensaje--exito { color: #15803d; background-color: #e8f7ee; border-color: #86c9a0; }
-        #resultado .mensaje--error { color: #b91c1c; background-color: #fdeeed; border-color: #e8a0a0; }
-    </style>
-</head>
-<body>
-    <h2>Registro de modelo de instrumento</h2>
-    
-    <form hx-post="/modelo/registro" hx-target="#resultado">
-        <input type="text" name="marca" placeholder="Marca">
-        <input type="text" name="nombre_modelo" placeholder="Nombre del modelo" required>
-        <input type="text" name="categoria" placeholder="Categoria">
-        <input type="text" name="descripcion" placeholder="Descripcion">
-        <input type="text" name="manual_url" placeholder="URL del manual">
-        <input type="text" name="imagen_principal_url" placeholder="URL de la imagen principal">
-        <button type="submit">Registrar modelo</button>
-    </form>
+{% extends "base.html" %}
 
-    <div id="resultado"></div>
-</body>
-</html>
+{% block title %}GIA - Registro de modelo{% endblock %}
+
+{% block extra_head %}
+    {% include "estilos/auth.html" %}
+{% endblock %}
+
+{% block content %}
+<main class="auth-page">
+    <section class="auth-card">
+        <header class="auth-header">
+            <p class="auth-brand">GIA</p>
+            <h1>Registro de modelo</h1>
+            <p class="auth-subtitle">Alta de modelo de instrumento</p>
+        </header>
+
+        <form class="auth-form" hx-post="/modelo/registro" hx-target="#resultado">
+            <div class="field-row">
+                <div class="field">
+                    <label for="marca">Marca</label>
+                    <input id="marca" type="text" name="marca" placeholder="Ej: Leica">
+                </div>
+                <div class="field">
+                    <label for="nombre_modelo">Nombre del modelo</label>
+                    <input id="nombre_modelo" type="text" name="nombre_modelo" placeholder="Ej: DM-500" required>
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="categoria">Categoría</label>
+                <input id="categoria" type="text" name="categoria" placeholder="Ej: Microscopio">
+            </div>
+
+            <div class="field">
+                <label for="descripcion">Descripción</label>
+                <input id="descripcion" type="text" name="descripcion" placeholder="Breve descripción del instrumento">
+            </div>
+
+            <div class="field-row">
+                <div class="field">
+                    <label for="manual_url">URL del manual</label>
+                    <input id="manual_url" type="url" name="manual_url" placeholder="https://...">
+                </div>
+                <div class="field">
+                    <label for="imagen_principal_url">URL de imagen principal</label>
+                    <input id="imagen_principal_url" type="url" name="imagen_principal_url" placeholder="https://...">
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary">Registrar modelo</button>
+        </form>
+
+        <footer class="auth-footer">
+            <p><a href="/ejemplar/registro">Registrar un ejemplar</a></p>
+        </footer>
+
+        {% include "partials/resultado.html" %}
+    </section>
+</main>
+{% endblock %}

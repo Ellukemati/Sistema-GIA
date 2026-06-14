@@ -1,48 +1,77 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>GIA - Registro</title>
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; }
-        form { display: flex; flex-direction: column; gap: 10px; }
-        input, select, button { padding: 8px; }
-    </style>
-    <style>
-        #resultado { margin-top: 1rem; }
-        #resultado .mensaje {
-            padding: 0.75rem 1rem;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            border: 1.5px solid transparent;
-        }
-        #resultado .mensaje strong { display: block; margin-bottom: 0.5rem; font-size: 0.95rem; }
-        #resultado .mensaje p { margin: 0; }
-        #resultado .mensaje--exito { color: #15803d; background-color: #e8f7ee; border-color: #86c9a0; }
-        #resultado .mensaje--error { color: #b91c1c; background-color: #fdeeed; border-color: #e8a0a0; }
-    </style>
-</head>
-<body>
-    <h2>Registro de ejemplar</h2>
+{% extends "base.html" %}
 
-    <form hx-post="/ejemplar/registro" hx-target="#resultado">
-        <select name="modelo_id" required>
-            <option value="" disabled selected>Seleccione un modelo</option>
-            {{opciones_modelos}}
-        </select>
-        <input type="text" name="numero_serie" placeholder="Numero de serie">
-        <input type="text" name="codigo_qr" placeholder="Codigo QR">
-        <input type="text" name="patrimonio" placeholder="Patrimonio">
-        <input type="text" name="observaciones" placeholder="Observaciones">
-        <input type="text" name="ubicacion" placeholder="Ubicacion">
-        <select name="esta_disponible">
-            <option value="true" selected>Disponible</option>
-            <option value="false">No disponible</option>
-        </select>
-        <button type="submit">Registrar ejemplar</button>
-    </form>
+{% block title %}GIA - Registro de ejemplar{% endblock %}
 
-    <div id="resultado"></div>
-</body>
-</html>
+{% block extra_head %}
+    {% include "estilos/auth.html" %}
+{% endblock %}
+
+{% block content %}
+<main class="auth-page">
+    <section class="auth-card">
+        <header class="auth-header">
+            <p class="auth-brand">GIA</p>
+            <h1>Registro de ejemplar</h1>
+            <p class="auth-subtitle">Alta de instrumento en inventario</p>
+        </header>
+
+        <form class="auth-form" hx-post="/ejemplar/registro" hx-target="#resultado">
+            <div class="field">
+                <label for="modelo_id">Modelo</label>
+                <select id="modelo_id" name="modelo_id" required>
+                    <option value="" disabled selected>Seleccione un modelo</option>
+                    {% for modelo in modelos %}
+                    <option value="{{ modelo.id }}">{{ modelo.nombre_modelo }}</option>
+                    {% endfor %}
+                </select>
+                {% if modelos | length == 0 %}
+                <small class="field-hint">No hay modelos cargados. Registre un modelo primero.</small>
+                {% endif %}
+            </div>
+
+            <div class="field-row">
+                <div class="field">
+                    <label for="numero_serie">Número de serie</label>
+                    <input id="numero_serie" type="text" name="numero_serie" placeholder="Ej: SN-001234">
+                </div>
+                <div class="field">
+                    <label for="codigo_qr">Código QR</label>
+                    <input id="codigo_qr" type="text" name="codigo_qr" placeholder="Ej: QR-987654">
+                </div>
+            </div>
+
+            <div class="field-row">
+                <div class="field">
+                    <label for="patrimonio">Patrimonio</label>
+                    <input id="patrimonio" type="text" name="patrimonio" placeholder="Ej: PAT-2024-001">
+                </div>
+                <div class="field">
+                    <label for="ubicacion">Ubicación</label>
+                    <input id="ubicacion" type="text" name="ubicacion" placeholder="Ej: Laboratorio 3">
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="observaciones">Observaciones</label>
+                <input id="observaciones" type="text" name="observaciones" placeholder="Notas adicionales sobre el ejemplar">
+            </div>
+
+            <div class="field">
+                <label for="esta_disponible">Disponibilidad</label>
+                <select id="esta_disponible" name="esta_disponible">
+                    <option value="true" selected>Disponible</option>
+                    <option value="false">No disponible</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn-primary">Registrar ejemplar</button>
+        </form>
+
+        <footer class="auth-footer">
+            <p><a href="/modelo/registro">Registrar un modelo</a></p>
+        </footer>
+
+        {% include "partials/resultado.html" %}
+    </section>
+</main>
+{% endblock %}
