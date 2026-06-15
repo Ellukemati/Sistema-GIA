@@ -17,27 +17,38 @@ struct ModeloOption {
 pub struct EjemplarHandler;
 
 impl EjemplarHandler {
-    pub fn mostrar_formulario_registro(conn: &Connection) -> Response {
-        let modelos = match ModeloRepository::listar_todos(conn) {
-            Ok(m) => m,
-            Err(e) => {
-                return Response::text(format!("Error al listar modelos: {}", e))
-                    .with_status_code(500);
-            }
-        };
+    pub fn mostrar_formulario_registro() -> Response {
+        let ctx = Context::new();
+        templates::response_html(templates::render("ejemplar_registro.html", &ctx))
+    }
 
-        let opciones: Vec<ModeloOption> = modelos
+    pub fn listar_opciones_modelos(conn: &Connection) -> Response {
+        match Self::cargar_opciones_modelos(conn) {
+            Ok(opciones) => {
+                let mut ctx = Context::new();
+                ctx.insert("modelos", &opciones);
+                templates::response_html(templates::render("partials/modelo_select.html", &ctx))
+            }
+            Err(mensaje) => {
+                let mut ctx = Context::new();
+                ctx.insert("mensaje", &format!("No se pudieron cargar los modelos: {}", mensaje));
+                templates::response_html(templates::render("partials/modelo_select_error.html", &ctx))
+                    .with_status_code(500)
+            }
+        }
+    }
+
+    fn cargar_opciones_modelos(conn: &Connection) -> Result<Vec<ModeloOption>, String> {
+        let modelos = ModeloRepository::listar_todos(conn)
+            .map_err(|e| format!("{}", e))?;
+
+        Ok(modelos
             .into_iter()
             .map(|m| ModeloOption {
                 id: m.id,
                 nombre_modelo: m.nombre_modelo,
             })
-            .collect();
-
-        let mut ctx = Context::new();
-        ctx.insert("modelos", &opciones);
-
-        templates::response_html(templates::render("ejemplar_registro.html", &ctx))
+            .collect())
     }
 
     pub fn procesar_registro(request: &Request, conn: &Connection) -> Response {
