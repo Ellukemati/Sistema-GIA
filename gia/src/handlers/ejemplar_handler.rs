@@ -100,7 +100,21 @@ impl EjemplarHandler {
         let codigo_qr = Self::campo_opcional(&datos_parseados, "codigo_qr");
         let patrimonio = Self::campo_opcional(&datos_parseados, "patrimonio");
         let observaciones = Self::campo_opcional(&datos_parseados, "observaciones");
-        let accesorios = Self::campo_opcional(&datos_parseados, "accesorios");
+        let accesorios = match datos_parseados
+            .get("tiene_accesorios")
+            .map(|v| v.as_str())
+        {
+            Some("si") => match Self::campo_opcional(&datos_parseados, "accesorios") {
+                Some(valor) => Some(valor),
+                None => {
+                    return templates::response_mensaje_error(
+                        "Datos inválidos",
+                        "Indique los accesorios o seleccione No."
+                    );
+                }
+            },
+            _ => None,
+        };
         let ubicacion = Self::campo_opcional(&datos_parseados, "ubicacion");
         let esta_disponible = datos_parseados
             .get("esta_disponible")
@@ -144,7 +158,11 @@ impl EjemplarHandler {
         for par in body.split('&') {
             let mut partes = par.split('=');
             if let (Some(clave), Some(valor)) = (partes.next(), partes.next()) {
-                let valor_decodificado = valor.replace("%40", "@").replace("+", " ");
+                let valor_decodificado = valor
+                .replace("%40", "@")
+                .replace("+", " ")
+                .replace("%20", " ")
+                .replace("%0A", "\n");
                 mapa.insert(clave.to_string(), valor_decodificado);
             }
         }
