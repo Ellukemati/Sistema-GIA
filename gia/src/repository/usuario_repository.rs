@@ -1,15 +1,17 @@
-use rusqlite::{Connection, Result as SqlResult};
-
 use crate::models::usuario::Usuario;
+use rusqlite::{Connection, Result as SqlResult, params};
 
 pub struct UsuarioRepository;
 
 impl UsuarioRepository {
     pub fn buscar_por_email(conn: &Connection, email: &str) -> SqlResult<Option<Usuario>> {
-        let mut stmt = conn.prepare("SELECT * FROM usuarios WHERE email = ?1")?;
+        let mut stmt = conn.prepare(
+            "SELECT id, nombre, apellido, email, legajo, tipo, password_hash, momento_creacion, avatar_blob, avatar_mime 
+             FROM usuarios 
+             WHERE email = ?1"
+        )?;
 
         let mut rows = stmt.query([email])?;
-
         if let Some(row) = rows.next()? {
             Ok(Some(Usuario::from_row(row)?))
         } else {
@@ -17,9 +19,12 @@ impl UsuarioRepository {
         }
     }
 
-    #[allow(dead_code)]
     pub fn buscar_por_id(conn: &Connection, id: i64) -> SqlResult<Option<Usuario>> {
-        let mut stmt = conn.prepare("SELECT * FROM usuarios WHERE id = ?1")?;
+        let mut stmt = conn.prepare(
+            "SELECT id, nombre, apellido, email, legajo, tipo, password_hash, momento_creacion, avatar_blob, avatar_mime 
+             FROM usuarios 
+             WHERE id = ?1"
+        )?;
 
         let mut rows = stmt.query([id])?;
 
@@ -30,39 +35,102 @@ impl UsuarioRepository {
         }
     }
 
-    pub fn crear(conn: &Connection, usuario: &Usuario) -> SqlResult<usize> {
+    pub fn crear(conn: &Connection, usuario: &Usuario) -> SqlResult<i64> {
         conn.execute(
-            "INSERT INTO usuarios
-            (nombre, apellido, email, legajo, tipo, password_hash, direccion_avatar)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-            rusqlite::params![
+            "INSERT INTO usuarios (nombre, apellido, email, legajo, tipo, password_hash)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
                 usuario.nombre,
                 usuario.apellido,
                 usuario.email,
                 usuario.legajo,
                 usuario.tipo,
                 usuario.password_hash,
-                usuario.direccion_avatar,
             ],
-        )
+        )?;
+
+        Ok(conn.last_insert_rowid())
     }
 
-    #[allow(dead_code)]
-    pub fn actualizar_direccion_avatar(
+    pub fn actualizar_avatar(
         conn: &Connection,
         usuario_id: i64,
-        direccion_avatar: &str,
+        avatar_blob: &[u8],
+        avatar_mime: &str,
     ) -> SqlResult<usize> {
         conn.execute(
             "UPDATE usuarios
-             SET direccion_avatar = ?1
-             WHERE id = ?2",
-            [direccion_avatar, &usuario_id.to_string()],
+             SET avatar_blob = ?1, avatar_mime = ?2
+             WHERE id = ?3",
+            rusqlite::params![avatar_blob, avatar_mime, usuario_id],
         )
     }
 
-    #[allow(dead_code)]
     pub fn eliminar(conn: &Connection, usuario_id: i64) -> SqlResult<usize> {
         conn.execute("DELETE FROM usuarios WHERE id = ?1", [usuario_id])
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::usuario::Usuario;
+    use rusqlite::Connection;
+
+    fn crear_db_test() -> Connection {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute(
+            "CREATE TABLE usuarios (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre TEXT NOT NULL,
+                apellido TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                legajo INTEGER UNIQUE NOT NULL,
+                tipo TEXT NOT NULL,
+                password_hash TEXT NOT NULL,
+                momento_creacion TEXT DEFAULT CURRENT_TIMESTAMP,
+                avatar_blob BLOB,
+                avatar_mime TEXT
+            )",
+            [],
+        )
+        .unwrap();
+        conn
+    }
+
+    #[test]
+    fn test_crear_y_buscar_usuario_por_email() {
+        let conn = crear_db_test();
+        let nuevo_usuario = Usuario {
+            id: 0,
+            nombre: "Lionel".to_string(),
+            apellido: "Messi".to_string(),
+            email: "lmessi@fi.uba.ar".to_string(),
+            legajo: 101010,
+            tipo: "S".to_string(),
+            password_hash: "hash_messi".to_string(),
+            momento_creacion: String::new(),
+            avatar_blob: None,
+            avatar_mime: None,
+        };
+
+        let id_generado = UsuarioRepository::crear(&conn, &nuevo_usuario).unwrap();
+        assert_eq!(id_generado, 1);
+
+        let usuario_db = UsuarioRepository::buscar_por_email(&conn, "lmessi@fi.uba.ar")
+            .unwrap()
+            .expect("Debería encontrar a Messi");
+
+        assert_eq!(usuario_db.nombre, "Lionel");
+        assert_eq!(usuario_db.legajo, 101010);
+        assert_eq!(usuario_db.tipo, "S");
+    }
+
+    #[test]
+    fn test_buscar_usuario_inexistente_devuelve_none() {
+        let conn = crear_db_test();
+        // el bicho siuuu no estudia en FIUBA
+        let resultado = UsuarioRepository::buscar_por_email(&conn, "cr7@fi.uba.ar").unwrap();
+        assert!(resultado.is_none());
     }
 }

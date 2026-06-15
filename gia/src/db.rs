@@ -21,7 +21,8 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
             tipo TEXT NOT NULL CHECK (tipo IN ({})),
             password_hash TEXT NOT NULL,
             momento_creacion TEXT DEFAULT CURRENT_TIMESTAMP,
-            direccion_avatar TEXT
+            avatar_blob BLOB, -- Imagen del avatar almacenada como BLOB
+            avatar_mime TEXT -- Tipo MIME de la imagen del avatar (ej.: 'image/png' o 'image/jpeg')
         )",
             tipos_usuario
         ),
@@ -36,8 +37,8 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
             nombre_modelo TEXT NOT NULL,
             categoria TEXT,
             descripcion TEXT,
-            manual_url TEXT,
-            direccion_imagen_principal TEXT
+            manual_blob BLOB,
+            manual_mime TEXT
         )",
         [],
     )?;
@@ -47,7 +48,8 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
         "CREATE TABLE IF NOT EXISTS modelo_imagen (
             modelo_id INTEGER NOT NULL,
             orden INTEGER NOT NULL, -- Orden de la imagen (0 = principal, 1, 2, ...)
-            direccion_imagen TEXT NOT NULL,
+            imagen_blob BLOB NOT NULL,
+            imagen_mime TEXT NOT NULL,
             PRIMARY KEY (modelo_id, orden),
             FOREIGN KEY (modelo_id) REFERENCES modelos(id) ON DELETE CASCADE
         )",
@@ -66,7 +68,6 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
             accesorios TEXT,
             esta_disponible BOOLEAN DEFAULT TRUE,
             ubicacion TEXT,
-            direccion_imagen_principal TEXT,
             FOREIGN KEY (modelo_id) REFERENCES modelos(id) ON DELETE RESTRICT
         )",
         [],
@@ -77,7 +78,8 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
         "CREATE TABLE IF NOT EXISTS ejemplar_imagen (
             ejemplar_id INTEGER NOT NULL,
             orden INTEGER NOT NULL, -- Orden de la imagen (0 = principal, 1, 2, ...)
-            direccion_imagen TEXT NOT NULL,
+            imagen_blob BLOB NOT NULL,
+            imagen_mime TEXT NOT NULL,
             PRIMARY KEY (ejemplar_id, orden),
             FOREIGN KEY (ejemplar_id) REFERENCES ejemplares(id) ON DELETE CASCADE
         )",
@@ -123,7 +125,6 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
     )?;
 
     // Creacion de un admin por defecto
-    // Revisar si ya existe algún admin para no duplicarlo si reiniciamos el server
     let admin_count: i32 = conn.query_row(
         "SELECT COUNT(*) FROM usuarios WHERE tipo = ?1",
         [TIPO_ADMIN],
@@ -131,10 +132,12 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
     )?;
 
     if admin_count == 0 {
+        let admin_hash = bcrypt::hash("admin123", 4).unwrap_or_default();
+
         conn.execute(
             "INSERT INTO usuarios (nombre, apellido, email, legajo, tipo, password_hash)
-             VALUES ('Admin', 'Maestro', 'admin@fi.uba.ar', 0, ?1, 'hash_admin123')",
-            [TIPO_ADMIN],
+             VALUES ('Admin', 'Maestro', 'admin@fi.uba.ar', 0, ?1, ?2)",
+            rusqlite::params![TIPO_ADMIN, admin_hash],
         )?;
         println!("✓ Admin maestro creado exitosamente (Email: admin@fi.uba.ar | Clave: admin123)");
     }

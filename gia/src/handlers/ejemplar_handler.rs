@@ -100,6 +100,7 @@ impl EjemplarHandler {
         let codigo_qr = Self::campo_opcional(&datos_parseados, "codigo_qr");
         let patrimonio = Self::campo_opcional(&datos_parseados, "patrimonio");
         let observaciones = Self::campo_opcional(&datos_parseados, "observaciones");
+        let accesorios = Self::campo_opcional(&datos_parseados, "accesorios");
         let ubicacion = Self::campo_opcional(&datos_parseados, "ubicacion");
         let esta_disponible = datos_parseados
             .get("esta_disponible")
@@ -112,6 +113,7 @@ impl EjemplarHandler {
             codigo_qr,
             patrimonio,
             observaciones,
+            accesorios,
             esta_disponible,
             ubicacion,
         };

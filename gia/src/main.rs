@@ -13,12 +13,6 @@ mod templates;
 mod utils;
 
 fn main() {
-    if let Err(e) = service::image_storage::ensure_storage_directories() {
-        eprintln!("✗ No se pudieron crear las carpetas para imagenes: {}", e);
-        return;
-    }
-
-    // Inicializar la base de datos
     let _conn = match db::init_db(constants::DB_PATH) {
         Ok(c) => {
             println!(

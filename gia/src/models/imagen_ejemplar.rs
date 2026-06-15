@@ -7,7 +7,6 @@ pub struct ImagenEjemplar {
     pub imagen_direccion: String,
 }
 
-#[allow(dead_code)]
 impl ImagenEjemplar {
     pub fn from_row(row: &Row) -> SqlResult<Self> {
         Ok(ImagenEjemplar {

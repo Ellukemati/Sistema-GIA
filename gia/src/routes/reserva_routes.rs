@@ -6,19 +6,36 @@ use std::sync::{Arc, Mutex};
 pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
     router!(request,
 
-        (GET) (/reservas/nueva) => {
+        (GET) (/reservas) => {
+
+            let conn_guard =
+                conn.lock().unwrap();
 
             ReservaHandler::mostrar_formulario_reserva(
+                request,
+                &conn_guard
+            )
+        },
+
+        (GET) (/reservas/modelo/{modelo_id: i64}) => {
+
+            let conn_guard =
+                conn.lock().unwrap();
+
+            ReservaHandler::mostrar_ejemplares_modelo(
+                &conn_guard,
+                modelo_id,
             )
         },
 
         (POST) (/reservas/nueva) => {
 
-            let conn_guard = conn.lock().unwrap();
+            let conn_guard =
+                conn.lock().unwrap();
 
             ReservaHandler::procesar_reserva(
                 request,
-                &conn_guard
+                &conn_guard,
             )
         },
 

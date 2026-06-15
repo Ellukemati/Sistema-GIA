@@ -1,7 +1,7 @@
 use crate::repository::sesion_repository::SesionRepository;
 use crate::repository::usuario_repository::UsuarioRepository;
-use crate::service::modelo_service::ModeloService;
 use crate::templates;
+use crate::service::modelo_service::{CrearModeloData, ModeloService};
 use crate::utils::extraer_token_sesion;
 use rouille::{Request, Response};
 use rusqlite::Connection;
@@ -71,38 +71,38 @@ impl ModeloHandler {
 
         let datos_parseados = Self::parsear_formulario(&body);
 
-        let marca = datos_parseados.get("marca").cloned();
+        let marca = datos_parseados.get("marca").cloned().unwrap_or_default();
         let nombre_modelo = datos_parseados
             .get("nombre_modelo")
             .cloned()
             .unwrap_or_default();
-        let categoria = datos_parseados.get("categoria").cloned();
-        let descripcion = datos_parseados.get("descripcion").cloned();
-        let manual_url = datos_parseados.get("manual_url").cloned();
-        let direccion_imagen_principal = datos_parseados
-            .get("direccion_imagen_principal")
-            .cloned()
-            .or_else(|| datos_parseados.get("imagen_principal_url").cloned());
+        let categoria = Self::campo_opcional(&datos_parseados, "categoria");
+        let descripcion = Self::campo_opcional(&datos_parseados, "descripcion");
 
-        match ModeloService::crear_modelo(
-            conn,
+        let data = CrearModeloData {
             marca,
             nombre_modelo,
             categoria,
             descripcion,
-            manual_url,
-            direccion_imagen_principal,
-        ) {
+        };
+
+        match ModeloService::crear_modelo(conn, data) {
             Ok(modelo) => templates::response_mensaje_exito(
                 "Modelo creado",
                 &format!("El modelo \"{}\" fue registrado correctamente.", modelo.nombre_modelo),
             ),
-            Err(e) => templates::response_mensaje_error("No se pudo crear el modelo", &e),
+            Err(e) => templates::response_mensaje_error("No se pudo crear el modelo",&e), 
+        }
+    }
+
+    fn campo_opcional(datos: &HashMap<String, String>, clave: &str) -> Option<String> {
+        match datos.get(clave) {
+            Some(valor) if !valor.trim().is_empty() => Some(valor.clone()),
+            _ => None,
         }
     }
 
     fn parsear_formulario(cuerpo: &str) -> HashMap<String, String> {
-        // llega asi: "marca=Yamaha&nombre_modelo=P-45&categoria=Microscopio..."
         let mut mapa = HashMap::new();
         for par in cuerpo.split('&') {
             let mut partes = par.split('=');
