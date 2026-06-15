@@ -6,21 +6,20 @@ pub struct ReservaInstrumentoRepository;
 impl ReservaInstrumentoRepository {
     pub fn crear(conn: &Connection, reserva_id: i64, ejemplar_id: i64) -> SqlResult<usize> {
         conn.execute(
-            "INSERT INTO reserva_instrumentos
+            "INSERT INTO reserva_ejemplar
             (reserva_id, ejemplar_id)
             VALUES (?1, ?2)",
             rusqlite::params![reserva_id, ejemplar_id],
         )
     }
 
-    #[allow(dead_code)]
     pub fn obtener_por_reserva(
         conn: &Connection,
         reserva_id: i64,
     ) -> SqlResult<Vec<ReservaInstrumento>> {
         let mut stmt = conn.prepare(
             "SELECT *
-             FROM reserva_instrumentos
+             FROM reserva_ejemplar
              WHERE reserva_id = ?1",
         )?;
 
