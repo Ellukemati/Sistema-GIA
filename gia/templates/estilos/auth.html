@@ -157,6 +157,50 @@
         box-shadow: 0 0 0 3px rgba(245, 130, 32, 0.35);
     }
 
+    .btn-secondary {
+        width: 100%;
+        min-height: 44px;
+        padding: 0.65rem 1rem;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--color-primary);
+        background-color: var(--color-surface);
+        border: 1.5px solid var(--color-primary);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: background-color 0.15s ease, color 0.15s ease;
+    }
+
+    .btn-secondary:hover {
+        background-color: var(--color-primary);
+        color: var(--color-surface);
+    }
+
+    .btn-secondary:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px var(--color-focus-ring);
+    }
+
+    #modelo-select-container {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-xs);
+    }
+
+    .field-hint--error {
+        color: var(--color-error);
+    }
+
+    .field-hint a {
+        color: var(--color-primary);
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .field-hint a:hover {
+        text-decoration: underline;
+    }
+
     .auth-footer {
         margin-top: var(--spacing-lg);
         text-align: center;
