@@ -100,9 +100,9 @@
     }
 
     .field input,
-    .field select {
+    .field select,
+    .field textarea {
         width: 100%;
-        min-height: 44px;
         padding: 0.65rem 0.75rem;
         font-size: 1rem;
         color: var(--color-text);
@@ -113,15 +113,83 @@
         transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
 
-    .field input::placeholder {
+    .field input,
+    .field select {
+        min-height: 44px;
+    }
+
+    .field textarea {
+        min-height: 5rem;
+        resize: vertical;
+        font-family: inherit;
+        line-height: 1.4;
+    }
+
+    .field input::placeholder,
+    .field textarea::placeholder {
         color: #9aa8b2;
     }
 
     .field input:focus,
-    .field select:focus {
+    .field select:focus,
+    .field textarea:focus {
         outline: none;
         border-color: var(--color-primary);
         box-shadow: 0 0 0 3px var(--color-focus-ring);
+    }
+
+    .field-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--color-text);
+    }
+
+    .accesorios-radio {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .radio-group {
+        display: flex;
+        gap: var(--spacing-md);
+    }
+
+    .radio-label {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: var(--color-text);
+        cursor: pointer;
+        padding: 0.5rem 1rem;
+        border: 1.5px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        transition: border-color 0.15s ease, background-color 0.15s ease;
+    }
+
+    #accesorios_no:checked ~ .radio-group .radio-label[for="accesorios_no"],
+    #accesorios_si:checked ~ .radio-group .radio-label[for="accesorios_si"] {
+        border-color: var(--color-primary);
+        background-color: rgba(0, 145, 213, 0.08);
+        font-weight: 600;
+    }
+
+    .accesorios-detalle {
+        display: none;
+        flex-direction: column;
+        gap: var(--spacing-xs);
+    }
+
+    #accesorios_si:checked ~ .accesorios-detalle {
+        display: flex;
     }
 
     .field-hint {

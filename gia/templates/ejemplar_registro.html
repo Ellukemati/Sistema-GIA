@@ -56,6 +56,22 @@
                 <input id="observaciones" type="text" name="observaciones" placeholder="Notas adicionales sobre el ejemplar">
             </div>
 
+            <div class="field accesorios-group">
+                <span class="field-label">Accesorios</span>
+                <input type="radio" name="tiene_accesorios" value="no" id="accesorios_no" class="accesorios-radio" checked>
+                <input type="radio" name="tiene_accesorios" value="si" id="accesorios_si" class="accesorios-radio">
+                <div class="radio-group">
+                    <label for="accesorios_no" class="radio-label">No</label>
+                    <label for="accesorios_si" class="radio-label">Sí</label>
+                </div>
+                <div class="accesorios-detalle">
+                    <label for="accesorios">Detalle de accesorios</label>
+                    <textarea id="accesorios" name="accesorios" rows="3"
+                              placeholder="Ej: cable de alimentación, estuche, trípode"></textarea>
+                    <small class="field-hint">Un ítem por línea o separados por coma.</small>
+                </div>
+            </div>
+
             <div class="field">
                 <label for="esta_disponible">Disponibilidad</label>
                 <select id="esta_disponible" name="esta_disponible">
