@@ -2,6 +2,7 @@ use crate::constants::{TIPO_ADMIN, TIPO_ALUMNO, TIPO_PROFESOR};
 use rusqlite::{Result as SqlResult, Row};
 
 /// Representa una Usuario segun la tabla `Usuario`
+#[derive(Debug)]
 pub struct Usuario {
     pub id: i64,
     pub nombre: String,
@@ -11,7 +12,8 @@ pub struct Usuario {
     pub tipo: String,
     pub password_hash: String,
     pub momento_creacion: String,
-    pub direccion_avatar: Option<String>,
+    pub avatar_blob: Option<Vec<u8>>,
+    pub avatar_mime: Option<String>,
 }
 
 impl Usuario {
@@ -31,7 +33,8 @@ impl Usuario {
             tipo,
             password_hash: row.get("password_hash")?,
             momento_creacion: row.get("momento_creacion")?,
-            direccion_avatar: row.get("direccion_avatar")?,
+            avatar_blob: row.get("avatar_blob")?,
+            avatar_mime: row.get("avatar_mime")?,
         })
     }
 
@@ -66,7 +69,7 @@ mod tests {
         let conn = Connection::open_in_memory().unwrap();
 
         conn.execute(
-            "CREATE TABLE Usuario (
+            "CREATE TABLE usuarios (
                 id INTEGER PRIMARY KEY,
                 nombre TEXT,
                 apellido TEXT,
@@ -75,25 +78,63 @@ mod tests {
                 tipo TEXT,
                 password_hash TEXT,
                 momento_creacion TEXT,
-                direccion_avatar TEXT
+                avatar_blob BLOB,
+                avatar_mime TEXT
             )",
             [],
         )
         .unwrap();
 
         conn.execute(
-            "INSERT INTO Usuario (id, nombre, apellido, email, legajo, tipo, password_hash, momento_creacion, direccion_avatar) 
-             VALUES (1, 'nombre1', 'apellido1', 'napellido1@fi.uba.ar', 12345, 'S', 'hash123', '2026-05-11', 'direccion_avatar1')",
+            "INSERT INTO usuarios (id, nombre, apellido, email, legajo, tipo, password_hash, momento_creacion) 
+             VALUES (1, 'Peter', 'Parker', 'spiderman@fi.uba.ar', 12345, 'S', 'hash_arana', '2026-05-11')",
             [],
         ).unwrap();
 
-        let mut stmt = conn.prepare("SELECT * FROM Usuario WHERE id = 1").unwrap();
+        let mut stmt = conn.prepare("SELECT * FROM usuarios WHERE id = 1").unwrap();
         let usuario = stmt.query_row([], Usuario::from_row).unwrap();
 
-        assert_eq!(usuario.nombre, "nombre1");
-        assert_eq!(usuario.apellido, "apellido1");
+        assert_eq!(usuario.nombre, "Peter");
+        assert_eq!(usuario.apellido, "Parker");
         assert_eq!(usuario.legajo, 12345);
         assert!(usuario.es_alumno());
-        assert_eq!(usuario.nombre_completo(), "nombre1 apellido1");
+        assert_eq!(usuario.nombre_completo(), "Peter Parker");
+    }
+
+    #[test]
+    fn test_identificacion_de_roles() {
+        let admin = Usuario {
+            id: 2,
+            nombre: "Bruce".to_string(),
+            apellido: "Wayne".to_string(),
+            email: "batman@fi.uba.ar".to_string(),
+            legajo: 1,
+            tipo: "A".to_string(),
+            password_hash: "1234".to_string(),
+            momento_creacion: String::new(),
+            avatar_blob: None,
+            avatar_mime: None,
+        };
+
+        let profe = Usuario {
+            id: 3,
+            nombre: "Walter".to_string(),
+            apellido: "White".to_string(),
+            email: "heisenberg@fi.uba.ar".to_string(),
+            legajo: 2,
+            tipo: "P".to_string(),
+            password_hash: "1234".to_string(),
+            momento_creacion: String::new(),
+            avatar_blob: None,
+            avatar_mime: None,
+        };
+
+        assert!(admin.es_admin());
+        assert!(!admin.es_profesor());
+        assert!(!admin.es_alumno());
+
+        assert!(profe.es_profesor());
+        assert!(!profe.es_admin());
+        assert!(!profe.es_alumno());
     }
 }
