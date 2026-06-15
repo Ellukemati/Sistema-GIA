@@ -1,26 +1,30 @@
 use crate::models::reserva::Reserva;
-use rusqlite::{Connection, Result as SqlResult};
+use rusqlite::{Connection, Result as SqlResult, params};
 
 pub struct ReservaRepository;
 
 impl ReservaRepository {
-    pub fn crear(conn: &Connection, reserva: &Reserva) -> SqlResult<usize> {
+    pub fn crear(conn: &Connection, reserva: &Reserva) -> SqlResult<i64> {
         conn.execute(
-            "INSERT INTO reservas
-            (id_usuario, fecha_inicio, fecha_fin, estado, motivo)
-            VALUES (?1, ?2, ?3, ?4, ?5)",
-            rusqlite::params![
+            "INSERT INTO reservas (id_usuario, fecha_inicio, fecha_fin, estado, motivo)
+             VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![
                 reserva.id_usuario,
                 reserva.fecha_inicio,
                 reserva.fecha_fin,
                 reserva.estado,
                 reserva.motivo,
             ],
-        )
+        )?;
+
+        Ok(conn.last_insert_rowid())
     }
 
     pub fn buscar_por_id(conn: &Connection, id: i64) -> SqlResult<Option<Reserva>> {
-        let mut stmt = conn.prepare("SELECT * FROM reservas WHERE id = ?1")?;
+        let mut stmt = conn.prepare(
+            "SELECT id, id_usuario, fecha_inicio, fecha_fin, estado, motivo, momento_creacion 
+             FROM reservas WHERE id = ?1",
+        )?;
 
         let resultado = stmt.query_row([id], Reserva::from_row);
 
@@ -33,49 +37,42 @@ impl ReservaRepository {
 
     pub fn listar_por_usuario(conn: &Connection, usuario_id: i64) -> SqlResult<Vec<Reserva>> {
         let mut stmt = conn.prepare(
-            "SELECT *
+            "SELECT id, id_usuario, fecha_inicio, fecha_fin, estado, motivo, momento_creacion
              FROM reservas
              WHERE id_usuario = ?1
              ORDER BY fecha_inicio",
         )?;
 
         let filas = stmt.query_map([usuario_id], Reserva::from_row)?;
-
         let mut reservas = Vec::new();
-
         for reserva in filas {
             reservas.push(reserva?);
         }
-
         Ok(reservas)
     }
 
     pub fn cancelar(conn: &Connection, reserva_id: i64) -> SqlResult<usize> {
         conn.execute(
-            "UPDATE reservas
-             SET estado = 'cancelada'
-             WHERE id = ?1",
+            "UPDATE reservas SET estado = 'cancelada' WHERE id = ?1",
             [reserva_id],
         )
     }
 
     pub fn listar_todas(conn: &Connection) -> SqlResult<Vec<Reserva>> {
         let mut stmt = conn.prepare(
-            "SELECT *
-                 FROM reservas
-                 ORDER BY fecha_inicio",
+            "SELECT id, id_usuario, fecha_inicio, fecha_fin, estado, motivo, momento_creacion
+             FROM reservas
+             ORDER BY fecha_inicio",
         )?;
 
         let filas = stmt.query_map([], Reserva::from_row)?;
-
         let mut reservas = Vec::new();
-
         for reserva in filas {
             reservas.push(reserva?);
         }
-
         Ok(reservas)
     }
+
     pub fn ejemplar_disponible(
         conn: &Connection,
         ejemplar_id: i64,
@@ -83,19 +80,13 @@ impl ReservaRepository {
         fecha_fin: &str,
     ) -> SqlResult<bool> {
         let cantidad: i64 = conn.query_row(
-            "
-            SELECT COUNT(*)
-            FROM reservas r
-            INNER JOIN reserva_ejemplar re
-                ON r.id = re.reserva_id
-            WHERE re.ejemplar_id = ?1
-              AND r.estado != 'cancelada'
-              AND (
-                    r.fecha_inicio <= ?2
-                AND r.fecha_fin >= ?3
-              )
-            ",
-            rusqlite::params![ejemplar_id, fecha_fin, fecha_inicio,],
+            "SELECT COUNT(*)
+             FROM reservas r
+             INNER JOIN reserva_ejemplar re ON r.id = re.reserva_id
+             WHERE re.ejemplar_id = ?1
+               AND r.estado != 'cancelada'
+               AND (r.fecha_inicio <= ?2 AND r.fecha_fin >= ?3)",
+            params![ejemplar_id, fecha_fin, fecha_inicio],
             |row| row.get(0),
         )?;
 
@@ -121,6 +112,7 @@ mod tests {
             [],
         )
         .unwrap();
+
         conn.execute(
             "CREATE TABLE reservas (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -128,7 +120,8 @@ mod tests {
                 fecha_inicio TEXT NOT NULL,
                 fecha_fin TEXT NOT NULL,
                 estado TEXT NOT NULL,
-                motivo TEXT
+                motivo TEXT,
+                momento_creacion TEXT DEFAULT CURRENT_TIMESTAMP
             )",
             [],
         )
@@ -145,18 +138,18 @@ mod tests {
             fecha_fin: "2026-07-05".to_string(),
             estado: "pendiente".to_string(),
             motivo: Some("Test".to_string()),
+            momento_creacion: "2026-06-25T12:00:00".to_string(),
         }
     }
 
     #[test]
     fn crear_reserva_guarda_una_fila() {
         let conn = crear_db_test();
-
         let reserva = reserva_test();
 
-        let filas = ReservaRepository::crear(&conn, &reserva).unwrap();
+        let id_generado = ReservaRepository::crear(&conn, &reserva).unwrap();
 
-        assert_eq!(filas, 1);
+        assert_eq!(id_generado, 1);
     }
 
     #[test]

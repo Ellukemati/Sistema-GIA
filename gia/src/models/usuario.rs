@@ -42,17 +42,14 @@ impl Usuario {
         format!("{} {}", self.nombre, self.apellido)
     }
 
-    #[allow(dead_code)]
     pub fn es_admin(&self) -> bool {
         self.tipo == TIPO_ADMIN
     }
 
-    #[allow(dead_code)]
     pub fn es_profesor(&self) -> bool {
         self.tipo == TIPO_PROFESOR
     }
 
-    #[allow(dead_code)]
     pub fn es_alumno(&self) -> bool {
         self.tipo == TIPO_ALUMNO
     }
@@ -91,7 +88,11 @@ mod tests {
             [],
         ).unwrap();
 
-        let mut stmt = conn.prepare("SELECT * FROM usuarios WHERE id = 1").unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT id, nombre, apellido, email, legajo, tipo, password_hash, momento_creacion, avatar_blob, avatar_mime 
+             FROM usuarios 
+             WHERE id = 1"
+        ).unwrap();
         let usuario = stmt.query_row([], Usuario::from_row).unwrap();
 
         assert_eq!(usuario.nombre, "Peter");
