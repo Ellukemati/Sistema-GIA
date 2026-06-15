@@ -21,7 +21,6 @@ impl ReservaService {
         ejemplares: Vec<i64>,
     ) -> Result<(), String> {
         Self::validar_ejemplares(&ejemplares)?;
-
         Self::validar_fechas(&fecha_inicio, &fecha_fin)?;
 
         for ejemplar_id in &ejemplares {
@@ -48,11 +47,10 @@ impl ReservaService {
             fecha_fin,
             estado: "pendiente".to_string(),
             motivo,
+            momento_creacion: "".to_string(),
         };
 
-        ReservaRepository::crear(conn, &reserva).map_err(|e| e.to_string())?;
-
-        let reserva_id = conn.last_insert_rowid();
+        let reserva_id = ReservaRepository::crear(conn, &reserva).map_err(|e| e.to_string())?;
 
         for ejemplar_id in ejemplares {
             ReservaInstrumentoRepository::crear(conn, reserva_id, ejemplar_id)

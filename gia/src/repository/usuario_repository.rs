@@ -1,15 +1,17 @@
-use rusqlite::{Connection, Result as SqlResult};
-
 use crate::models::usuario::Usuario;
+use rusqlite::{Connection, Result as SqlResult, params};
 
 pub struct UsuarioRepository;
 
 impl UsuarioRepository {
     pub fn buscar_por_email(conn: &Connection, email: &str) -> SqlResult<Option<Usuario>> {
-        let mut stmt = conn.prepare("SELECT * FROM usuarios WHERE email = ?1")?;
+        let mut stmt = conn.prepare(
+            "SELECT id, nombre, apellido, email, legajo, tipo, password_hash, momento_creacion, avatar_blob, avatar_mime 
+             FROM usuarios 
+             WHERE email = ?1"
+        )?;
 
         let mut rows = stmt.query([email])?;
-
         if let Some(row) = rows.next()? {
             Ok(Some(Usuario::from_row(row)?))
         } else {
@@ -17,9 +19,12 @@ impl UsuarioRepository {
         }
     }
 
-    #[allow(dead_code)]
     pub fn buscar_por_id(conn: &Connection, id: i64) -> SqlResult<Option<Usuario>> {
-        let mut stmt = conn.prepare("SELECT * FROM usuarios WHERE id = ?1")?;
+        let mut stmt = conn.prepare(
+            "SELECT id, nombre, apellido, email, legajo, tipo, password_hash, momento_creacion, avatar_blob, avatar_mime 
+             FROM usuarios 
+             WHERE id = ?1"
+        )?;
 
         let mut rows = stmt.query([id])?;
 
@@ -30,12 +35,11 @@ impl UsuarioRepository {
         }
     }
 
-    pub fn crear(conn: &Connection, usuario: &Usuario) -> SqlResult<usize> {
+    pub fn crear(conn: &Connection, usuario: &Usuario) -> SqlResult<i64> {
         conn.execute(
-            "INSERT INTO usuarios
-            (nombre, apellido, email, legajo, tipo, password_hash)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            rusqlite::params![
+            "INSERT INTO usuarios (nombre, apellido, email, legajo, tipo, password_hash)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
                 usuario.nombre,
                 usuario.apellido,
                 usuario.email,
@@ -43,10 +47,11 @@ impl UsuarioRepository {
                 usuario.tipo,
                 usuario.password_hash,
             ],
-        )
+        )?;
+
+        Ok(conn.last_insert_rowid())
     }
 
-    #[allow(dead_code)]
     pub fn actualizar_avatar(
         conn: &Connection,
         usuario_id: i64,
@@ -61,7 +66,6 @@ impl UsuarioRepository {
         )
     }
 
-    #[allow(dead_code)]
     pub fn eliminar(conn: &Connection, usuario_id: i64) -> SqlResult<usize> {
         conn.execute("DELETE FROM usuarios WHERE id = ?1", [usuario_id])
     }
@@ -110,8 +114,8 @@ mod tests {
             avatar_mime: None,
         };
 
-        let filas_afectadas = UsuarioRepository::crear(&conn, &nuevo_usuario).unwrap();
-        assert_eq!(filas_afectadas, 1);
+        let id_generado = UsuarioRepository::crear(&conn, &nuevo_usuario).unwrap();
+        assert_eq!(id_generado, 1);
 
         let usuario_db = UsuarioRepository::buscar_por_email(&conn, "lmessi@fi.uba.ar")
             .unwrap()

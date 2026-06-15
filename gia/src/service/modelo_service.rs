@@ -4,30 +4,32 @@ use rusqlite::Connection;
 
 pub struct ModeloService;
 
-impl ModeloService {
-    pub fn crear_modelo(
-        conn: &Connection, // Agrego conexión
-        marca: Option<String>,
-        nombre_modelo: String,
-        categoria: Option<String>,
-        descripcion: Option<String>,
-        manual_url: Option<String>,
-        direccion_imagen_principal: Option<String>,
-    ) -> Result<Modelo, String> {
-        //validar que el usuario sea admin
+pub struct CrearModeloData {
+    pub marca: String,
+    pub nombre_modelo: String,
+    pub categoria: Option<String>,
+    pub descripcion: Option<String>,
+}
 
-        let modelo = Modelo {
-            id: 0, // se asigna en la db
-            marca,
-            nombre_modelo,
-            categoria,
-            descripcion,
-            manual_url,
-            direccion_imagen_principal,
+impl ModeloService {
+    pub fn crear_modelo(conn: &Connection, data: CrearModeloData) -> Result<Modelo, String> {
+        if data.nombre_modelo.trim().is_empty() {
+            return Err("El nombre del modelo no puede estar vacio.".to_string());
+        }
+
+        let modelo_temporal = Modelo {
+            id: 0,
+            marca: data.marca,
+            nombre_modelo: data.nombre_modelo,
+            categoria: data.categoria,
+            descripcion: data.descripcion,
         };
 
-        match ModeloRepository::crear(conn, &modelo) {
-            Ok(_) => Ok(modelo), //en el futuro, deberia buscar el modelo y retornarlo
+        match ModeloRepository::crear(conn, &modelo_temporal) {
+            Ok(id_real) => Ok(Modelo {
+                id: id_real,
+                ..modelo_temporal
+            }),
             Err(e) => Err(format!("Error en la base de datos al crear modelo: {}", e)),
         }
     }

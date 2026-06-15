@@ -33,7 +33,7 @@ impl ReservaHandler {
         let mut contenido = String::new();
 
         for modelo in modelos {
-            let marca = modelo.marca.clone().unwrap_or("Sin marca".to_string());
+            let marca = &modelo.marca;
 
             let categoria = modelo
                 .categoria
@@ -220,15 +220,14 @@ impl ReservaHandler {
 
     fn obtener_ejemplares(body: &str) -> Vec<i64> {
         let mut ids = Vec::new();
-
         for par in body.split('&') {
-            if let Some(valor) = par.strip_prefix("ejemplar_id=")
-                && let Ok(id) = valor.parse::<i64>()
+            if let Some(id) = par
+                .strip_prefix("ejemplar_id=")
+                .and_then(|v| v.parse::<i64>().ok())
             {
                 ids.push(id);
             }
         }
-
         ids
     }
 

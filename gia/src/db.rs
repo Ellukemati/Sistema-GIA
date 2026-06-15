@@ -37,7 +37,8 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
             nombre_modelo TEXT NOT NULL,
             categoria TEXT,
             descripcion TEXT,
-            manual_url TEXT
+            manual_blob BLOB,
+            manual_mime TEXT
         )",
         [],
     )?;
