@@ -119,18 +119,13 @@ impl ModeloHandler {
                         }
                     }
                 }
-                "manual_pdf" => {
-                    if field.headers.filename.is_some() {
-                        let _ = field.data.read_to_end(&mut manual_bytes);
-                    }
+                "manual_pdf" if field.headers.filename.is_some() => {
+                    let _ = field.data.read_to_end(&mut manual_bytes);
                 }
-                "imagenes[]" => {
-                    if field.headers.filename.is_some() {
-                        let mut foto_bytes = Vec::new();
-                        if field.data.read_to_end(&mut foto_bytes).is_ok() && !foto_bytes.is_empty()
-                        {
-                            lista_imagenes_bytes.push(foto_bytes);
-                        }
+                "imagenes[]" if field.headers.filename.is_some() => {
+                    let mut foto_bytes = Vec::new();
+                    if field.data.read_to_end(&mut foto_bytes).is_ok() && !foto_bytes.is_empty() {
+                        lista_imagenes_bytes.push(foto_bytes);
                     }
                 }
                 _ => {}
