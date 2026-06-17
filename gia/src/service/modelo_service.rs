@@ -1,3 +1,4 @@
+use crate::models::imagen_modelo::ImagenModelo;
 use crate::models::modelo::Modelo;
 use crate::repository::modelo_repository::ModeloRepository;
 use rusqlite::Connection;
@@ -9,6 +10,13 @@ pub struct CrearModeloData {
     pub nombre_modelo: String,
     pub categoria: Option<String>,
     pub descripcion: Option<String>,
+}
+
+pub struct ModeloCardDTO {
+    pub id: i64,
+    pub nombre_modelo: String,
+    pub categoria: Option<String>,
+    pub imagen: Option<ImagenModelo>
 }
 
 impl ModeloService {
