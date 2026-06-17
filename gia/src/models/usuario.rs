@@ -1,4 +1,5 @@
 use crate::constants::{TIPO_ADMIN, TIPO_ALUMNO, TIPO_PROFESOR};
+
 use rusqlite::{Result as SqlResult, Row};
 
 /// Representa una Usuario segun la tabla `Usuario`

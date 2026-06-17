@@ -32,8 +32,9 @@ pub fn render_mensaje_error(titulo: &str, mensaje: &str) -> Result<String, tera:
 pub fn response_html(result: Result<String, tera::Error>) -> Response {
     match result {
         Ok(html) => Response::html(html),
-        Err(e) => Response::text(format!("Error renderizando plantilla: {}", e))
-            .with_status_code(500),
+        Err(e) => {
+            Response::text(format!("Error renderizando plantilla: {}", e)).with_status_code(500)
+        }
     }
 }
 

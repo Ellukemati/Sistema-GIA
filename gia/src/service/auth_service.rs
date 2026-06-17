@@ -124,7 +124,7 @@ mod tests {
         .unwrap();
         conn.execute(
             "CREATE TABLE sesiones (
-                token TEXT PRIMARY KEY, usuario_id INTEGER NOT NULL,
+                token TEXT PRIMARY KEY, id_usuario INTEGER NOT NULL,
                 momento_creacion TEXT DEFAULT CURRENT_TIMESTAMP
             )",
             [],

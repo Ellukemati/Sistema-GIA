@@ -1,3 +1,4 @@
+use crate::templates;
 use crate::{
     repository::{
         ejemplar_repository::EjemplarRepository, modelo_repository::ModeloRepository,
@@ -6,7 +7,7 @@ use crate::{
     service::reserva_service::ReservaService,
     utils::extraer_token_sesion,
 };
-use crate::templates;
+
 use chrono::{Duration, Local};
 use rouille::{Request, Response};
 use rusqlite::Connection;
@@ -171,7 +172,7 @@ impl ReservaHandler {
     }
 
     pub fn procesar_reserva(request: &Request, conn: &Connection) -> Response {
-        let usuario_id = match Self::obtener_usuario_sesion(request, conn) {
+        let id_usuario = match Self::obtener_usuario_sesion(request, conn) {
             Ok(id) => id,
 
             Err(response) => {
@@ -197,7 +198,7 @@ impl ReservaHandler {
 
         match ReservaService::crear_reserva(
             conn,
-            usuario_id,
+            id_usuario,
             fecha_inicio,
             fecha_fin,
             motivo,
@@ -268,6 +269,6 @@ impl ReservaHandler {
             }
         };
 
-        Ok(sesion.usuario_id)
+        Ok(sesion.id_usuario)
     }
 }

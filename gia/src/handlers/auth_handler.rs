@@ -1,5 +1,6 @@
 use crate::service::auth_service::AuthService;
 use crate::templates;
+
 use rouille::{Request, Response};
 use rusqlite::Connection;
 use std::collections::HashMap;
@@ -8,20 +9,15 @@ use tera::Context;
 pub struct AuthHandler;
 
 impl AuthHandler {
-
     pub fn mostrar_formulario_registro() -> Response {
         let ctx = Context::new();
         templates::response_html(templates::render("usuario_registro.html", &ctx))
     }
 
-
-
     pub fn mostrar_formulario_login() -> Response {
-
         let ctx = Context::new();
 
         templates::response_html(templates::render("usuario_login.html", &ctx))
-
     }
 
     pub fn procesar_registro(request: &Request, conn: &Connection) -> Response {
@@ -98,7 +94,6 @@ impl AuthHandler {
         }
     }
 
-    
     fn parsear_formulario(cuerpo: &str) -> HashMap<String, String> {
         let mut mapa = HashMap::new();
         for par in cuerpo.split('&') {

@@ -15,11 +15,11 @@
             <p class="auth-subtitle">Alta de modelo de instrumento</p>
         </header>
 
-        <form class="auth-form" hx-post="/modelo/registro" hx-target="#resultado">
+        <form class="auth-form" hx-post="/modelo/registro" hx-target="#resultado" hx-encoding="multipart/form-data">
             <div class="field-row">
                 <div class="field">
                     <label for="marca">Marca</label>
-                    <input id="marca" type="text" name="marca" placeholder="Ej: Leica">
+                    <input id="marca" type="text" name="marca" placeholder="Ej: Leica" required>
                 </div>
                 <div class="field">
                     <label for="nombre_modelo">Nombre del modelo</label>
@@ -39,12 +39,12 @@
 
             <div class="field-row">
                 <div class="field">
-                    <label for="manual_url">URL del manual</label>
-                    <input id="manual_url" type="url" name="manual_url" placeholder="https://...">
+                    <label for="manual_pdf">Archivo del Manual (Debe ser un PDF de 16MB máximo)</label>
+                    <input id="manual_pdf" type="file" name="manual_pdf" accept="application/pdf">
                 </div>
                 <div class="field">
-                    <label for="imagen_principal_url">URL de imagen principal</label>
-                    <input id="imagen_principal_url" type="url" name="imagen_principal_url" placeholder="https://...">
+                    <label for="imagenes_modelo">Imágenes del modelo (La primera será la principal)</label>
+                    <input id="imagenes_modelo" type="file" name="imagenes[]" accept="image/png, image/jpeg" multiple>
                 </div>
             </div>
 

@@ -1,6 +1,7 @@
 use crate::repository::modelo_repository::ModeloRepository;
 use crate::service::ejemplar_service::{CrearEjemplarData, EjemplarService};
 use crate::templates;
+
 use rouille::{Request, Response};
 use rusqlite::Connection;
 use serde::Serialize;
@@ -31,16 +32,21 @@ impl EjemplarHandler {
             }
             Err(mensaje) => {
                 let mut ctx = Context::new();
-                ctx.insert("mensaje", &format!("No se pudieron cargar los modelos: {}", mensaje));
-                templates::response_html(templates::render("partials/modelo_select_error.html", &ctx))
-                    .with_status_code(500)
+                ctx.insert(
+                    "mensaje",
+                    &format!("No se pudieron cargar los modelos: {}", mensaje),
+                );
+                templates::response_html(templates::render(
+                    "partials/modelo_select_error.html",
+                    &ctx,
+                ))
+                .with_status_code(500)
             }
         }
     }
 
     fn cargar_opciones_modelos(conn: &Connection) -> Result<Vec<ModeloOption>, String> {
-        let modelos = ModeloRepository::listar_todos(conn)
-            .map_err(|e| format!("{}", e))?;
+        let modelos = ModeloRepository::listar_todos(conn).map_err(|e| format!("{}", e))?;
 
         Ok(modelos
             .into_iter()
@@ -100,16 +106,13 @@ impl EjemplarHandler {
         let codigo_qr = Self::campo_opcional(&datos_parseados, "codigo_qr");
         let patrimonio = Self::campo_opcional(&datos_parseados, "patrimonio");
         let observaciones = Self::campo_opcional(&datos_parseados, "observaciones");
-        let accesorios = match datos_parseados
-            .get("tiene_accesorios")
-            .map(|v| v.as_str())
-        {
+        let accesorios = match datos_parseados.get("tiene_accesorios").map(|v| v.as_str()) {
             Some("si") => match Self::campo_opcional(&datos_parseados, "accesorios") {
                 Some(valor) => Some(valor),
                 None => {
                     return templates::response_mensaje_error(
                         "Datos inválidos",
-                        "Indique los accesorios o seleccione No."
+                        "Indique los accesorios o seleccione No.",
                     );
                 }
             },
@@ -159,10 +162,10 @@ impl EjemplarHandler {
             let mut partes = par.split('=');
             if let (Some(clave), Some(valor)) = (partes.next(), partes.next()) {
                 let valor_decodificado = valor
-                .replace("%40", "@")
-                .replace("+", " ")
-                .replace("%20", " ")
-                .replace("%0A", "\n");
+                    .replace("%40", "@")
+                    .replace("+", " ")
+                    .replace("%20", " ")
+                    .replace("%0A", "\n");
                 mapa.insert(clave.to_string(), valor_decodificado);
             }
         }

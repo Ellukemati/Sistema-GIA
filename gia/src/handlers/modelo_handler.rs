@@ -1,11 +1,17 @@
+use crate::errors::ManualStorageError;
+use crate::repository::image_repository::ImageRepository;
+use crate::repository::modelo_repository::ModeloRepository;
 use crate::repository::sesion_repository::SesionRepository;
 use crate::repository::usuario_repository::UsuarioRepository;
-use crate::templates;
+use crate::service::image_service::procesar_modelo;
+use crate::service::manual_service::validar_y_procesar_manual;
 use crate::service::modelo_service::{CrearModeloData, ModeloService};
+use crate::templates;
 use crate::utils::extraer_token_sesion;
+
+use rouille::input::multipart;
 use rouille::{Request, Response};
 use rusqlite::Connection;
-use std::collections::HashMap;
 use std::io::Read;
 use tera::Context;
 
@@ -31,20 +37,19 @@ impl ModeloHandler {
         };
 
         // Buscar la sesión en la base de datos
-        let sesion =
-            match SesionRepository::buscar_por_token(conn, &token) {
-                Ok(Some(s)) => s,
-                _ => {
-                    return templates::response_mensaje_error_con_status(
-                        "Sesión inválida",
-                        "Su sesión expiró. Volvé a iniciar sesión.",
-                        401,
-                    );
-                }
-            };
+        let sesion = match SesionRepository::buscar_por_token(conn, &token) {
+            Ok(Some(s)) => s,
+            _ => {
+                return templates::response_mensaje_error_con_status(
+                    "Sesión inválida",
+                    "Su sesión expiró. Volvé a iniciar sesión.",
+                    401,
+                );
+            }
+        };
 
         // Buscar al usuario dueño de la sesión
-        let usuario = match UsuarioRepository::buscar_por_id(conn, sesion.usuario_id) {
+        let usuario = match UsuarioRepository::buscar_por_id(conn, sesion.id_usuario) {
             Ok(Some(u)) => u,
             _ => {
                 return templates::response_mensaje_error_con_status(
@@ -64,20 +69,73 @@ impl ModeloHandler {
             );
         }
 
-        let mut body = String::new();
-        if let Some(mut reader) = request.data() {
-            let _ = reader.read_to_string(&mut body);
+        let mut multipart = match multipart::get_multipart_input(request) {
+            Ok(m) => m,
+            Err(_) => {
+                return templates::response_mensaje_error_con_status(
+                    "Error de solicitud",
+                    "El formulario no tiene el formato multipart correcto.",
+                    400,
+                );
+            }
+        };
+
+        let mut marca = String::new();
+        let mut nombre_modelo = String::new();
+        let mut categoria: Option<String> = None;
+        let mut descripcion: Option<String> = None;
+        let mut manual_bytes: Vec<u8> = Vec::new();
+        let mut lista_imagenes_bytes: Vec<Vec<u8>> = Vec::new();
+
+        while let Some(mut field) = multipart.next() {
+            let name = field.headers.name.to_string();
+
+            match name.as_str() {
+                "marca" => {
+                    if field.is_text() {
+                        let _ = field.data.read_to_string(&mut marca);
+                    }
+                }
+                "nombre_modelo" => {
+                    if field.is_text() {
+                        let _ = field.data.read_to_string(&mut nombre_modelo);
+                    }
+                }
+                "categoria" => {
+                    if field.is_text() {
+                        let mut cat = String::new();
+                        let _ = field.data.read_to_string(&mut cat);
+                        if !cat.trim().is_empty() {
+                            categoria = Some(cat);
+                        }
+                    }
+                }
+                "descripcion" => {
+                    if field.is_text() {
+                        let mut desc = String::new();
+                        let _ = field.data.read_to_string(&mut desc);
+                        if !desc.trim().is_empty() {
+                            descripcion = Some(desc);
+                        }
+                    }
+                }
+                "manual_pdf" => {
+                    if field.headers.filename.is_some() {
+                        let _ = field.data.read_to_end(&mut manual_bytes);
+                    }
+                }
+                "imagenes[]" => {
+                    if field.headers.filename.is_some() {
+                        let mut foto_bytes = Vec::new();
+                        if field.data.read_to_end(&mut foto_bytes).is_ok() && !foto_bytes.is_empty()
+                        {
+                            lista_imagenes_bytes.push(foto_bytes);
+                        }
+                    }
+                }
+                _ => {}
+            }
         }
-
-        let datos_parseados = Self::parsear_formulario(&body);
-
-        let marca = datos_parseados.get("marca").cloned().unwrap_or_default();
-        let nombre_modelo = datos_parseados
-            .get("nombre_modelo")
-            .cloned()
-            .unwrap_or_default();
-        let categoria = Self::campo_opcional(&datos_parseados, "categoria");
-        let descripcion = Self::campo_opcional(&datos_parseados, "descripcion");
 
         let data = CrearModeloData {
             marca,
@@ -86,31 +144,79 @@ impl ModeloHandler {
             descripcion,
         };
 
-        match ModeloService::crear_modelo(conn, data) {
-            Ok(modelo) => templates::response_mensaje_exito(
-                "Modelo creado",
-                &format!("El modelo \"{}\" fue registrado correctamente.", modelo.nombre_modelo),
-            ),
-            Err(e) => templates::response_mensaje_error("No se pudo crear el modelo",&e), 
-        }
-    }
+        let modelo = match ModeloService::crear_modelo(conn, data) {
+            Ok(m) => m,
+            Err(e) => return templates::response_mensaje_error("No se pudo crear el modelo", &e),
+        };
 
-    fn campo_opcional(datos: &HashMap<String, String>, clave: &str) -> Option<String> {
-        match datos.get(clave) {
-            Some(valor) if !valor.trim().is_empty() => Some(valor.clone()),
-            _ => None,
-        }
-    }
-
-    fn parsear_formulario(cuerpo: &str) -> HashMap<String, String> {
-        let mut mapa = HashMap::new();
-        for par in cuerpo.split('&') {
-            let mut partes = par.split('=');
-            if let (Some(clave), Some(valor)) = (partes.next(), partes.next()) {
-                let valor_decodificado = valor.replace("%40", "@").replace("+", " ");
-                mapa.insert(clave.to_string(), valor_decodificado);
+        if !manual_bytes.is_empty() {
+            match validar_y_procesar_manual(&manual_bytes) {
+                Ok((pdf_data, mime_type)) => {
+                    if let Err(e) =
+                        ModeloRepository::actualizar_manual(conn, modelo.id, &pdf_data, &mime_type)
+                    {
+                        return templates::response_mensaje_error(
+                            "Modelo creado con advertencia",
+                            &format!("El modelo fue creado pero falló guardar el manual: {}", e),
+                        );
+                    }
+                }
+                Err(ManualStorageError::InvalidManual(msg)) => {
+                    return templates::response_mensaje_error(
+                        "Manual rechazado",
+                        &format!("Modelo creado, pero el manual no se guardó: {}", msg),
+                    );
+                }
+                Err(e) => {
+                    return templates::response_mensaje_error(
+                        "Error de almacenamiento de manual",
+                        &e.to_string(),
+                    );
+                }
             }
         }
-        mapa
+
+        let mut errores_imagenes = 0;
+        for (index, foto_bytes) in lista_imagenes_bytes.iter().enumerate() {
+            let orden_imagen = index as i32; // La primera 0 será la principal
+
+            match procesar_modelo(foto_bytes) {
+                Ok((blob_final, mime)) => {
+                    if ImageRepository::guardar_modelo(
+                        conn,
+                        modelo.id,
+                        orden_imagen,
+                        &blob_final,
+                        &mime,
+                    )
+                    .is_err()
+                    {
+                        errores_imagenes += 1;
+                    }
+                }
+                Err(_) => {
+                    errores_imagenes += 1;
+                }
+            }
+        }
+
+        if errores_imagenes > 0 {
+            templates::response_mensaje_exito(
+                "Modelo registrado",
+                &format!(
+                    "El modelo \"{}\" fue registrado, pero {} imágenes fallaron al procesarse.",
+                    modelo.nombre_modelo, errores_imagenes
+                ),
+            )
+        } else {
+            templates::response_mensaje_exito(
+                "Modelo registrado con éxito",
+                &format!(
+                    "El modelo \"{}\" y sus {} imágenes se subieron correctamente.",
+                    modelo.nombre_modelo,
+                    lista_imagenes_bytes.len()
+                ),
+            )
+        }
     }
 }

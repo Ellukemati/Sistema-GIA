@@ -5,10 +5,10 @@ pub struct SesionRepository;
 
 impl SesionRepository {
     /// Guarda un nuevo token asociado a un usuario
-    pub fn crear(conn: &Connection, token: &str, usuario_id: i64) -> SqlResult<usize> {
+    pub fn crear(conn: &Connection, token: &str, id_usuario: i64) -> SqlResult<usize> {
         conn.execute(
-            "INSERT INTO sesiones (token, usuario_id) VALUES (?1, ?2)",
-            rusqlite::params![token, usuario_id],
+            "INSERT INTO sesiones (token, id_usuario) VALUES (?1, ?2)",
+            rusqlite::params![token, id_usuario],
         )
     }
 
@@ -57,9 +57,9 @@ mod tests {
         conn.execute(
             "CREATE TABLE sesiones (
                 token TEXT PRIMARY KEY,
-                usuario_id INTEGER NOT NULL,
+                id_usuario INTEGER NOT NULL,
                 momento_creacion TEXT DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+                FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE
             )",
             [],
         )
@@ -80,16 +80,16 @@ mod tests {
     fn test_crear_y_buscar_sesion() {
         let conn = crear_db_test();
         let token = "token_tesla_secreto_123";
-        let usuario_id = 1;
+        let id_usuario = 1;
 
-        SesionRepository::crear(&conn, token, usuario_id).unwrap();
+        SesionRepository::crear(&conn, token, id_usuario).unwrap();
 
         let sesion = SesionRepository::buscar_por_token(&conn, token)
             .unwrap()
             .expect("La sesión de Elon debería existir");
 
         assert_eq!(sesion.token, token);
-        assert_eq!(sesion.usuario_id, usuario_id);
+        assert_eq!(sesion.id_usuario, id_usuario);
     }
 
     #[test]
@@ -98,7 +98,7 @@ mod tests {
 
         // Sesión expirada
         conn.execute(
-            "INSERT INTO sesiones (token, usuario_id, momento_creacion) 
+            "INSERT INTO sesiones (token, id_usuario, momento_creacion) 
              VALUES ('token_viejo_twitter', 1, datetime('now', '-2 days'))",
             [],
         )
@@ -106,7 +106,7 @@ mod tests {
 
         // Sesión actual
         conn.execute(
-            "INSERT INTO sesiones (token, usuario_id, momento_creacion) 
+            "INSERT INTO sesiones (token, id_usuario, momento_creacion) 
              VALUES ('token_nuevo_x', 1, datetime('now'))",
             [],
         )
