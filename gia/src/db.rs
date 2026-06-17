@@ -117,9 +117,9 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
     conn.execute(
         "CREATE TABLE IF NOT EXISTS sesiones (
             token TEXT PRIMARY KEY,
-            usuario_id INTEGER NOT NULL,
+            id_usuario INTEGER NOT NULL,
             momento_creacion TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+            FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE
         )",
         [],
     )?;

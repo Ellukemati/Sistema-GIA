@@ -54,7 +54,7 @@ impl UsuarioRepository {
 
     pub fn actualizar_avatar(
         conn: &Connection,
-        usuario_id: i64,
+        id_usuario: i64,
         avatar_blob: &[u8],
         avatar_mime: &str,
     ) -> SqlResult<usize> {
@@ -62,12 +62,12 @@ impl UsuarioRepository {
             "UPDATE usuarios
              SET avatar_blob = ?1, avatar_mime = ?2
              WHERE id = ?3",
-            rusqlite::params![avatar_blob, avatar_mime, usuario_id],
+            rusqlite::params![avatar_blob, avatar_mime, id_usuario],
         )
     }
 
-    pub fn eliminar(conn: &Connection, usuario_id: i64) -> SqlResult<usize> {
-        conn.execute("DELETE FROM usuarios WHERE id = ?1", [usuario_id])
+    pub fn eliminar(conn: &Connection, id_usuario: i64) -> SqlResult<usize> {
+        conn.execute("DELETE FROM usuarios WHERE id = ?1", [id_usuario])
     }
 }
 

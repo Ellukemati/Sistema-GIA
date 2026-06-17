@@ -1,33 +1,60 @@
 use crate::repository::modelo_repository::ModeloRepository;
 use crate::service::ejemplar_service::{CrearEjemplarData, EjemplarService};
+use crate::templates;
+
 use rouille::{Request, Response};
 use rusqlite::Connection;
+use serde::Serialize;
 use std::collections::HashMap;
 use std::io::Read;
+use tera::Context;
+
+#[derive(Serialize)]
+struct ModeloOption {
+    id: i64,
+    nombre_modelo: String,
+}
 
 pub struct EjemplarHandler;
 
 impl EjemplarHandler {
-    pub fn mostrar_formulario_registro(conn: &Connection) -> Response {
-        let modelos = match ModeloRepository::listar_todos(conn) {
-            Ok(m) => m,
-            Err(e) => {
-                return Response::text(format!("Error al listar modelos: {}", e))
-                    .with_status_code(500);
+    pub fn mostrar_formulario_registro() -> Response {
+        let ctx = Context::new();
+        templates::response_html(templates::render("ejemplar_registro.html", &ctx))
+    }
+
+    pub fn listar_opciones_modelos(conn: &Connection) -> Response {
+        match Self::cargar_opciones_modelos(conn) {
+            Ok(opciones) => {
+                let mut ctx = Context::new();
+                ctx.insert("modelos", &opciones);
+                templates::response_html(templates::render("partials/modelo_select.html", &ctx))
             }
-        };
-
-        let mut opciones = String::new();
-        for modelo in modelos {
-            opciones.push_str(&format!(
-                "<option value=\"{}\">{}</option>",
-                modelo.id, modelo.nombre_modelo
-            ));
+            Err(mensaje) => {
+                let mut ctx = Context::new();
+                ctx.insert(
+                    "mensaje",
+                    &format!("No se pudieron cargar los modelos: {}", mensaje),
+                );
+                templates::response_html(templates::render(
+                    "partials/modelo_select_error.html",
+                    &ctx,
+                ))
+                .with_status_code(500)
+            }
         }
+    }
 
-        let html = include_str!("../../templates/ejemplar_registro.html");
-        let html = html.replace("{{opciones_modelos}}", &opciones);
-        Response::html(html)
+    fn cargar_opciones_modelos(conn: &Connection) -> Result<Vec<ModeloOption>, String> {
+        let modelos = ModeloRepository::listar_todos(conn).map_err(|e| format!("{}", e))?;
+
+        Ok(modelos
+            .into_iter()
+            .map(|m| ModeloOption {
+                id: m.id,
+                nombre_modelo: m.nombre_modelo,
+            })
+            .collect())
     }
 
     pub fn procesar_registro(request: &Request, conn: &Connection) -> Response {
@@ -67,7 +94,11 @@ impl EjemplarHandler {
         {
             Some(id) => id,
             None => {
-                return Response::text("Debe seleccionar un modelo valido").with_status_code(400);
+                return templates::response_mensaje_error_con_status(
+                    "Datos inválidos",
+                    "Debe seleccionar un modelo válido.",
+                    400,
+                );
             }
         };
 
@@ -75,7 +106,18 @@ impl EjemplarHandler {
         let codigo_qr = Self::campo_opcional(&datos_parseados, "codigo_qr");
         let patrimonio = Self::campo_opcional(&datos_parseados, "patrimonio");
         let observaciones = Self::campo_opcional(&datos_parseados, "observaciones");
-        let accesorios = Self::campo_opcional(&datos_parseados, "accesorios");
+        let accesorios = match datos_parseados.get("tiene_accesorios").map(|v| v.as_str()) {
+            Some("si") => match Self::campo_opcional(&datos_parseados, "accesorios") {
+                Some(valor) => Some(valor),
+                None => {
+                    return templates::response_mensaje_error(
+                        "Datos inválidos",
+                        "Indique los accesorios o seleccione No.",
+                    );
+                }
+            },
+            _ => None,
+        };
         let ubicacion = Self::campo_opcional(&datos_parseados, "ubicacion");
         let esta_disponible = datos_parseados
             .get("esta_disponible")
@@ -94,17 +136,14 @@ impl EjemplarHandler {
         };
 
         match EjemplarService::crear_ejemplar(conn, data) {
-            Ok(ejemplar) => {
-                let exito_html = format!(
-                    "<div style='color:green;'>Ejemplar creado para el modelo {}!</div>",
+            Ok(ejemplar) => templates::response_mensaje_exito(
+                "Ejemplar creado",
+                &format!(
+                    "El ejemplar fue registrado correctamente (modelo ID: {}).",
                     ejemplar.modelo_id
-                );
-                Response::html(exito_html)
-            }
-            Err(e) => {
-                let error_html = format!("<div style='color:red;'>Error: {}</div>", e);
-                Response::html(error_html)
-            }
+                ),
+            ),
+            Err(e) => templates::response_mensaje_error("No se pudo crear el ejemplar", &e),
         }
     }
 
@@ -122,7 +161,11 @@ impl EjemplarHandler {
         for par in body.split('&') {
             let mut partes = par.split('=');
             if let (Some(clave), Some(valor)) = (partes.next(), partes.next()) {
-                let valor_decodificado = valor.replace("%40", "@").replace("+", " ");
+                let valor_decodificado = valor
+                    .replace("%40", "@")
+                    .replace("+", " ")
+                    .replace("%20", " ")
+                    .replace("%0A", "\n");
                 mapa.insert(clave.to_string(), valor_decodificado);
             }
         }

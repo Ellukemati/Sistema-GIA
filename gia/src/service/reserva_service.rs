@@ -119,9 +119,9 @@ impl ReservaService {
 
     pub fn obtener_reservas_usuario(
         conn: &Connection,
-        usuario_id: i64,
+        id_usuario: i64,
     ) -> Result<Vec<Reserva>, String> {
-        ReservaRepository::listar_por_usuario(conn, usuario_id).map_err(|e| e.to_string())
+        ReservaRepository::listar_por_usuario(conn, id_usuario).map_err(|e| e.to_string())
     }
 
     pub fn obtener_todas(conn: &Connection) -> Result<Vec<Reserva>, String> {

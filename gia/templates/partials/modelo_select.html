@@ -1,0 +1,13 @@
+<select id="modelo_id" name="modelo_id" required
+        hx-get="/ejemplar/modelos/opciones"
+        hx-trigger="focus"
+        hx-target="#modelo-select-container"
+        hx-swap="innerHTML">
+    <option value="" disabled selected>Seleccione un modelo</option>
+    {% for modelo in modelos %}
+    <option value="{{ modelo.id }}">{{ modelo.nombre_modelo }}</option>
+    {% endfor %}
+</select>
+{% if modelos | length == 0 %}
+<small class="field-hint">No hay modelos cargados. <a href="/modelo/registro">Registre un modelo</a> primero.</small>
+{% endif %}

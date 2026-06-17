@@ -1,3 +1,4 @@
+use crate::templates;
 use crate::{
     repository::{
         ejemplar_repository::EjemplarRepository, modelo_repository::ModeloRepository,
@@ -171,7 +172,7 @@ impl ReservaHandler {
     }
 
     pub fn procesar_reserva(request: &Request, conn: &Connection) -> Response {
-        let usuario_id = match Self::obtener_usuario_sesion(request, conn) {
+        let id_usuario = match Self::obtener_usuario_sesion(request, conn) {
             Ok(id) => id,
 
             Err(response) => {
@@ -197,24 +198,18 @@ impl ReservaHandler {
 
         match ReservaService::crear_reserva(
             conn,
-            usuario_id,
+            id_usuario,
             fecha_inicio,
             fecha_fin,
             motivo,
             ejemplares,
         ) {
-            Ok(_) => Response::html(
-                "<div style='color:green'>
-                    Reserva creada
-                </div>",
+            Ok(_) => templates::response_mensaje_exito(
+                "Reserva creada",
+                "La reserva fue registrada correctamente.",
             ),
 
-            Err(e) => Response::html(format!(
-                "<div style='color:red'>
-                        {}
-                    </div>",
-                e
-            )),
+            Err(e) => templates::response_mensaje_error("No se pudo crear la reserva", &e),
         }
     }
 
@@ -274,6 +269,6 @@ impl ReservaHandler {
             }
         };
 
-        Ok(sesion.usuario_id)
+        Ok(sesion.id_usuario)
     }
 }
