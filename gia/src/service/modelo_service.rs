@@ -1,8 +1,7 @@
-use crate::models::imagen_modelo::ImagenModelo;
 use crate::models::modelo::Modelo;
 use crate::repository::modelo_repository::ModeloRepository;
 use rusqlite::Connection;
-
+use serde::Serialize;
 pub struct ModeloService;
 
 pub struct CrearModeloData {
@@ -11,12 +10,12 @@ pub struct CrearModeloData {
     pub categoria: Option<String>,
     pub descripcion: Option<String>,
 }
-
+#[derive(Serialize)]
 pub struct ModeloCardDTO {
     pub id: i64,
     pub nombre_modelo: String,
     pub categoria: Option<String>,
-    pub imagen: Option<ImagenModelo>
+    pub imagen: Option<String>
 }
 
 impl ModeloService {
