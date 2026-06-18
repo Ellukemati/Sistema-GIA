@@ -1,4 +1,5 @@
 use crate::models::modelo::Modelo;
+use crate::repository::image_repository::ImageRepository;
 use crate::repository::modelo_repository::ModeloRepository;
 use rusqlite::Connection;
 use serde::Serialize;
@@ -39,5 +40,37 @@ impl ModeloService {
             }),
             Err(e) => Err(format!("Error en la base de datos al crear modelo: {}", e)),
         }
+    }
+
+    /// Crea un vector de modelosCardDTO que tiene la info esencial para mostrar un modelo.
+    pub fn listar_cards(conn: &Connection) -> Result<Vec<ModeloCardDTO>, String> {
+        let modelos = ModeloRepository::listar_todos(conn)
+            .map_err(|e| format!("Error al listar los modelos: {}", e))?;
+
+        let mut cards = Vec::with_capacity(modelos.len());
+        for modelo in modelos {
+            let tiene_imagen = ImageRepository::existe_imagen_principal_modelo(conn, modelo.id)
+                .map_err(|e| {
+                    format!(
+                        "Error al consultar la imagen del modelo {}: {}",
+                        modelo.id, e
+                    )
+                })?;
+
+            let imagen = if tiene_imagen {
+                Some(format!("/imagenes/modelos/{}/0", modelo.id))
+            } else {
+                None
+            };
+
+            cards.push(ModeloCardDTO {
+                id: modelo.id,
+                nombre_modelo: modelo.nombre_modelo,
+                categoria: modelo.categoria,
+                imagen,
+            });
+        }
+
+        Ok(cards)
     }
 }
