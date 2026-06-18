@@ -1,5 +1,5 @@
 //! Modulo para manejar la base de datos SQLite
-use crate::constants::{TIPO_ADMIN, TIPO_ALUMNO, TIPO_PROFESOR};
+use crate::constants::{TIPO_ADMIN, TIPO_PROFESOR};
 use rusqlite::{Connection, Result as SqlResult};
 
 /// Inicializa la base de datos y crea las tablas necesarias
@@ -7,7 +7,7 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
     let conn = Connection::open(db_path)?;
     conn.pragma_update(None, "foreign_keys", "ON")?;
 
-    let tipos_usuario = format!("'{}', '{}', '{}'", TIPO_ALUMNO, TIPO_PROFESOR, TIPO_ADMIN);
+    let tipos_usuario = format!("'{}', '{}'", TIPO_PROFESOR, TIPO_ADMIN);
 
     // Crear tabla cuentas (Usuarios del sistema)
     conn.execute(
@@ -20,9 +20,10 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
             legajo INTEGER UNIQUE NOT NULL,
             tipo TEXT NOT NULL CHECK (tipo IN ({})),
             password_hash TEXT NOT NULL,
+            aprobado BOOLEAN DEFAULT 0,
             momento_creacion TEXT DEFAULT CURRENT_TIMESTAMP,
-            avatar_blob BLOB, -- Imagen del avatar almacenada como BLOB
-            avatar_mime TEXT -- Tipo MIME de la imagen del avatar (ej.: 'image/png' o 'image/jpeg')
+            avatar_blob BLOB,
+            avatar_mime TEXT
         )",
             tipos_usuario
         ),
@@ -135,8 +136,8 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
         let admin_hash = bcrypt::hash("admin123", 4).unwrap_or_default();
 
         conn.execute(
-            "INSERT INTO usuarios (nombre, apellido, email, legajo, tipo, password_hash)
-             VALUES ('Admin', 'Maestro', 'admin@fi.uba.ar', 0, ?1, ?2)",
+            "INSERT INTO usuarios (nombre, apellido, email, legajo, tipo, password_hash, aprobado)
+             VALUES ('Admin', 'Maestro', 'admin@fi.uba.ar', 0, ?1, ?2, 1)",
             rusqlite::params![TIPO_ADMIN, admin_hash],
         )?;
         println!("✓ Admin maestro creado exitosamente (Email: admin@fi.uba.ar | Clave: admin123)");

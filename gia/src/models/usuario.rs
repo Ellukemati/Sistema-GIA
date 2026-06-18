@@ -1,4 +1,4 @@
-use crate::constants::{TIPO_ADMIN, TIPO_ALUMNO, TIPO_PROFESOR};
+use crate::constants::{TIPO_ADMIN, TIPO_PROFESOR};
 
 use rusqlite::{Result as SqlResult, Row};
 
@@ -12,6 +12,7 @@ pub struct Usuario {
     pub legajo: i32,
     pub tipo: String,
     pub password_hash: String,
+    pub aprobado: bool, // 0 = Falso (En espera), 1 = Verdadero (Aprobado)
     pub momento_creacion: String,
     pub avatar_blob: Option<Vec<u8>>,
     pub avatar_mime: Option<String>,
@@ -21,9 +22,10 @@ impl Usuario {
     pub fn from_row(row: &Row) -> SqlResult<Self> {
         let tipo: String = row.get("tipo")?;
         debug_assert!(
-            [TIPO_ALUMNO, TIPO_PROFESOR, TIPO_ADMIN].contains(&tipo.as_str()),
+            [TIPO_PROFESOR, TIPO_ADMIN].contains(&tipo.as_str()),
             "tipo de usuario invalido"
         );
+        let aprobado_int: i32 = row.get("aprobado")?;
 
         Ok(Usuario {
             id: row.get("id")?,
@@ -33,6 +35,7 @@ impl Usuario {
             legajo: row.get("legajo")?,
             tipo,
             password_hash: row.get("password_hash")?,
+            aprobado: aprobado_int != 0, // Pasarlo a bool
             momento_creacion: row.get("momento_creacion")?,
             avatar_blob: row.get("avatar_blob")?,
             avatar_mime: row.get("avatar_mime")?,
@@ -51,9 +54,6 @@ impl Usuario {
         self.tipo == TIPO_PROFESOR
     }
 
-    pub fn es_alumno(&self) -> bool {
-        self.tipo == TIPO_ALUMNO
-    }
 }
 
 #[cfg(test)]
