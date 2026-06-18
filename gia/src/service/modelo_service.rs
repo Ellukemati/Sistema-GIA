@@ -19,6 +19,12 @@ pub struct ModeloCardDTO {
     pub imagen: Option<String>
 }
 
+#[derive(Serialize)]
+pub struct GrupoCategoriaDTO {
+    pub categoria: String,
+    pub modelos: Vec<ModeloCardDTO>,
+}
+
 impl ModeloService {
     pub fn crear_modelo(conn: &Connection, data: CrearModeloData) -> Result<Modelo, String> {
         if data.nombre_modelo.trim().is_empty() {
@@ -72,5 +78,30 @@ impl ModeloService {
         }
 
         Ok(cards)
+    }
+
+    /// Igual que `listar_cards`, pero agrupando las tarjetas por categoria.
+    /// Los modelos sin categoria quedan como "Sin categoria".
+    pub fn listar_cards_agrupadas(conn: &Connection) -> Result<Vec<GrupoCategoriaDTO>, String> {
+        let cards = Self::listar_cards(conn)?;
+
+        let mut grupos: Vec<GrupoCategoriaDTO> = Vec::new();
+        for card in cards {
+            let categoria = card
+                .categoria
+                .clone()
+                .filter(|c| !c.trim().is_empty())
+                .unwrap_or_else(|| "Sin categoria".to_string());
+
+            match grupos.iter_mut().find(|g| g.categoria == categoria) {
+                Some(grupo) => grupo.modelos.push(card),
+                None => grupos.push(GrupoCategoriaDTO {
+                    categoria,
+                    modelos: vec![card],
+                }),
+            }
+        }
+
+        Ok(grupos)
     }
 }

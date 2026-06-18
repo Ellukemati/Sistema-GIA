@@ -214,4 +214,15 @@ impl ModeloHandler {
             )
         }
     }
+
+    pub fn listar_modelos(conn: &Connection) -> Response {
+        match ModeloService::listar_cards_agrupadas(conn) {
+            Ok(grupos) => {
+                let mut ctx = Context::new();
+                ctx.insert("grupos", &grupos);
+                templates::response_html(templates::render("modelo_listado.html", &ctx))
+            }
+            Err(e) => templates::response_mensaje_error("No se pudieron cargar los modelos", &e),
+        }
+    }
 }
