@@ -225,4 +225,34 @@ impl ModeloHandler {
             Err(e) => templates::response_mensaje_error("No se pudieron cargar los modelos", &e),
         }
     }
+
+    pub fn mostrar_detalle(conn: &Connection, id: i64) -> Response {
+        let modelo = match ModeloRepository::buscar_por_id(conn, id) {
+            Ok(Some(m)) => m,
+            Ok(None) => {
+                return templates::response_mensaje_error_con_status(
+                    "Modelo no encontrado",
+                    "El modelo solicitado no existe.",
+                    404,
+                );
+            }
+            Err(e) => {
+                return templates::response_mensaje_error_con_status(
+                    "Error interno",
+                    &format!("No se pudo cargar el modelo: {}", e),
+                    500,
+                );
+            }
+        };
+
+        let imagen = match ImageRepository::existe_imagen_principal_modelo(conn, id) {
+            Ok(true) => Some(format!("/imagenes/modelos/{}/0", id)),
+            _ => None,
+        };
+
+        let mut ctx = Context::new();
+        ctx.insert("modelo", &modelo);
+        ctx.insert("imagen", &imagen);
+        templates::response_html(templates::render("modelo_detalle.html", &ctx))
+    }
 }

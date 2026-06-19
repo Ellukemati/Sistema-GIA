@@ -19,6 +19,11 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
             ModeloHandler::procesar_registro(request, &conn_guard)
         },
 
+        (GET) (/modelo/{id: i64}) => {
+            let conn_guard = conn.lock().unwrap();
+            ModeloHandler::mostrar_detalle(&conn_guard, id)
+        },
+
         _ => Response::empty_404()
     )
 }
