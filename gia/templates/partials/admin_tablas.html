@@ -1,0 +1,68 @@
+<div class="dashboard-container">
+    
+    <!-- COLUMNA IZQUIERDA: RESERVAS PENDIENTES -->
+    <div class="columna">
+        <h2>📦 Reservas Pendientes</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Fechas</th>
+                    <th>Motivo</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for reserva in reservas %}
+                <tr>
+                    <td>{{ reserva.id }}</td>
+                    <td>{{ reserva.fecha_inicio }} <br>al<br> {{ reserva.fecha_fin }}</td>
+                    <td>{{ reserva.motivo }}</td>
+                    <td>
+                        <button class="btn-aprobar" hx-post="/admin/reservas/{{ reserva.id }}/aprobar" hx-target="closest tr" hx-swap="outerHTML">
+                            Aprobar
+                        </button>
+                        <button class="btn-rechazar" hx-post="/admin/reservas/{{ reserva.id }}/rechazar" hx-target="closest tr" hx-swap="outerHTML">
+                            Rechazar
+                        </button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4">No hay reservas pendientes en este momento.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- COLUMNA DERECHA: PROFESORES EN ESPERA -->
+    <div class="columna">
+        <h2>👩‍🏫 Docentes en Espera</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Legajo</th>
+                    <th>Nombre</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for profe in profesores %}
+                <tr>
+                    <td>{{ profe.legajo }}</td>
+                    <td>{{ profe.nombre }} {{ profe.apellido }} <br><small>{{ profe.email }}</small></td>
+                    <td>
+                        <button class="btn-aprobar" hx-post="/admin/profesores/{{ profe.id }}/aprobar" hx-target="closest tr" hx-swap="outerHTML">
+                            Habilitar
+                        </button>
+                        <button class="btn-rechazar" hx-post="/admin/profesores/{{ profe.id }}/rechazar" hx-target="closest tr" hx-swap="outerHTML">
+                            Denegar
+                        </button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="3">No hay docentes en espera de aprobación.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>

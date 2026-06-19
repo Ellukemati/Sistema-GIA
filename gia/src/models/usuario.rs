@@ -1,9 +1,9 @@
 use crate::constants::{TIPO_ADMIN, TIPO_PROFESOR};
-
 use rusqlite::{Result as SqlResult, Row};
+use serde::Serialize;
 
 /// Representa una Usuario segun la tabla `Usuario`
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Usuario {
     pub id: i64,
     pub nombre: String,
@@ -66,6 +66,7 @@ mod tests {
         // base de datos temporal en RAM
         let conn = Connection::open_in_memory().unwrap();
 
+        // ACÁ: Sumamos la columna aprobado a la tabla en memoria
         conn.execute(
             "CREATE TABLE usuarios (
                 id INTEGER PRIMARY KEY,
@@ -75,6 +76,7 @@ mod tests {
                 legajo INTEGER,
                 tipo TEXT,
                 password_hash TEXT,
+                aprobado BOOLEAN,
                 momento_creacion TEXT,
                 avatar_blob BLOB,
                 avatar_mime TEXT
@@ -84,23 +86,24 @@ mod tests {
         .unwrap();
 
         conn.execute(
-            "INSERT INTO usuarios (id, nombre, apellido, email, legajo, tipo, password_hash, momento_creacion) 
-             VALUES (1, 'Peter', 'Parker', 'spiderman@fi.uba.ar', 12345, 'S', 'hash_arana', '2026-05-11')",
+            "INSERT INTO usuarios (id, nombre, apellido, email, legajo, tipo, password_hash, aprobado, momento_creacion) 
+             VALUES (1, 'Nombre1', 'Apellido1', 'aaa@fi.uba.ar', 12345, 'P', 'hash123', 1, '2026-05-11')",
             [],
         ).unwrap();
 
         let mut stmt = conn.prepare(
-            "SELECT id, nombre, apellido, email, legajo, tipo, password_hash, momento_creacion, avatar_blob, avatar_mime 
+            "SELECT id, nombre, apellido, email, legajo, tipo, password_hash, aprobado, momento_creacion, avatar_blob, avatar_mime 
              FROM usuarios 
              WHERE id = 1"
         ).unwrap();
         let usuario = stmt.query_row([], Usuario::from_row).unwrap();
 
-        assert_eq!(usuario.nombre, "Peter");
-        assert_eq!(usuario.apellido, "Parker");
+        assert_eq!(usuario.nombre, "Nombre1");
+        assert_eq!(usuario.apellido, "Apellido1");
         assert_eq!(usuario.legajo, 12345);
-        assert!(usuario.es_alumno());
-        assert_eq!(usuario.nombre_completo(), "Peter Parker");
+        assert!(usuario.es_profesor());
+        assert!(usuario.aprobado); // Verificamos que se mapeó bien el booleano
+        assert_eq!(usuario.nombre_completo(), "Nombre1 Apellido1");
     }
 
     #[test]
@@ -113,6 +116,7 @@ mod tests {
             legajo: 1,
             tipo: "A".to_string(),
             password_hash: "1234".to_string(),
+            aprobado: true, // El admin siempre está aprobado
             momento_creacion: String::new(),
             avatar_blob: None,
             avatar_mime: None,
@@ -126,17 +130,18 @@ mod tests {
             legajo: 2,
             tipo: "P".to_string(),
             password_hash: "1234".to_string(),
+            aprobado: false, // Profe recién registrado (en espera)
             momento_creacion: String::new(),
             avatar_blob: None,
             avatar_mime: None,
         };
 
+        // Verificamos Admin
         assert!(admin.es_admin());
         assert!(!admin.es_profesor());
-        assert!(!admin.es_alumno());
 
+        // Verificamos Profe
         assert!(profe.es_profesor());
         assert!(!profe.es_admin());
-        assert!(!profe.es_alumno());
     }
 }

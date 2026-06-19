@@ -40,6 +40,7 @@ impl AuthService {
             email: email.clone(),
             tipo: tipo.to_string(),
             password_hash,
+            aprobado: false, 
             momento_creacion: String::new(), // se asigna en la db
             avatar_blob: None,
             avatar_mime: None,
@@ -68,6 +69,9 @@ impl AuthService {
 
         match UsuarioRepository::buscar_por_email(conn, email) {
             Ok(Some(usuario)) => {
+                if !usuario.aprobado {
+                    return Err("Tu cuenta fue registrada pero está pendiente de aprobación.".to_string());
+                }
                 if Self::verificar_password(password, &usuario.password_hash) {
                     // Generar un token único basado en el tiempo actual
                     let time = SystemTime::now()
