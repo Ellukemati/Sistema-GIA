@@ -69,7 +69,7 @@ impl UsuarioRepository {
     pub fn eliminar(conn: &Connection, id_usuario: i64) -> SqlResult<usize> {
         conn.execute("DELETE FROM usuarios WHERE id = ?1", [id_usuario])
     }
-    
+
     pub fn listar_profesores_pendientes(conn: &Connection) -> SqlResult<Vec<Usuario>> {
         let mut stmt = conn.prepare(
             "SELECT id, nombre, apellido, email, legajo, tipo, password_hash, aprobado, momento_creacion, avatar_blob, avatar_mime 
@@ -79,15 +79,17 @@ impl UsuarioRepository {
         )?;
         let filas = stmt.query_map([], Usuario::from_row)?;
         let mut profes = Vec::new();
-        for p in filas { profes.push(p?); }
+        for p in filas {
+            profes.push(p?);
+        }
         Ok(profes)
     }
-    
+
     pub fn aprobar_profesor(conn: &Connection, id: i64) -> SqlResult<usize> {
         conn.execute("UPDATE usuarios SET aprobado = 1 WHERE id = ?1", [id])
     }
 }
-    
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -105,6 +107,7 @@ mod tests {
                 legajo INTEGER UNIQUE NOT NULL,
                 tipo TEXT NOT NULL,
                 password_hash TEXT NOT NULL,
+                aprobado BOOLEAN DEFAULT 0,
                 momento_creacion TEXT DEFAULT CURRENT_TIMESTAMP,
                 avatar_blob BLOB,
                 avatar_mime TEXT
@@ -124,7 +127,7 @@ mod tests {
             apellido: "Messi".to_string(),
             email: "lmessi@fi.uba.ar".to_string(),
             legajo: 101010,
-            tipo: "S".to_string(),
+            tipo: "P".to_string(),
             password_hash: "hash_messi".to_string(),
             aprobado: false,
             momento_creacion: String::new(),
@@ -141,7 +144,7 @@ mod tests {
 
         assert_eq!(usuario_db.nombre, "Lionel");
         assert_eq!(usuario_db.legajo, 101010);
-        assert_eq!(usuario_db.tipo, "S");
+        assert_eq!(usuario_db.tipo, "P");
     }
 
     #[test]

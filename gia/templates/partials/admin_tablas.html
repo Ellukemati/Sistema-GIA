@@ -6,18 +6,28 @@
         <table>
             <thead>
                 <tr>
-                    <th>ID</th>
+                    <th>Solicitante</th>
                     <th>Fechas</th>
-                    <th>Motivo</th>
+                    <th>Equipos Solicitados</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 {% for reserva in reservas %}
                 <tr>
-                    <td>{{ reserva.id }}</td>
+                    <td>
+                        <strong>{{ reserva.profe_nombre }}</strong><br>
+                        <small>ID Reserva: {{ reserva.id }}</small>
+                    </td>
                     <td>{{ reserva.fecha_inicio }} <br>al<br> {{ reserva.fecha_fin }}</td>
-                    <td>{{ reserva.motivo }}</td>
+                    <td>
+                        <ul style="margin: 0; padding-left: 20px;">
+                            {% for equipo in reserva.equipos %}
+                                <li>{{ equipo }}</li>
+                            {% endfor %}
+                        </ul>
+                        <small><em>Motivo: {{ reserva.motivo }}</em></small>
+                    </td>
                     <td>
                         <button class="btn-aprobar" hx-post="/admin/reservas/{{ reserva.id }}/aprobar" hx-target="closest tr" hx-swap="outerHTML">
                             Aprobar

@@ -100,11 +100,17 @@ impl ReservaRepository {
         )?;
         let filas = stmt.query_map([estado], Reserva::from_row)?;
         let mut reservas = Vec::new();
-        for r in filas { reservas.push(r?); }
+        for r in filas {
+            reservas.push(r?);
+        }
         Ok(reservas)
     }
 
-    pub fn cambiar_estado(conn: &Connection, reserva_id: i64, nuevo_estado: &str) -> SqlResult<usize> {
+    pub fn cambiar_estado(
+        conn: &Connection,
+        reserva_id: i64,
+        nuevo_estado: &str,
+    ) -> SqlResult<usize> {
         conn.execute(
             "UPDATE reservas SET estado = ?1 WHERE id = ?2",
             rusqlite::params![nuevo_estado, reserva_id],

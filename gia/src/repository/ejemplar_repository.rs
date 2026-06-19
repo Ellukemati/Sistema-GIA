@@ -26,7 +26,7 @@ impl EjemplarRepository {
 
     pub fn listar_todos(conn: &Connection) -> SqlResult<Vec<Ejemplar>> {
         let mut stmt = conn.prepare(
-            "SELECT id, modelo_id, numero_serie, codigo_qr, patrimonio, observaciones, esta_disponible, ubicacion
+            "SELECT id, modelo_id, numero_serie, codigo_qr, patrimonio, observaciones, accesorios, esta_disponible, ubicacion
              FROM ejemplares",
         )?;
 
@@ -42,7 +42,7 @@ impl EjemplarRepository {
 
     pub fn listar_por_modelo(conn: &Connection, modelo_id: i64) -> SqlResult<Vec<Ejemplar>> {
         let mut stmt = conn.prepare(
-            "SELECT id, modelo_id, numero_serie, codigo_qr, patrimonio, observaciones, esta_disponible, ubicacion
+            "SELECT id, modelo_id, numero_serie, codigo_qr, patrimonio, observaciones, accesorios, esta_disponible, ubicacion
              FROM ejemplares
              WHERE modelo_id = ?1",
         )?;

@@ -1,0 +1,40 @@
+use crate::handlers::admin_handler::AdminHandler;
+use rouille::{Request, Response, router};
+use rusqlite::Connection;
+use std::sync::{Arc, Mutex};
+
+pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
+    router!(request,
+        (GET) (/admin/dashboard) => {
+            let conn_guard = conn.lock().unwrap();
+            AdminHandler::mostrar_dashboard(request, &conn_guard)
+        },
+
+        (GET) (/admin/tablas/recargar) => {
+            let conn_guard = conn.lock().unwrap();
+            AdminHandler::recargar_tablas_htmx(request, &conn_guard)
+        },
+
+        (POST) (/admin/reservas/{id: i64}/aprobar) => {
+            let conn_guard = conn.lock().unwrap();
+            AdminHandler::aprobar_reserva(request, &conn_guard, id)
+        },
+
+        (POST) (/admin/reservas/{id: i64}/rechazar) => {
+            let conn_guard = conn.lock().unwrap();
+            AdminHandler::rechazar_reserva(request, &conn_guard, id)
+        },
+
+        (POST) (/admin/profesores/{id: i64}/aprobar) => {
+            let conn_guard = conn.lock().unwrap();
+            AdminHandler::aprobar_profesor(request, &conn_guard, id)
+        },
+
+        (POST) (/admin/profesores/{id: i64}/rechazar) => {
+            let conn_guard = conn.lock().unwrap();
+            AdminHandler::rechazar_profesor(request, &conn_guard, id)
+        },
+
+        _ => Response::empty_404()
+    )
+}

@@ -6,6 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}GIA{% endblock %}</title>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    
+    <script>    // Manejar errores HTTP en htmx
+        document.addEventListener('htmx:beforeOnLoad', function (evt) {
+            if (evt.detail.xhr.status >= 400) {
+                evt.detail.shouldSwap = true;
+                evt.detail.isError = false; 
+            }
+        });
+    </script>
     {% block extra_head %}{% endblock %}
     {% endblock %}
 </head>

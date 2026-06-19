@@ -53,7 +53,6 @@ impl Usuario {
     pub fn es_profesor(&self) -> bool {
         self.tipo == TIPO_PROFESOR
     }
-
 }
 
 #[cfg(test)]
