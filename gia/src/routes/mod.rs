@@ -1,3 +1,4 @@
+pub mod admin_routes;
 pub mod auth_routes;
 pub mod ejemplar_routes;
 pub mod image_routes;
@@ -12,6 +13,11 @@ use std::sync::{Arc, Mutex};
 
 pub fn dispatch(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
     let response = static_routes::router(request);
+    if response.status_code != 404 {
+        return response;
+    }
+
+    let response = admin_routes::router(request, Arc::clone(&conn));
     if response.status_code != 404 {
         return response;
     }

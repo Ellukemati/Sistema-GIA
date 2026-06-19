@@ -1,6 +1,8 @@
 use rusqlite::{Result as SqlResult, Row};
+use serde::Serialize;
 
 /// Representa una reserva segun la tabla `reservas`
+#[derive(Serialize)]
 pub struct Reserva {
     pub id: i64,
     pub id_usuario: i64,

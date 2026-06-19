@@ -15,4 +15,3 @@ pub const MANUALES_MAX_SIZE: usize = 16_777_216;
 /// Tipos de usuario
 pub const TIPO_ADMIN: &str = "A";
 pub const TIPO_PROFESOR: &str = "P";
-pub const TIPO_ALUMNO: &str = "S";

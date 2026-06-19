@@ -40,6 +40,7 @@ impl AuthService {
             email: email.clone(),
             tipo: tipo.to_string(),
             password_hash,
+            aprobado: false,
             momento_creacion: String::new(), // se asigna en la db
             avatar_blob: None,
             avatar_mime: None,
@@ -68,6 +69,11 @@ impl AuthService {
 
         match UsuarioRepository::buscar_por_email(conn, email) {
             Ok(Some(usuario)) => {
+                if !usuario.aprobado {
+                    return Err(
+                        "Tu cuenta fue registrada pero está pendiente de aprobación.".to_string(),
+                    );
+                }
                 if Self::verificar_password(password, &usuario.password_hash) {
                     // Generar un token único basado en el tiempo actual
                     let time = SystemTime::now()
@@ -116,7 +122,7 @@ mod tests {
             "CREATE TABLE usuarios (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 nombre TEXT NOT NULL, apellido TEXT NOT NULL, email TEXT UNIQUE NOT NULL,
-                legajo INTEGER UNIQUE NOT NULL, tipo TEXT NOT NULL, password_hash TEXT NOT NULL,
+                legajo INTEGER UNIQUE NOT NULL, tipo TEXT NOT NULL, password_hash TEXT NOT NULL, aprobado BOOLEAN DEFAULT 0,
                 momento_creacion TEXT DEFAULT CURRENT_TIMESTAMP, avatar_blob BLOB, avatar_mime TEXT
             )",
             [],
@@ -146,18 +152,24 @@ mod tests {
 
         let usuario = AuthService::registrar_cuenta(
             &conn,
-            77777,
+            123456,
             "Samuel".to_string(),
             "De Luque".to_string(),
             "sdeluque@fi.uba.ar".to_string(),
-            "S",
-            "planeta_vegetta",
+            "P",
+            "samuel123",
         )
         .unwrap();
 
         assert_eq!(usuario.nombre, "Samuel");
 
-        let resultado_login = AuthService::login(&conn, "sdeluque@fi.uba.ar", "planeta_vegetta");
+        conn.execute(
+            "UPDATE usuarios SET aprobado = 1 WHERE email = 'sdeluque@fi.uba.ar'",
+            [],
+        )
+        .unwrap();
+
+        let resultado_login = AuthService::login(&conn, "sdeluque@fi.uba.ar", "samuel123");
         assert!(resultado_login.is_ok());
 
         let (usuario_logueado, token) = resultado_login.unwrap();
@@ -175,8 +187,14 @@ mod tests {
             "Ruben".to_string(),
             "Doblas".to_string(),
             "rdoblas@fi.uba.ar".to_string(),
-            "S",
+            "P",
             "12345",
+        )
+        .unwrap();
+
+        conn.execute(
+            "UPDATE usuarios SET aprobado = 1 WHERE email = 'rdoblas@fi.uba.ar'",
+            [],
         )
         .unwrap();
 
@@ -195,7 +213,7 @@ mod tests {
             "Ibai".to_string(),
             "Llanos".to_string(),
             "ibai@fi.uba.ar".to_string(),
-            "S",
+            "P",
             "ibaiMason",
         )
         .unwrap();
@@ -206,7 +224,7 @@ mod tests {
             "Gerard".to_string(),
             "Pique".to_string(),
             "ibai@fi.uba.ar".to_string(),
-            "S",
+            "P",
             "123123",
         );
 
