@@ -8,6 +8,7 @@ use gia::service::mail_service::MailService;
 // Si el mock está en false, se conectan a la API de Mailtrap usando la red y aplicando las esperas.
 // Si el mock está en true, corren al instante simulando el éxito sin llamadas de red ni demoras.
 #[test]
+#[ignore]
 fn test_circuito_de_notificaciones() {
     // CASO 1: Notificación de Reserva Aprobada
     let resultado_reserva_aprobada = MailService::enviar_notificacion_reserva_aprobada(
@@ -70,6 +71,7 @@ fn test_circuito_de_notificaciones() {
 }
 
 #[test]
+#[ignore]
 fn test_enviar_comunicado_en_lote() {
     let destinatarios = vec![
         ("Carlitos Test".to_string(), "ctest@fi.uba.ar".to_string()),
