@@ -68,7 +68,7 @@ fn test_enviar_comunicado_en_lote() {
         ("Test López".to_string(), "tlopez@fi.uba.ar".to_string()),
     ];
 
-    let asunto = "Test de Integración de envío de mails";
+    let asunto = "Test de envío de comunicados en lote";
     let cuerpo = "Esto es un mail de prueba automático.";
 
     let resultado = MailService::enviar_comunicado_lote(&destinatarios, asunto, cuerpo);
