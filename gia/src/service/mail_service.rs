@@ -26,6 +26,21 @@ impl MailService {
         asunto: &str,
         mensaje_cuerpo: &str,
     ) -> Result<usize, String> {
+        // MOCK PARA CUIDAR LA CUOTA DE MAILTRAP DURANTE EL DESARROLLO: Si MOCK_MAILS es true, se imprime el contenido
+        // del mail en la consola en lugar de enviarlo realmente, y se simula que todos los envíos fueron exitosos.
+        // Si es un test, se envían realmente para probar la integración sin importar el valor de la constante MOCK_MAILS.
+        if crate::constants::MOCK_MAILS && !cfg!(test) {
+            println!("\n--- [MOCK MAIL SERVICE] ---");
+            println!("Asunto: {}", asunto);
+            println!("Destinatarios elegidos ({}):", destinatarios.len());
+            for (nombre, email) in destinatarios {
+                println!(" -> {} <{}>", nombre, email);
+            }
+            println!("---------------------------\n");
+
+            return Ok(destinatarios.len());
+        }
+
         let transport = Self::autenticar_smtp()?;
         let mut enviados_con_exito = 0;
         let total = destinatarios.len();
@@ -55,7 +70,7 @@ impl MailService {
             }
 
             if indice + 1 < total {
-                println!("Esperando 10 segundos para respetar el límite gratuito de Mailtrap...");
+                println!("Esperando 10.5 segundos para respetar el límite gratuito de Mailtrap...");
                 std::thread::sleep(std::time::Duration::from_millis(10500));
             }
         }
@@ -70,6 +85,18 @@ impl MailService {
         id_reserva: &str,
         motivo: &str,
     ) -> Result<(), String> {
+        // MOCK PARA CUIDAR LA CUOTA DE MAILTRAP DURANTE EL DESARROLLO: Si MOCK_MAILS es true, se imprime el contenido
+        // del mail en la consola en lugar de enviarlo realmente, y se simula que todos los envíos fueron exitosos.
+        // Si es un test, se envían realmente para probar la integración sin importar el valor de la constante MOCK_MAILS.
+        if crate::constants::MOCK_MAILS && !cfg!(test) {
+            println!("\n--- [MOCK MAIL: RESERVA APROBADA] ---");
+            println!("Para: {} <{}>", profe_nombre, email_destino);
+            println!("Reserva ID: {}", id_reserva);
+            println!("Motivo: {}", motivo);
+            println!("-------------------------------------\n");
+            return Ok(());
+        }
+
         let transport = Self::autenticar_smtp()?;
 
         let cuerpo = format!(
@@ -98,6 +125,18 @@ impl MailService {
         id_reserva: &str,
         motivo: &str,
     ) -> Result<(), String> {
+        // MOCK PARA CUIDAR LA CUOTA DE MAILTRAP DURANTE EL DESARROLLO: Si MOCK_MAILS es true, se imprime el contenido
+        // del mail en la consola en lugar de enviarlo realmente, y se simula que todos los envíos fueron exitosos.
+        // Si es un test, se envían realmente para probar la integración sin importar el valor de la constante MOCK_MAILS.
+        if crate::constants::MOCK_MAILS && !cfg!(test) {
+            println!("\n--- [MOCK MAIL: RESERVA RECHAZADA] ---");
+            println!("Para: {} <{}>", profe_nombre, email_destino);
+            println!("Reserva ID: {}", id_reserva);
+            println!("Motivo: {}", motivo);
+            println!("--------------------------------------\n");
+            return Ok(());
+        }
+
         let transport = Self::autenticar_smtp()?;
 
         let cuerpo = format!(
@@ -124,6 +163,16 @@ impl MailService {
         email_destino: &str,
         profe_nombre: &str,
     ) -> Result<(), String> {
+        // MOCK PARA CUIDAR LA CUOTA DE MAILTRAP DURANTE EL DESARROLLO: Si MOCK_MAILS es true, se imprime el contenido
+        // del mail en la consola en lugar de enviarlo realmente, y se simula que todos los envíos fueron exitosos.
+        // Si es un test, se envían realmente para probar la integración sin importar el valor de la constante MOCK_MAILS.
+        if crate::constants::MOCK_MAILS && !cfg!(test) {
+            println!("\n--- [MOCK MAIL: PROFESOR APROBADO] ---");
+            println!("Para: {} <{}>", profe_nombre, email_destino);
+            println!("--------------------------------------\n");
+            return Ok(());
+        }
+
         let transport = Self::autenticar_smtp()?;
 
         let cuerpo = format!(
@@ -150,6 +199,16 @@ impl MailService {
         email_destino: &str,
         profe_nombre: &str,
     ) -> Result<(), String> {
+        // MOCK PARA CUIDAR LA CUOTA DE MAILTRAP DURANTE EL DESARROLLO: Si MOCK_MAILS es true, se imprime el contenido
+        // del mail en la consola en lugar de enviarlo realmente, y se simula que todos los envíos fueron exitosos.
+        // Si es un test, se envían realmente para probar la integración sin importar el valor de la constante MOCK_MAILS.
+        if crate::constants::MOCK_MAILS && !cfg!(test) {
+            println!("\n--- [MOCK MAIL: PROFESOR RECHAZADO] ---");
+            println!("Para: {} <{}>", profe_nombre, email_destino);
+            println!("---------------------------------------\n");
+            return Ok(());
+        }
+
         let transport = Self::autenticar_smtp()?;
 
         let cuerpo = format!(

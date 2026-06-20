@@ -19,3 +19,6 @@ pub const TIPO_PROFESOR: &str = "P";
 /// Configuración de Mailtrap (Testing SMTP). Cuenta con plan gratuito de Matias Dundic con 1 mail permitido cada 10 segundos y máximo de 50 mensuales.
 pub const MAILTRAP_USER: &str = "ca4badc18b73e0";
 pub const MAILTRAP_PASSWORD: &str = "c56ae035ae868b";
+// Si MOCK_MAILS es true, se imprime el contenido del mail en la consola en lugar de enviarlo realmente,
+// y se simula que todos los envíos fueron exitosos. Para desarrollar sin agotar la cuota de Mailtrap.
+pub const MOCK_MAILS: bool = true;
