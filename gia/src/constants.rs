@@ -15,3 +15,7 @@ pub const MANUALES_MAX_SIZE: usize = 16_777_216;
 /// Tipos de usuario
 pub const TIPO_ADMIN: &str = "A";
 pub const TIPO_PROFESOR: &str = "P";
+
+/// Configuración de Mailtrap (Testing SMTP). Cuenta con plan gratuito de Matias Dundic con 1 mail permitido cada 10 segundos y máximo de 50 mensuales.
+pub const MAILTRAP_USER: &str = "ca4badc18b73e0";
+pub const MAILTRAP_PASSWORD: &str = "c56ae035ae868b";
