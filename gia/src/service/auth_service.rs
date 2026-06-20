@@ -59,7 +59,6 @@ impl AuthService {
         }
     }
 
-    #[allow(dead_code)]
     pub fn login(
         conn: &Connection,
         email: &str,

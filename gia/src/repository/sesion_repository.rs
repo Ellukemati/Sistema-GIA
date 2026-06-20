@@ -20,7 +20,6 @@ impl SesionRepository {
         stmt.query_row([token], Sesion::from_row).optional()
     }
 
-    #[allow(dead_code)]
     /// Elimina la sesion de la base de datos (logout)
     pub fn eliminar_por_token(conn: &Connection, token: &str) -> SqlResult<usize> {
         conn.execute("DELETE FROM sesiones WHERE token = ?1", [token])

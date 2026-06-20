@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use gia::{constants, db, server};
 
 fn main() {
