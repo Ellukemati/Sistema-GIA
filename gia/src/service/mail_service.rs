@@ -28,7 +28,6 @@ impl MailService {
     ) -> Result<usize, String> {
         // MOCK PARA CUIDAR LA CUOTA DE MAILTRAP DURANTE EL DESARROLLO: Si MOCK_MAILS es true, se imprime el contenido
         // del mail en la consola en lugar de enviarlo realmente, y se simula que todos los envíos fueron exitosos.
-        // Si es un test, se envían realmente para probar la integración sin importar el valor de la constante MOCK_MAILS.
         if crate::constants::MOCK_MAILS && !cfg!(test) {
             println!("\n--- [MOCK MAIL SERVICE] ---");
             println!("Asunto: {}", asunto);
@@ -87,7 +86,6 @@ impl MailService {
     ) -> Result<(), String> {
         // MOCK PARA CUIDAR LA CUOTA DE MAILTRAP DURANTE EL DESARROLLO: Si MOCK_MAILS es true, se imprime el contenido
         // del mail en la consola en lugar de enviarlo realmente, y se simula que todos los envíos fueron exitosos.
-        // Si es un test, se envían realmente para probar la integración sin importar el valor de la constante MOCK_MAILS.
         if crate::constants::MOCK_MAILS && !cfg!(test) {
             println!("\n--- [MOCK MAIL: RESERVA APROBADA] ---");
             println!("Para: {} <{}>", profe_nombre, email_destino);
@@ -127,7 +125,6 @@ impl MailService {
     ) -> Result<(), String> {
         // MOCK PARA CUIDAR LA CUOTA DE MAILTRAP DURANTE EL DESARROLLO: Si MOCK_MAILS es true, se imprime el contenido
         // del mail en la consola en lugar de enviarlo realmente, y se simula que todos los envíos fueron exitosos.
-        // Si es un test, se envían realmente para probar la integración sin importar el valor de la constante MOCK_MAILS.
         if crate::constants::MOCK_MAILS && !cfg!(test) {
             println!("\n--- [MOCK MAIL: RESERVA RECHAZADA] ---");
             println!("Para: {} <{}>", profe_nombre, email_destino);
@@ -165,7 +162,6 @@ impl MailService {
     ) -> Result<(), String> {
         // MOCK PARA CUIDAR LA CUOTA DE MAILTRAP DURANTE EL DESARROLLO: Si MOCK_MAILS es true, se imprime el contenido
         // del mail en la consola en lugar de enviarlo realmente, y se simula que todos los envíos fueron exitosos.
-        // Si es un test, se envían realmente para probar la integración sin importar el valor de la constante MOCK_MAILS.
         if crate::constants::MOCK_MAILS && !cfg!(test) {
             println!("\n--- [MOCK MAIL: PROFESOR APROBADO] ---");
             println!("Para: {} <{}>", profe_nombre, email_destino);
@@ -201,7 +197,6 @@ impl MailService {
     ) -> Result<(), String> {
         // MOCK PARA CUIDAR LA CUOTA DE MAILTRAP DURANTE EL DESARROLLO: Si MOCK_MAILS es true, se imprime el contenido
         // del mail en la consola en lugar de enviarlo realmente, y se simula que todos los envíos fueron exitosos.
-        // Si es un test, se envían realmente para probar la integración sin importar el valor de la constante MOCK_MAILS.
         if crate::constants::MOCK_MAILS && !cfg!(test) {
             println!("\n--- [MOCK MAIL: PROFESOR RECHAZADO] ---");
             println!("Para: {} <{}>", profe_nombre, email_destino);
