@@ -1,0 +1,35 @@
+<style>
+    .reserva-fechas {
+        background-color: var(--color-surface);
+        border: 1.5px solid var(--color-border);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-card);
+        padding: var(--spacing-lg);
+        margin-bottom: var(--spacing-xl);
+    }
+
+    .reserva-fechas-titulo {
+        margin: 0 0 var(--spacing-md);
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--color-text);
+    }
+
+    .reserva-fechas-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--spacing-md);
+    }
+
+    .reserva-fechas-hint {
+        margin: var(--spacing-md) 0 0;
+        font-size: 0.8rem;
+        color: var(--color-muted);
+    }
+
+    @media (min-width: 480px) {
+        .reserva-fechas-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+</style>
