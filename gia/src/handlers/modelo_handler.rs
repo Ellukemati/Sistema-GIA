@@ -250,9 +250,12 @@ impl ModeloHandler {
             _ => None,
         };
 
+        let tiene_manual = ModeloRepository::tiene_manual(conn, id).unwrap_or(false);
+
         let mut ctx = Context::new();
         ctx.insert("modelo", &modelo);
         ctx.insert("imagen", &imagen);
+        ctx.insert("tiene_manual", &tiene_manual);
         templates::response_html(templates::render("modelo_detalle.html", &ctx))
     }
 }
