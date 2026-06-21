@@ -1,0 +1,23 @@
+{% if ejemplares | length == 0 %}
+<p class="ejemplares-vacio">Este modelo no tiene ejemplares cargados.</p>
+{% else %}
+<ul class="ejemplares-lista">
+    {% for e in ejemplares %}
+    <li class="ejemplar-item{% if not e.disponible %} ejemplar-item--no-disponible{% endif %}">
+        <label class="ejemplar-label">
+            <input type="checkbox" name="ejemplar_id" value="{{ e.id }}"
+                   {% if e.en_carrito %}checked{% endif %}
+                   {% if not e.disponible %}disabled{% endif %}>
+            <span class="ejemplar-datos">
+                <span class="ejemplar-dato"><b>Serie:</b> {{ e.numero_serie }}</span>
+                <span class="ejemplar-dato"><b>Patrimonio:</b> {{ e.patrimonio }}</span>
+                <span class="ejemplar-dato"><b>Ubicación:</b> {{ e.ubicacion }}</span>
+                {% if not e.disponible %}
+                <span class="ejemplar-estado">No disponible para estas fechas</span>
+                {% endif %}
+            </span>
+        </label>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}

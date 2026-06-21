@@ -6,6 +6,7 @@
     {% include "estilos/auth.html" %}
     {% include "estilos/catalogo.html" %}
     {% include "estilos/reserva.html" %}
+    {% include "estilos/carrito.html" %}
 {% endblock %}
 
 {% block content %}
@@ -26,18 +27,21 @@
             <div class="field">
                 <label for="fecha_inicio">Desde</label>
                 <input id="fecha_inicio" type="date" name="fecha_inicio"
-                       min="{{ fecha_minima }}" max="{{ fecha_maxima }}">
+                       min="{{ fecha_minima }}" max="{{ fecha_maxima }}" value="{{ fecha_inicio }}">
             </div>
             <div class="field">
                 <label for="fecha_fin">Hasta</label>
                 <input id="fecha_fin" type="date" name="fecha_fin"
-                       min="{{ fecha_minima }}" max="{{ fecha_maxima }}">
+                       min="{{ fecha_minima }}" max="{{ fecha_maxima }}" value="{{ fecha_fin }}">
             </div>
         </form>
         <p class="reserva-fechas-hint">
             La reserva puede comenzar entre el {{ fecha_minima }} y el {{ fecha_maxima }}.
+            Cambiar las fechas reinicia los ejemplares elegidos.
         </p>
     </section>
+
+    {% include "partials/carrito_resumen.html" %}
 
     <div id="lista-modelos">
         {% include "partials/reserva_modelos.html" %}

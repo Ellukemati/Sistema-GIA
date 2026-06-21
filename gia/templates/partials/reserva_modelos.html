@@ -6,7 +6,7 @@
         <h2 class="categoria-titulo">{{ grupo.categoria }}</h2>
         <div class="cards-grid">
             {% for m in grupo.modelos %}
-            <div class="modelo-card">
+            <a class="modelo-card" href="/reservas/modelo/{{ m.id }}">
                 <div class="modelo-card-media">
                     {% if m.imagen %}
                     <img class="modelo-card-img" src="{{ m.imagen }}" alt="{{ m.nombre_modelo }}" loading="lazy">
@@ -15,7 +15,7 @@
                     {% endif %}
                 </div>
                 <p class="modelo-card-nombre">{{ m.nombre_modelo }}</p>
-            </div>
+            </a>
             {% endfor %}
         </div>
     </section>

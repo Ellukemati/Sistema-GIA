@@ -1,0 +1,12 @@
+<section id="carrito-resumen" class="carrito-resumen"{% if oob %} hx-swap-oob="true"{% endif %}>
+    <div class="carrito-resumen-info">
+        <span class="carrito-resumen-cantidad">{{ carrito_cantidad }}</span>
+        <span class="carrito-resumen-texto">ejemplar(es) en esta reserva</span>
+    </div>
+    <form method="POST" action="/reservas/finalizar" class="carrito-resumen-form">
+        <input type="text" name="motivo" class="carrito-motivo" placeholder="Motivo (opcional)">
+        <button type="submit" class="btn-finalizar"{% if carrito_cantidad == 0 %} disabled{% endif %}>
+            Finalizar reserva
+        </button>
+    </form>
+</section>

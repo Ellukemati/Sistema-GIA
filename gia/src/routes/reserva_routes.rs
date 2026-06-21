@@ -34,17 +34,30 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
                 conn.lock().unwrap();
 
             ReservaHandler::mostrar_ejemplares_modelo(
+                request,
                 &conn_guard,
                 modelo_id,
             )
         },
 
-        (POST) (/reservas/nueva) => {
+        (POST) (/reservas/modelo/{modelo_id: i64}/agregar) => {
 
             let conn_guard =
                 conn.lock().unwrap();
 
-            ReservaHandler::procesar_reserva(
+            ReservaHandler::agregar_al_carrito(
+                request,
+                &conn_guard,
+                modelo_id,
+            )
+        },
+
+        (POST) (/reservas/finalizar) => {
+
+            let conn_guard =
+                conn.lock().unwrap();
+
+            ReservaHandler::finalizar_reserva(
                 request,
                 &conn_guard,
             )
