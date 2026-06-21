@@ -202,7 +202,7 @@ impl ReservaRepository {
         };
 
         match ReservaService::cancelar_reserva(conn, reserva_id, usuario_id) {
-            Ok(_) => Response::redirect_303("/mis-reservas"),
+            Ok(_) => Response::empty_204().with_additional_header("HX-Redirect", "/mis-reservas"),
             Err(e) => templates::response_mensaje_error("Error cancelando reserva", &e),
         }
     }

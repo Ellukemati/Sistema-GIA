@@ -37,13 +37,13 @@
 
     <td>
         {% if r.estado == "pendiente" %}
-            <button
-                class="btn-cancelar"
-                hx-post="/mis-reservas/cancelar/{{ r.id }}"
-                hx-target="closest tr"
-                hx-swap="outerHTML">
-                🗑 Cancelar
-            </button>
+        <button 
+            hx-post="/mis-reservas/cancelar/{{ r.id }}" 
+            hx-target="body" 
+            hx-swap="innerHTML"
+            class="btn-cancelar">
+            Cancelar
+        </button>
         {% else %}
             <span class="{{ r.clase_estado }}">
                 {{ r.texto_estado }}
