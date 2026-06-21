@@ -17,6 +17,17 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
             )
         },
 
+        (GET) (/reservas/modelos) => {
+
+            let conn_guard =
+                conn.lock().unwrap();
+
+            ReservaHandler::listar_modelos_disponibles(
+                request,
+                &conn_guard
+            )
+        },
+
         (GET) (/reservas/modelo/{modelo_id: i64}) => {
 
             let conn_guard =

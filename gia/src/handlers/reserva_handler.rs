@@ -4,15 +4,17 @@ use crate::{
         ejemplar_repository::EjemplarRepository, modelo_repository::ModeloRepository,
         sesion_repository::SesionRepository,
     },
+    service::modelo_service::ModeloService,
     service::reserva_service::ReservaService,
     utils::extraer_token_sesion,
 };
 
-use chrono::{Duration, Local};
+use chrono::{Duration, Local, NaiveDate};
 use rouille::{Request, Response};
 use rusqlite::Connection;
 use std::collections::HashMap;
 use std::io::Read;
+use tera::Context;
 
 pub struct ReservaHandler;
 
@@ -22,68 +24,66 @@ impl ReservaHandler {
             return response;
         }
 
-        let modelos = match ModeloRepository::listar_todos(conn) {
-            Ok(m) => m,
+        let fecha_minima = (Local::now().date_naive() + Duration::days(5))
+            .format("%Y-%m-%d")
+            .to_string();
 
+        let fecha_maxima = (Local::now().date_naive() + Duration::days(180))
+            .format("%Y-%m-%d")
+            .to_string();
+
+        let grupos = match ModeloService::listar_cards_agrupadas(conn) {
+            Ok(g) => g,
             Err(e) => {
-                return Response::text(format!("Error cargando modelos: {}", e))
-                    .with_status_code(500);
+                return templates::response_mensaje_error("No se pudieron cargar los modelos", &e);
             }
         };
 
-        let mut contenido = String::new();
+        let mut ctx = Context::new();
+        ctx.insert("fecha_minima", &fecha_minima);
+        ctx.insert("fecha_maxima", &fecha_maxima);
+        ctx.insert("grupos", &grupos);
+        templates::response_html(templates::render("reserva_formulario.html", &ctx))
+    }
 
-        for modelo in modelos {
-            let marca = &modelo.marca;
-
-            let categoria = modelo
-                .categoria
-                .clone()
-                .unwrap_or("Sin categoría".to_string());
-
-            let descripcion = modelo
-                .descripcion
-                .clone()
-                .unwrap_or("Sin descripción".to_string());
-
-            contenido.push_str(&format!(
-                r#"
-                <div
-                    style="
-                        border:1px solid #ccc;
-                        padding:15px;
-                        margin-bottom:15px;
-                    ">
-
-                    <h3>{}</h3>
-
-                    <p>
-                        <b>Marca:</b> {}
-                    </p>
-
-                    <p>
-                        <b>Categoría:</b> {}
-                    </p>
-
-                    <p>
-                        {}
-                    </p>
-
-                    <a href="/reservas/modelo/{}">
-                        Ver ejemplares
-                    </a>
-
-                </div>
-                "#,
-                modelo.nombre_modelo, marca, categoria, descripcion, modelo.id
-            ));
+    /// Endpoint HTMX: devuelve el parcial con los modelos a listar.
+    /// Si llegan ambas fechas validas, filtra por disponibilidad en el rango;
+    /// si no, lista todos los modelos.
+    pub fn listar_modelos_disponibles(request: &Request, conn: &Connection) -> Response {
+        if let Err(response) = Self::obtener_usuario_sesion(request, conn) {
+            return response;
         }
 
-        let html = include_str!("../../templates/reserva_modelos.html");
+        let inicio = request.get_param("fecha_inicio").unwrap_or_default();
+        let fin = request.get_param("fecha_fin").unwrap_or_default();
 
-        let html = html.replace("{{modelos}}", &contenido);
+        if !Self::fechas_validas(&inicio, &fin) {
+            return templates::response_mensaje_error(
+                "Fechas inválidas",
+                "Seleccioná una fecha de inicio y una de fin válidas. La fecha de fin debe ser posterior a la de inicio.",
+            );
+        }
 
-        Response::html(html)
+        match ModeloService::listar_cards_disponibles_agrupadas(conn, &inicio, &fin) {
+            Ok(grupos) => {
+                let mut ctx = Context::new();
+                ctx.insert("grupos", &grupos);
+                templates::response_html(templates::render("partials/reserva_modelos.html", &ctx))
+            }
+            Err(e) => templates::response_mensaje_error("No se pudieron cargar los modelos", &e),
+        }
+    }
+
+    /// Valida que ambas fechas esten presentes, sean parseables y que fin sea
+    /// posterior a inicio. Las cotas (min/max) las aplica el input del formulario.
+    fn fechas_validas(inicio: &str, fin: &str) -> bool {
+        match (
+            NaiveDate::parse_from_str(inicio, "%Y-%m-%d"),
+            NaiveDate::parse_from_str(fin, "%Y-%m-%d"),
+        ) {
+            (Ok(i), Ok(f)) => f > i,
+            _ => false,
+        }
     }
     pub fn mostrar_ejemplares_modelo(conn: &Connection, modelo_id: i64) -> Response {
         let modelo = match ModeloRepository::buscar_por_id(conn, modelo_id) {
