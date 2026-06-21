@@ -39,6 +39,29 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
             )
         },
 
+        (GET) (/mis-reservas) => {
+
+            let conn_guard =
+                conn.lock().unwrap();
+
+            ReservaHandler::mostrar_mis_reservas(
+                request,
+                &conn_guard,
+            )
+        },
+
+        (POST) (/mis-reservas/cancelar/{id: i64}) => {
+
+            let conn_guard =
+                conn.lock().unwrap();
+
+            ReservaHandler::cancelar_reserva(
+                request,
+                &conn_guard,
+                id,
+            )
+        },
+
         _ => Response::empty_404()
     )
 }

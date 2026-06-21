@@ -51,10 +51,20 @@ impl ReservaRepository {
         Ok(reservas)
     }
 
-    pub fn cancelar(conn: &Connection, reserva_id: i64) -> SqlResult<usize> {
+    pub fn cancelar_por_usuario(
+        conn: &Connection,
+        reserva_id: i64,
+        usuario_id: i64,
+    ) -> SqlResult<usize> {
         conn.execute(
-            "UPDATE reservas SET estado = 'cancelada' WHERE id = ?1",
-            [reserva_id],
+            "
+            UPDATE reservas
+            SET estado = 'cancelada'
+            WHERE id = ?1
+            AND id_usuario = ?2
+            AND estado != 'cancelada'
+            ",
+            rusqlite::params![reserva_id, usuario_id,],
         )
     }
 
@@ -295,5 +305,89 @@ mod tests {
         let reservas = ReservaRepository::listar_todas(&conn).unwrap();
 
         assert_eq!(reservas.len(), 2);
+    }
+    pub fn mostrar_mis_reservas(request: &Request, conn: &Connection) -> Response {
+        let usuario_id = match Self::obtener_usuario_sesion(request, conn) {
+            Ok(id) => id,
+
+            Err(response) => {
+                return response;
+            }
+        };
+
+        let reservas = match ReservaRepository::listar_por_usuario(conn, usuario_id) {
+            Ok(r) => r,
+
+            Err(e) => {
+                return Response::text(format!("Error cargando reservas: {}", e))
+                    .with_status_code(500);
+            }
+        };
+
+        let mut filas = String::new();
+
+        for reserva in reservas {
+            let boton = if reserva.estado != "cancelada" {
+                format!(
+                    r#"
+                    <form
+                        method="POST"
+                        action="/mis-reservas/cancelar/{}">
+
+                        <button class="btn-danger">
+                            Cancelar
+                        </button>
+
+                    </form>
+                    "#,
+                    reserva.id
+                )
+            } else {
+                "<span style='color:red'>
+                    Cancelada
+                </span>"
+                    .to_string()
+            };
+
+            filas.push_str(&format!(
+                r#"
+                <tr>
+
+                    <td>{}</td>
+
+                    <td>
+                        {} al {}
+                    </td>
+
+                    <td>{}</td>
+
+                    <td>{}</td>
+
+                </tr>
+                "#,
+                reserva.id, reserva.fecha_inicio, reserva.fecha_fin, reserva.estado, boton
+            ));
+        }
+
+        let html = include_str!("../../templates/mis_reservas.html");
+
+        let html = html.replace("{{reservas}}", &filas);
+
+        Response::html(html)
+    }
+    pub fn cancelar_reserva(request: &Request, conn: &Connection, reserva_id: i64) -> Response {
+        let usuario_id = match Self::obtener_usuario_sesion(request, conn) {
+            Ok(id) => id,
+
+            Err(response) => {
+                return response;
+            }
+        };
+
+        match ReservaService::cancelar_reserva(conn, reserva_id, usuario_id) {
+            Ok(_) => Response::redirect_303("/mis-reservas"),
+
+            Err(e) => templates::response_mensaje_error("Error cancelando reserva", &e),
+        }
     }
 }

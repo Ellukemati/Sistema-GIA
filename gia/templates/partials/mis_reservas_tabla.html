@@ -1,0 +1,56 @@
+<tbody>
+{% for r in reservas %}
+<tr>
+
+    <td>
+        <strong>Reserva #{{ r.id }}</strong><br>
+        <small style="color: #666;">Creada: {{ r.creada }}</small>
+    </td>
+
+    <td>
+        {{ r.fecha_inicio }}<br>al<br>{{ r.fecha_fin }}<br>
+        <div class="badge">⏱ {{ r.dias }} día(s)</div>
+    </td>
+
+    <td>
+        <span class="{{ r.clase_estado }}">
+            {{ r.texto_estado }}
+        </span>
+    </td>
+
+    <td>
+        {{ r.motivo }}
+    </td>
+
+    <td>
+        {{ r.equipos | length }} equipo(s)
+
+        <details class="equipos-dropdown">
+            <summary>Ver detalles</summary>
+            <ul class="equipos-lista">
+                {% for e in r.equipos %}
+                    <li>{{ e }}</li>
+                {% endfor %}
+            </ul>
+        </details>
+    </td>
+
+    <td>
+        {% if r.estado == "pendiente" %}
+            <button
+                class="btn-cancelar"
+                hx-post="/mis-reservas/cancelar/{{ r.id }}"
+                hx-target="closest tr"
+                hx-swap="outerHTML">
+                🗑 Cancelar
+            </button>
+        {% else %}
+            <span class="{{ r.clase_estado }}">
+                {{ r.texto_estado }}
+            </span>
+        {% endif %}
+    </td>
+
+</tr>
+{% endfor %}
+</tbody>
