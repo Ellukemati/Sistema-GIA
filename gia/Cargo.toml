@@ -12,3 +12,4 @@ mime_guess = "2"
 tera = "1"
 serde = { version = "1", features = ["derive"] }
 bcrypt = "0.15"
+lettre = { version = "0.11", features = ["smtp-transport", "builder"] }

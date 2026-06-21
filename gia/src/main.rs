@@ -1,16 +1,4 @@
-#![allow(dead_code)]
-
-mod constants;
-mod db;
-mod errors;
-mod handlers;
-mod models;
-mod repository;
-mod routes;
-mod server;
-mod service;
-mod templates;
-mod utils;
+use gia::{constants, db, server};
 
 fn main() {
     let _conn = match db::init_db(constants::DB_PATH) {

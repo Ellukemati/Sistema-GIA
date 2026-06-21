@@ -35,6 +35,12 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
             AdminHandler::rechazar_profesor(request, &conn_guard, id)
         },
 
+        // IDEA: Endpoint para enviar un comunicado general por mail a todos los usuarios, a un grupo específico o uno solo
+        (POST) (/admin/comunicados/enviar) => {
+            let conn_guard = conn.lock().unwrap();
+            AdminHandler::enviar_notificacion_admin(request, &conn_guard)
+        },
+
         _ => Response::empty_404()
     )
 }
