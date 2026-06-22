@@ -58,19 +58,29 @@ impl AdminHandler {
             // Buscar los instrumentos de esta reserva
             let mut stmt = conn
                 .prepare(
-                    "SELECT m.nombre_modelo, e.patrimonio 
-                 FROM reserva_ejemplar re
-                 JOIN ejemplares e ON re.ejemplar_id = e.id
-                 JOIN modelos m ON e.modelo_id = m.id
-                 WHERE re.reserva_id = ?1",
+                    "SELECT m.nombre_modelo, e.patrimonio, e.numero_serie 
+                    FROM reserva_ejemplar re
+                    JOIN ejemplares e ON re.ejemplar_id = e.id
+                    JOIN modelos m ON e.modelo_id = m.id
+                    WHERE re.reserva_id = ?1",
                 )
                 .unwrap();
 
             let equipos_iter = stmt
                 .query_map([r.id], |row| {
                     let nombre: String = row.get(0)?;
-                    let patrimonio: String = row.get(1)?;
-                    Ok(format!("{} (Pat: {})", nombre, patrimonio))
+                    let patrimonio: Option<String> = row.get(1)?;
+                    let numero_serie: Option<String> = row.get(2)?;
+
+                    let identificador_ejemplar = if let Some(pat) = patrimonio {
+                        format!("Patrimonio: {}", pat)
+                    } else if let Some(ns) = numero_serie {
+                        format!("N/S: {}", ns)
+                    } else {
+                        "Sin identificador".to_string()
+                    };
+
+                    Ok(format!("{} ({})", nombre, identificador_ejemplar))
                 })
                 .unwrap();
 
@@ -78,7 +88,6 @@ impl AdminHandler {
             for texto in equipos_iter.flatten() {
                 equipos.push(texto);
             }
-
             reservas_vista.push(ReservaVista {
                 id: r.id,
                 profe_nombre,
@@ -93,7 +102,7 @@ impl AdminHandler {
         reservas_vista
     }
 
-    pub fn mostrar_dashboard(request: &Request, conn: &Connection) -> Response {
+    pub fn mostrar_solicitudes(request: &Request, conn: &Connection) -> Response {
         if let Err(resp) = Self::verificar_admin(request, conn) {
             return resp;
         }
@@ -104,7 +113,7 @@ impl AdminHandler {
 
         ctx.insert("reservas", &reservas);
         ctx.insert("profesores", &profes);
-        templates::response_html(templates::render("admin_dashboard.html", &ctx))
+        templates::response_html(templates::render("admin_solicitudes.html", &ctx))
     }
 
     pub fn recargar_tablas_htmx(request: &Request, conn: &Connection) -> Response {
