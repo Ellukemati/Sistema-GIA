@@ -5,9 +5,9 @@ use std::sync::{Arc, Mutex};
 
 pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
     router!(request,
-        (GET) (/admin/dashboard) => {
+        (GET) (/admin/solicitudes) => {
             let conn_guard = conn.lock().unwrap();
-            AdminHandler::mostrar_dashboard(request, &conn_guard)
+            AdminHandler::mostrar_solicitudes(request, &conn_guard)
         },
 
         (GET) (/admin/tablas/recargar) => {
