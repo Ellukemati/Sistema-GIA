@@ -123,8 +123,7 @@ impl ReservaService {
         Ok(dtos)
     }
 
-    /// Devuelve el detalle de los ejemplares que estan en el carrito (en el orden
-    /// en que se agregaron), resolviendo el nombre del modelo de cada uno.
+    /// Devuelve el detalle de los ejemplares que estan en el carrito
     pub fn listar_carrito_detalle(
         conn: &Connection,
         ids: &[i64],
@@ -162,7 +161,7 @@ impl ReservaService {
     }
 
     /// Lista todos los ejemplares de un modelo sin evaluar disponibilidad (se usa
-    /// cuando todavia no hay fechas elegidas). la plantilla no permite agregarlos al carrito.
+    /// cuando todavia no hay fechas elegidas).
     pub fn listar_ejemplares_basico(
         conn: &Connection,
         modelo_id: i64,
@@ -263,6 +262,77 @@ impl ReservaService {
 mod tests {
 
     use super::*;
+    use crate::models::ejemplar::Ejemplar;
+    use crate::models::modelo::Modelo;
+    use crate::repository::ejemplar_repository::EjemplarRepository;
+    use crate::repository::modelo_repository::ModeloRepository;
+    use rusqlite::Connection;
+
+    fn crear_db_test() -> Connection {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute(
+            "CREATE TABLE modelos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                marca TEXT NOT NULL,
+                nombre_modelo TEXT NOT NULL,
+                categoria TEXT,
+                descripcion TEXT,
+                manual_blob BLOB,
+                manual_mime TEXT
+            )",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "CREATE TABLE ejemplares (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                modelo_id INTEGER NOT NULL,
+                numero_serie TEXT UNIQUE,
+                codigo_qr TEXT UNIQUE,
+                patrimonio TEXT UNIQUE,
+                observaciones TEXT,
+                accesorios TEXT,
+                esta_disponible BOOLEAN DEFAULT TRUE,
+                ubicacion TEXT
+            )",
+            [],
+        )
+        .unwrap();
+        conn
+    }
+
+    fn insertar_modelo(conn: &Connection, nombre: &str) -> i64 {
+        let modelo = Modelo {
+            id: 0,
+            marca: "Marca".into(),
+            nombre_modelo: nombre.into(),
+            categoria: None,
+            descripcion: None,
+        };
+        ModeloRepository::crear(conn, &modelo).unwrap()
+    }
+
+    fn insertar_ejemplar(
+        conn: &Connection,
+        modelo_id: i64,
+        numero_serie: Option<&str>,
+        patrimonio: Option<&str>,
+        ubicacion: Option<&str>,
+        codigo_qr: Option<&str>,
+    ) -> i64 {
+        let ejemplar = Ejemplar {
+            id: 0,
+            modelo_id,
+            numero_serie: numero_serie.map(String::from),
+            codigo_qr: codigo_qr.map(String::from),
+            patrimonio: patrimonio.map(String::from),
+            observaciones: None,
+            accesorios: None,
+            esta_disponible: true,
+            ubicacion: ubicacion.map(String::from),
+        };
+        EjemplarRepository::crear(conn, &ejemplar).unwrap()
+    }
 
     #[test]
     fn validar_ejemplares_lista_vacia() {
@@ -328,5 +398,199 @@ mod tests {
         let resultado = ReservaService::validar_fechas(&inicio, &fin);
 
         assert!(resultado.is_ok());
+    }
+
+    #[test]
+    fn listar_ejemplares_basico_sin_ejemplares_retorna_vacio() {
+        let conn = crear_db_test();
+        let modelo_id = insertar_modelo(&conn, "Violín");
+
+        let dtos = ReservaService::listar_ejemplares_basico(&conn, modelo_id).unwrap();
+
+        assert!(dtos.is_empty());
+    }
+
+    #[test]
+    fn listar_ejemplares_basico_modelo_inexistente_retorna_vacio() {
+        let conn = crear_db_test();
+
+        let dtos = ReservaService::listar_ejemplares_basico(&conn, 999).unwrap();
+
+        assert!(dtos.is_empty());
+    }
+
+    #[test]
+    fn listar_ejemplares_basico_retorna_datos_completos() {
+        let conn = crear_db_test();
+        let modelo_id = insertar_modelo(&conn, "Violín");
+        let id = insertar_ejemplar(
+            &conn,
+            modelo_id,
+            Some("SN-001"),
+            Some("PAT-001"),
+            Some("Depósito"),
+            Some("QR-001"),
+        );
+
+        let dtos = ReservaService::listar_ejemplares_basico(&conn, modelo_id).unwrap();
+
+        assert_eq!(dtos.len(), 1);
+        assert_eq!(dtos[0].id, id);
+        assert_eq!(dtos[0].numero_serie, "SN-001");
+        assert_eq!(dtos[0].patrimonio, "PAT-001");
+        assert_eq!(dtos[0].ubicacion, "Depósito");
+        assert_eq!(dtos[0].codigo_qr, "QR-001");
+        assert!(dtos[0].disponible);
+        assert!(!dtos[0].en_carrito);
+    }
+
+    #[test]
+    fn listar_ejemplares_basico_campos_opcionales_usan_defaults() {
+        let conn = crear_db_test();
+        let modelo_id = insertar_modelo(&conn, "Violín");
+        insertar_ejemplar(&conn, modelo_id, None, None, None, None);
+
+        let dtos = ReservaService::listar_ejemplares_basico(&conn, modelo_id).unwrap();
+
+        assert_eq!(dtos.len(), 1);
+        assert_eq!(dtos[0].numero_serie, "Sin serie");
+        assert_eq!(dtos[0].patrimonio, "Sin patrimonio");
+        assert_eq!(dtos[0].ubicacion, "Sin ubicación");
+        assert_eq!(dtos[0].codigo_qr, "Sin QR");
+    }
+
+    #[test]
+    fn listar_ejemplares_basico_solo_del_modelo_solicitado() {
+        let conn = crear_db_test();
+        let modelo_a = insertar_modelo(&conn, "Violín");
+        let modelo_b = insertar_modelo(&conn, "Viola");
+        insertar_ejemplar(&conn, modelo_a, Some("A-1"), Some("PA-1"), None, None);
+        insertar_ejemplar(&conn, modelo_b, Some("B-1"), Some("PB-1"), None, None);
+
+        let dtos = ReservaService::listar_ejemplares_basico(&conn, modelo_a).unwrap();
+
+        assert_eq!(dtos.len(), 1);
+        assert_eq!(dtos[0].numero_serie, "A-1");
+    }
+
+    #[test]
+    fn listar_ejemplares_basico_varios_ejemplares() {
+        let conn = crear_db_test();
+        let modelo_id = insertar_modelo(&conn, "Violín");
+        insertar_ejemplar(&conn, modelo_id, Some("SN-1"), None, None, None);
+        insertar_ejemplar(&conn, modelo_id, Some("SN-2"), None, None, None);
+
+        let dtos = ReservaService::listar_ejemplares_basico(&conn, modelo_id).unwrap();
+
+        assert_eq!(dtos.len(), 2);
+    }
+
+    #[test]
+    fn listar_carrito_detalle_ids_vacio_retorna_vacio() {
+        let conn = crear_db_test();
+
+        let items = ReservaService::listar_carrito_detalle(&conn, &[]).unwrap();
+
+        assert!(items.is_empty());
+    }
+
+    #[test]
+    fn listar_carrito_detalle_retorna_datos_completos() {
+        let conn = crear_db_test();
+        let modelo_id = insertar_modelo(&conn, "Violín");
+        let ejemplar_id = insertar_ejemplar(
+            &conn,
+            modelo_id,
+            Some("SN-001"),
+            Some("PAT-001"),
+            Some("Depósito"),
+            Some("QR-001"),
+        );
+
+        let items = ReservaService::listar_carrito_detalle(&conn, &[ejemplar_id]).unwrap();
+
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].ejemplar_id, ejemplar_id);
+        assert_eq!(items[0].modelo_id, modelo_id);
+        assert_eq!(items[0].modelo_nombre, "Violín");
+        assert_eq!(items[0].numero_serie, "SN-001");
+        assert_eq!(items[0].patrimonio, "PAT-001");
+        assert_eq!(items[0].ubicacion, "Depósito");
+    }
+
+    #[test]
+    fn listar_carrito_detalle_campos_opcionales_usan_defaults() {
+        let conn = crear_db_test();
+        let modelo_id = insertar_modelo(&conn, "Viola");
+        let ejemplar_id = insertar_ejemplar(&conn, modelo_id, None, None, None, None);
+
+        let items = ReservaService::listar_carrito_detalle(&conn, &[ejemplar_id]).unwrap();
+
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].numero_serie, "Sin serie");
+        assert_eq!(items[0].patrimonio, "Sin patrimonio");
+        assert_eq!(items[0].ubicacion, "Sin ubicación");
+    }
+
+    #[test]
+    fn listar_carrito_detalle_omite_ejemplares_inexistentes() {
+        let conn = crear_db_test();
+        let modelo_id = insertar_modelo(&conn, "Violín");
+        let ejemplar_id = insertar_ejemplar(&conn, modelo_id, Some("SN-1"), None, None, None);
+
+        let items = ReservaService::listar_carrito_detalle(&conn, &[999, ejemplar_id, 888]).unwrap();
+
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].ejemplar_id, ejemplar_id);
+    }
+
+    #[test]
+    fn listar_carrito_detalle_conserva_orden_de_ids() {
+        let conn = crear_db_test();
+        let modelo_id = insertar_modelo(&conn, "Violín");
+        let id_a = insertar_ejemplar(&conn, modelo_id, Some("A"), None, None, None);
+        let id_b = insertar_ejemplar(&conn, modelo_id, Some("B"), None, None, None);
+        let id_c = insertar_ejemplar(&conn, modelo_id, Some("C"), None, None, None);
+
+        let items = ReservaService::listar_carrito_detalle(&conn, &[id_c, id_a, id_b]).unwrap();
+
+        assert_eq!(items.len(), 3);
+        assert_eq!(items[0].ejemplar_id, id_c);
+        assert_eq!(items[1].ejemplar_id, id_a);
+        assert_eq!(items[2].ejemplar_id, id_b);
+    }
+
+    #[test]
+    fn listar_carrito_detalle_modelo_inexistente_usa_nombre_default() {
+        let conn = crear_db_test();
+        conn.execute(
+            "INSERT INTO ejemplares (modelo_id, numero_serie)
+             VALUES (999, 'SN-HUERFANO')",
+            [],
+        )
+        .unwrap();
+        let ejemplar_id = conn.last_insert_rowid();
+
+        let items = ReservaService::listar_carrito_detalle(&conn, &[ejemplar_id]).unwrap();
+
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].modelo_id, 999);
+        assert_eq!(items[0].modelo_nombre, "Modelo");
+    }
+
+    #[test]
+    fn listar_carrito_detalle_varios_ejemplares_de_distintos_modelos() {
+        let conn = crear_db_test();
+        let modelo_violin = insertar_modelo(&conn, "Violín");
+        let modelo_viola = insertar_modelo(&conn, "Viola");
+        let id_violin = insertar_ejemplar(&conn, modelo_violin, Some("V-1"), None, None, None);
+        let id_viola = insertar_ejemplar(&conn, modelo_viola, Some("VA-1"), None, None, None);
+
+        let items =
+            ReservaService::listar_carrito_detalle(&conn, &[id_violin, id_viola]).unwrap();
+
+        assert_eq!(items.len(), 2);
+        assert_eq!(items[0].modelo_nombre, "Violín");
+        assert_eq!(items[1].modelo_nombre, "Viola");
     }
 }
