@@ -14,6 +14,7 @@
                 <span class="ejemplar-dato"><b>Serie:</b> {{ e.numero_serie }}</span>
                 <span class="ejemplar-dato"><b>Patrimonio:</b> {{ e.patrimonio }}</span>
                 <span class="ejemplar-dato"><b>Ubicación:</b> {{ e.ubicacion }}</span>
+                <span class="ejemplar-dato"><b>QR:</b> {{ e.codigo_qr }}</span>
                 {% if con_fechas and not e.disponible %}
                 <span class="ejemplar-estado">No disponible para estas fechas</span>
                 {% endif %}

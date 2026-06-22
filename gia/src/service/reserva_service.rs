@@ -35,6 +35,7 @@ pub struct EjemplarDTO {
     pub ubicacion: String,
     pub disponible: bool,
     pub en_carrito: bool,
+    pub codigo_qr: String,
 }
 
 impl ReservaService {
@@ -115,6 +116,7 @@ impl ReservaService {
                     .unwrap_or_else(|| "Sin ubicación".to_string()),
                 en_carrito: ids_carrito.contains(&ejemplar.id),
                 disponible,
+                codigo_qr: ejemplar.codigo_qr.unwrap_or_else(|| "Sin QR".to_string()),
             });
         }
 
@@ -181,6 +183,7 @@ impl ReservaService {
                     .unwrap_or_else(|| "Sin ubicación".to_string()),
                 disponible: true,
                 en_carrito: false,
+                codigo_qr: ejemplar.codigo_qr.unwrap_or_else(|| "Sin QR".to_string()),
             })
             .collect();
 
