@@ -37,6 +37,14 @@
             {% else %}
             <p class="detalle-descripcion detalle-descripcion--vacia">Sin descripción.</p>
             {% endif %}
+
+            <div class="detalle-acciones">
+                {% if tiene_manual %}
+                <a class="btn-manual" href="/manuales/{{ modelo.id }}">Manual</a>
+                {% else %}
+                <span class="btn-manual btn-manual--disabled" aria-disabled="true" title="Este modelo no tiene un manual cargado">Manual</span>
+                {% endif %}
+            </div>
         </div>
     </article>
 

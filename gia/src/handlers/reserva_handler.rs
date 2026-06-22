@@ -205,6 +205,8 @@ impl ReservaHandler {
             None
         };
 
+        let tiene_manual = ModeloRepository::tiene_manual(conn, modelo.id).unwrap_or(false);
+
         let mut ctx = Context::new();
         ctx.insert("modelo", &modelo);
         ctx.insert("imagen", &imagen);
@@ -212,6 +214,7 @@ impl ReservaHandler {
         ctx.insert("fecha_inicio", &inicio);
         ctx.insert("fecha_fin", &fin);
         ctx.insert("con_fechas", &con_fechas);
+        ctx.insert("tiene_manual", &tiene_manual);
         templates::response_html(templates::render("reserva_modelo.html", &ctx))
     }
 
