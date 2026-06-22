@@ -503,10 +503,21 @@ impl ReservaHandler {
             }
         };
 
-        match ReservaService::cancelar_reserva(conn, reserva_id, usuario_id) {
-            Ok(_) => Response::redirect_303("/mis-reservas"),
+        match crate::repository::reserva_repository::ReservaRepository::cancelar_por_usuario(
+            conn, reserva_id, usuario_id,
+        ) {
+            Ok(filas) => {
+                if filas == 0 {
+                    return templates::response_mensaje_error(
+                        "Error cancelando reserva",
+                        "La reserva no existe o ya fue cancelada",
+                    );
+                }
 
-            Err(e) => templates::response_mensaje_error("Error cancelando reserva", &e),
+                Response::redirect_303("/mis-reservas")
+            }
+
+            Err(e) => templates::response_mensaje_error("Error cancelando reserva", &e.to_string()),
         }
     }
 }

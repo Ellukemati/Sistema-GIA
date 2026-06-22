@@ -149,7 +149,6 @@ impl ReservaService {
 
         Ok(())
     }
-
     pub fn cancelar_reserva(
         conn: &Connection,
         reserva_id: i64,
@@ -159,7 +158,7 @@ impl ReservaService {
             .map_err(|e| e.to_string())?;
 
         if filas == 0 {
-            return Err("No se pudo cancelar la reserva".to_string());
+            return Err("La reserva no existe o ya fue cancelada".to_string());
         }
 
         Ok(())
