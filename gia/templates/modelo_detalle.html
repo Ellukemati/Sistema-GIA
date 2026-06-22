@@ -5,6 +5,7 @@
 {% block extra_head %}
     {% include "estilos/auth.html" %}
     {% include "estilos/detalle.html" %}
+    {% include "estilos/ejemplares.html" %}
 {% endblock %}
 
 {% block content %}
@@ -46,6 +47,11 @@
             </div>
         </div>
     </article>
+
+    <section class="ejemplares-seccion">
+        <h2 class="ejemplares-titulo">Ejemplares</h2>
+        {% include "partials/reserva_ejemplares.html" %}
+    </section>
 
     <footer class="detalle-footer">
         <a href="/modelo">&larr; Volver al catálogo</a>

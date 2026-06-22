@@ -5,6 +5,7 @@ use crate::repository::sesion_repository::SesionRepository;
 use crate::repository::usuario_repository::UsuarioRepository;
 use crate::service::image_service::procesar_modelo;
 use crate::service::manual_service::validar_y_procesar_manual;
+use crate::service::reserva_service::ReservaService;
 use crate::service::modelo_service::{CrearModeloData, ModeloService};
 use crate::templates;
 use crate::utils::extraer_token_sesion;
@@ -251,11 +252,21 @@ impl ModeloHandler {
         };
 
         let tiene_manual = ModeloRepository::tiene_manual(conn, id).unwrap_or(false);
+        let ejemplares = ReservaService::listar_ejemplares_basico(conn, id);
+
+        let ejemplares = match ejemplares {
+            Ok(e) => e,
+            Err(e) => {
+                return templates::response_mensaje_error("No se pudieron cargar los ejemplares", &e);
+            }
+        };
 
         let mut ctx = Context::new();
         ctx.insert("modelo", &modelo);
         ctx.insert("imagen", &imagen);
         ctx.insert("tiene_manual", &tiene_manual);
+        ctx.insert("ejemplares", &ejemplares);
+        ctx.insert("con_fechas", &false);
         templates::response_html(templates::render("modelo_detalle.html", &ctx))
     }
 }
