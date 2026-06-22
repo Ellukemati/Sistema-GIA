@@ -160,15 +160,10 @@ impl ReservaHandler {
 
         let carrito = leer_carrito(request);
 
-        // El detalle no edita fechas: las toma del carrito. Sin fechas no se puede
-        // evaluar disponibilidad, asi que se invita a elegirlas en /reservas.
-        if !carrito.tiene_fechas() {
-            return templates::response_mensaje_error(
-                "Elegí las fechas primero",
-                "Volvé a la pantalla de reservas y seleccioná las fechas antes de elegir ejemplares.",
-            );
-        }
-
+        // El detalle no edita fechas: las toma del carrito. Si no hay fechas se
+        // listan igual todos los ejemplares, pero no se permite agregarlos al
+        // carrito (eso lo controla `con_fechas` en la plantilla).
+        let con_fechas = carrito.tiene_fechas();
         let inicio = carrito.fecha_inicio.clone().unwrap_or_default();
         let fin = carrito.fecha_fin.clone().unwrap_or_default();
 
@@ -183,13 +178,19 @@ impl ReservaHandler {
             }
         };
 
-        let ejemplares = match ReservaService::listar_ejemplares_para_modelo(
-            conn,
-            modelo_id,
-            &inicio,
-            &fin,
-            &carrito.ejemplares,
-        ) {
+        let ejemplares = if con_fechas {
+            ReservaService::listar_ejemplares_para_modelo(
+                conn,
+                modelo_id,
+                &inicio,
+                &fin,
+                &carrito.ejemplares,
+            )
+        } else {
+            ReservaService::listar_ejemplares_basico(conn, modelo_id)
+        };
+
+        let ejemplares = match ejemplares {
             Ok(e) => e,
             Err(e) => {
                 return templates::response_mensaje_error("No se pudieron cargar los ejemplares", &e);
@@ -210,6 +211,7 @@ impl ReservaHandler {
         ctx.insert("ejemplares", &ejemplares);
         ctx.insert("fecha_inicio", &inicio);
         ctx.insert("fecha_fin", &fin);
+        ctx.insert("con_fechas", &con_fechas);
         templates::response_html(templates::render("reserva_modelo.html", &ctx))
     }
 

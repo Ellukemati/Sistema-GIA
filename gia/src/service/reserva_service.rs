@@ -159,6 +159,34 @@ impl ReservaService {
         Ok(items)
     }
 
+    /// Lista todos los ejemplares de un modelo sin evaluar disponibilidad (se usa
+    /// cuando todavia no hay fechas elegidas). la plantilla no permite agregarlos al carrito.
+    pub fn listar_ejemplares_basico(
+        conn: &Connection,
+        modelo_id: i64,
+    ) -> Result<Vec<EjemplarDTO>, String> {
+        let ejemplares =
+            EjemplarRepository::listar_por_modelo(conn, modelo_id).map_err(|e| e.to_string())?;
+
+        let dtos = ejemplares
+            .into_iter()
+            .map(|ejemplar| EjemplarDTO {
+                id: ejemplar.id,
+                numero_serie: ejemplar.numero_serie.unwrap_or_else(|| "Sin serie".to_string()),
+                patrimonio: ejemplar
+                    .patrimonio
+                    .unwrap_or_else(|| "Sin patrimonio".to_string()),
+                ubicacion: ejemplar
+                    .ubicacion
+                    .unwrap_or_else(|| "Sin ubicación".to_string()),
+                disponible: true,
+                en_carrito: false,
+            })
+            .collect();
+
+        Ok(dtos)
+    }
+
     fn validar_ejemplares(ejemplares: &[i64]) -> Result<(), String> {
         if ejemplares.is_empty() {
             return Err("Debe seleccionar al menos un ejemplar".to_string());

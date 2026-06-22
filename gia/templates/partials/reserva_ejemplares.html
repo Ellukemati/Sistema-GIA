@@ -3,16 +3,18 @@
 {% else %}
 <ul class="ejemplares-lista">
     {% for e in ejemplares %}
-    <li class="ejemplar-item{% if not e.disponible %} ejemplar-item--no-disponible{% endif %}">
+    <li class="ejemplar-item{% if con_fechas and not e.disponible %} ejemplar-item--no-disponible{% endif %}">
         <label class="ejemplar-label">
+            {% if con_fechas %}
             <input type="checkbox" name="ejemplar_id" value="{{ e.id }}"
                    {% if e.en_carrito %}checked{% endif %}
                    {% if not e.disponible %}disabled{% endif %}>
+            {% endif %}
             <span class="ejemplar-datos">
                 <span class="ejemplar-dato"><b>Serie:</b> {{ e.numero_serie }}</span>
                 <span class="ejemplar-dato"><b>Patrimonio:</b> {{ e.patrimonio }}</span>
                 <span class="ejemplar-dato"><b>Ubicación:</b> {{ e.ubicacion }}</span>
-                {% if not e.disponible %}
+                {% if con_fechas and not e.disponible %}
                 <span class="ejemplar-estado">No disponible para estas fechas</span>
                 {% endif %}
             </span>

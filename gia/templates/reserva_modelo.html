@@ -41,6 +41,7 @@
     </article>
 
     <section class="ejemplares-seccion">
+        {% if con_fechas %}
         <h2 class="ejemplares-titulo">Ejemplares disponibles</h2>
         <p class="ejemplares-fechas">
             Para las fechas <strong>{{ fecha_inicio }}</strong> a <strong>{{ fecha_fin }}</strong>.
@@ -57,6 +58,18 @@
                 <button type="submit" class="btn-manual">Agregar a la reserva</button>
             </div>
         </form>
+        {% else %}
+        <h2 class="ejemplares-titulo">Ejemplares</h2>
+        <p class="ejemplares-fechas">
+            Para agregar ejemplares a la reserva, primero elegí las fechas en la pantalla de reservas.
+        </p>
+
+        {% include "partials/reserva_ejemplares.html" %}
+
+        <div class="ejemplares-acciones">
+            <a class="btn-volver" href="/reservas">&larr; Volver a modelos</a>
+        </div>
+        {% endif %}
     </section>
 </main>
 {% endblock %}
