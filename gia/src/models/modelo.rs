@@ -1,6 +1,8 @@
 use rusqlite::{Result as SqlResult, Row};
+use serde::Serialize;
 
 /// Representa un modelo de instrumento en la tabla `modelos`
+#[derive(Serialize)]
 pub struct Modelo {
     pub id: i64,
     pub marca: String,

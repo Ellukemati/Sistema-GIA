@@ -1,0 +1,94 @@
+<style>
+    .ejemplares-seccion {
+        max-width: 880px;
+        margin: var(--spacing-lg) auto 0;
+    }
+
+    .ejemplares-titulo {
+        margin: 0 0 var(--spacing-xs);
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--color-primary);
+    }
+
+    .ejemplares-fechas {
+        margin: 0 0 var(--spacing-md);
+        font-size: 0.9rem;
+        color: var(--color-muted);
+    }
+
+    .ejemplares-vacio {
+        color: var(--color-muted);
+        font-style: italic;
+    }
+
+    .ejemplares-lista {
+        list-style: none;
+        margin: 0 0 var(--spacing-lg);
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+
+    .ejemplar-item {
+        background-color: var(--color-surface);
+        border: 1.5px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        transition: border-color 0.15s ease;
+    }
+
+    .ejemplar-item:hover {
+        border-color: var(--color-primary);
+    }
+
+    .ejemplar-item--no-disponible {
+        opacity: 0.6;
+    }
+
+    .ejemplar-label {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--spacing-md);
+        padding: var(--spacing-md);
+        cursor: pointer;
+    }
+
+    .ejemplar-item--no-disponible .ejemplar-label {
+        cursor: not-allowed;
+    }
+
+    .ejemplar-datos {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing-xs) var(--spacing-md);
+        font-size: 0.9rem;
+        color: var(--color-text);
+    }
+
+    .ejemplar-estado {
+        width: 100%;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--color-muted);
+    }
+
+    .ejemplares-acciones {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-xl);
+    }
+
+    .btn-volver {
+        color: var(--color-primary);
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .btn-volver:hover {
+        text-decoration: underline;
+        color: var(--color-primary-hover);
+    }
+</style>

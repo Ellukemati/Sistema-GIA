@@ -1,0 +1,148 @@
+<style>
+    .carrito-resumen {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--spacing-md);
+        background-color: var(--color-surface);
+        border: 1.5px solid var(--color-primary);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-card);
+        padding: var(--spacing-md) var(--spacing-lg);
+        margin-bottom: var(--spacing-xl);
+    }
+
+    .carrito-resumen-info {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+
+    .carrito-resumen-cantidad {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2rem;
+        height: 2rem;
+        padding: 0 0.5rem;
+        font-weight: 700;
+        color: var(--color-surface);
+        background-color: var(--color-primary);
+        border-radius: 999px;
+    }
+
+    .carrito-resumen-texto {
+        font-size: 0.95rem;
+        color: var(--color-text);
+    }
+
+    .carrito-resumen-form {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+
+    .carrito-motivo {
+        padding: 0.55rem 0.75rem;
+        font-size: 0.9rem;
+        color: var(--color-text);
+        background-color: var(--color-bg);
+        border: 1.5px solid var(--color-border);
+        border-radius: var(--radius-sm);
+    }
+
+    .carrito-motivo:focus-visible {
+        outline: none;
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 3px var(--color-focus-ring);
+    }
+
+    .btn-ver-detalle {
+        display: inline-block;
+        padding: 0.6rem 1.25rem;
+        font-size: 0.95rem;
+        font-weight: 700;
+        text-decoration: none;
+        color: var(--color-primary);
+        background-color: var(--color-surface);
+        border: 1.5px solid var(--color-primary);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: background-color 0.15s ease, color 0.15s ease;
+    }
+
+    .btn-ver-detalle:hover {
+        color: var(--color-surface);
+        background-color: var(--color-primary);
+    }
+
+    .btn-finalizar {
+        padding: 0.6rem 1.25rem;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--color-surface);
+        background-color: var(--color-primary);
+        border: 1.5px solid var(--color-primary);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+    }
+
+    .carrito-acciones-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-md);
+    }
+
+    .carrito-item-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: var(--spacing-md);
+        padding: var(--spacing-md);
+    }
+
+    .btn-remover {
+        padding: 0.45rem 0.9rem;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--color-danger, #c0392b);
+        background-color: var(--color-surface);
+        border: 1.5px solid var(--color-danger, #c0392b);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: background-color 0.15s ease, color 0.15s ease;
+    }
+
+    .btn-remover:hover {
+        color: var(--color-surface);
+        background-color: var(--color-danger, #c0392b);
+    }
+
+    .btn-finalizar:hover:not(:disabled) {
+        background-color: var(--color-primary-hover);
+    }
+
+    .btn-finalizar:disabled {
+        color: var(--color-muted);
+        background-color: var(--color-bg);
+        border-color: var(--color-border);
+        cursor: not-allowed;
+    }
+
+    @media (max-width: 479px) {
+        .carrito-resumen {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .carrito-resumen-form {
+            flex-direction: column;
+            align-items: stretch;
+        }
+    }
+</style>

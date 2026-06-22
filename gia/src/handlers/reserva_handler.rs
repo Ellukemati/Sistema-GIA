@@ -1,18 +1,23 @@
 use crate::templates;
 use crate::{
     repository::{
-        ejemplar_repository::EjemplarRepository, modelo_repository::ModeloRepository,
-        sesion_repository::SesionRepository,
+        ejemplar_repository::EjemplarRepository, image_repository::ImageRepository,
+        modelo_repository::ModeloRepository, sesion_repository::SesionRepository,
     },
+    service::modelo_service::ModeloService,
     service::reserva_service::ReservaService,
-    utils::extraer_token_sesion,
+    service::ejemplar_service::EjemplarService,
+    utils::{
+        cookie_carrito, cookie_carrito_vacio, extraer_token_sesion, leer_carrito, Carrito,
+    },
 };
 
-use chrono::{Duration, Local};
+use chrono::{Duration, Local, NaiveDate};
 use rouille::{Request, Response};
 use rusqlite::Connection;
 use std::collections::HashMap;
 use std::io::Read;
+use tera::Context;
 
 pub struct ReservaHandler;
 
@@ -20,134 +25,6 @@ impl ReservaHandler {
     pub fn mostrar_formulario_reserva(request: &Request, conn: &Connection) -> Response {
         if let Err(response) = Self::obtener_usuario_sesion(request, conn) {
             return response;
-        }
-
-        let modelos = match ModeloRepository::listar_todos(conn) {
-            Ok(m) => m,
-
-            Err(e) => {
-                return Response::text(format!("Error cargando modelos: {}", e))
-                    .with_status_code(500);
-            }
-        };
-
-        let mut contenido = String::new();
-
-        for modelo in modelos {
-            let marca = &modelo.marca;
-
-            let categoria = modelo
-                .categoria
-                .clone()
-                .unwrap_or("Sin categoría".to_string());
-
-            let descripcion = modelo
-                .descripcion
-                .clone()
-                .unwrap_or("Sin descripción".to_string());
-
-            contenido.push_str(&format!(
-                r#"
-                <div
-                    style="
-                        border:1px solid #ccc;
-                        padding:15px;
-                        margin-bottom:15px;
-                    ">
-
-                    <h3>{}</h3>
-
-                    <p>
-                        <b>Marca:</b> {}
-                    </p>
-
-                    <p>
-                        <b>Categoría:</b> {}
-                    </p>
-
-                    <p>
-                        {}
-                    </p>
-
-                    <a href="/reservas/modelo/{}">
-                        Ver ejemplares
-                    </a>
-
-                </div>
-                "#,
-                modelo.nombre_modelo, marca, categoria, descripcion, modelo.id
-            ));
-        }
-
-        let html = include_str!("../../templates/reserva_modelos.html");
-
-        let html = html.replace("{{modelos}}", &contenido);
-
-        Response::html(html)
-    }
-    pub fn mostrar_ejemplares_modelo(conn: &Connection, modelo_id: i64) -> Response {
-        let modelo = match ModeloRepository::buscar_por_id(conn, modelo_id) {
-            Ok(Some(m)) => m,
-
-            Ok(None) => {
-                return Response::text("Modelo inexistente").with_status_code(404);
-            }
-
-            Err(e) => {
-                return Response::text(format!("Error cargando modelo: {}", e))
-                    .with_status_code(500);
-            }
-        };
-
-        let ejemplares = match EjemplarRepository::listar_por_modelo(conn, modelo_id) {
-            Ok(e) => e,
-
-            Err(err) => {
-                return Response::text(format!("Error cargando ejemplares: {}", err))
-                    .with_status_code(500);
-            }
-        };
-
-        let mut opciones = String::new();
-
-        for ejemplar in ejemplares {
-            let serie = ejemplar
-                .numero_serie
-                .clone()
-                .unwrap_or("Sin serie".to_string());
-
-            let patrimonio = ejemplar
-                .patrimonio
-                .clone()
-                .unwrap_or("Sin patrimonio".to_string());
-
-            let ubicacion = ejemplar
-                .ubicacion
-                .clone()
-                .unwrap_or("Sin ubicación".to_string());
-
-            opciones.push_str(&format!(
-                r#"
-                <div
-                    style="
-                        border:1px solid #ccc;
-                        padding:10px;
-                        margin-bottom:10px;
-                    ">
-
-                    <input
-                        type="checkbox"
-                        name="ejemplar_id"
-                        value="{}">
-
-                    <b>Serie:</b> {}<br>
-                    <b>Patrimonio:</b> {}<br>
-                    <b>Ubicación:</b> {}<br>
-
-                </div>
-                "#,
-                ejemplar.id, serie, patrimonio, ubicacion
-            ));
         }
 
         let fecha_minima = (Local::now().date_naive() + Duration::days(5))
@@ -158,43 +35,304 @@ impl ReservaHandler {
             .format("%Y-%m-%d")
             .to_string();
 
-        let html = include_str!("../../templates/reserva_ejemplares.html");
+        let carrito = leer_carrito(request);
 
-        let html = html.replace("{{nombre_modelo}}", &modelo.nombre_modelo);
+        // Con fechas en el carrito listamos solo los modelos disponibles para ese
+        // rango; sin fechas, listamos todos los modelos.
+        let grupos = if carrito.tiene_fechas() {
+            let inicio = carrito.fecha_inicio.clone().unwrap_or_default();
+            let fin = carrito.fecha_fin.clone().unwrap_or_default();
+            ModeloService::listar_cards_disponibles_agrupadas(conn, &inicio, &fin)
+        } else {
+            ModeloService::listar_cards_agrupadas(conn)
+        };
 
-        let html = html.replace("{{ejemplares}}", &opciones);
+        let grupos = match grupos {
+            Ok(g) => g,
+            Err(e) => {
+                return templates::response_mensaje_error("No se pudieron cargar los modelos", &e);
+            }
+        };
 
-        let html = html.replace("{{fecha_minima}}", &fecha_minima);
-
-        let html = html.replace("{{fecha_maxima}}", &fecha_maxima);
-
-        Response::html(html)
+        let mut ctx = Context::new();
+        ctx.insert("fecha_minima", &fecha_minima);
+        ctx.insert("fecha_maxima", &fecha_maxima);
+        ctx.insert("grupos", &grupos);
+        ctx.insert("fecha_inicio", &carrito.fecha_inicio.clone().unwrap_or_default());
+        ctx.insert("fecha_fin", &carrito.fecha_fin.clone().unwrap_or_default());
+        ctx.insert("carrito_cantidad", &carrito.ejemplares.len());
+        ctx.insert("oob", &false);
+        templates::response_html(templates::render("reserva_formulario.html", &ctx))
     }
 
-    pub fn procesar_reserva(request: &Request, conn: &Connection) -> Response {
+    /// Endpoint HTMX: devuelve el parcial con los modelos a listar.
+    /// - Si falta alguna fecha (campo vacio), lista todos los modelos.
+    /// - Si ambas fechas son validas, filtra por disponibilidad en el rango.
+    /// - Si hay fechas pero son invalidas (mal formadas o fin <= inicio), muestra error.
+    /// En todos los casos validos reinicia el carrito (cambiar la fecha vacia los ejemplares).
+    pub fn listar_modelos_disponibles(request: &Request, conn: &Connection) -> Response {
+        if let Err(response) = Self::obtener_usuario_sesion(request, conn) {
+            return response;
+        }
+
+        let inicio = request.get_param("fecha_inicio").unwrap_or_default();
+        let fin = request.get_param("fecha_fin").unwrap_or_default();
+
+        // Cambiar la fecha reinicia el carrito: las fechas nuevas reemplazan a las
+        // anteriores y se vacia la lista de ejemplares.
+        let (grupos_res, carrito) = if inicio.trim().is_empty() || fin.trim().is_empty() {
+            // Sin fechas (el usuario las limpio): listamos todos los modelos.
+            (
+                ModeloService::listar_cards_agrupadas(conn),
+                Carrito {
+                    fecha_inicio: None,
+                    fecha_fin: None,
+                    ejemplares: Vec::new(),
+                },
+            )
+        } else if Self::fechas_validas(&inicio, &fin) {
+            (
+                ModeloService::listar_cards_disponibles_agrupadas(conn, &inicio, &fin),
+                Carrito {
+                    fecha_inicio: Some(inicio.clone()),
+                    fecha_fin: Some(fin.clone()),
+                    ejemplares: Vec::new(),
+                },
+            )
+        } else {
+            return templates::response_mensaje_error(
+                "Fechas inválidas",
+                "Seleccioná una fecha de inicio y una de fin válidas. La fecha de fin debe ser posterior a la de inicio.",
+            );
+        };
+
+        let grupos = match grupos_res {
+            Ok(g) => g,
+            Err(e) => {
+                return templates::response_mensaje_error("No se pudieron cargar los modelos", &e);
+            }
+        };
+
+        let mut ctx_modelos = Context::new();
+        ctx_modelos.insert("grupos", &grupos);
+        let modelos_html = match templates::render("partials/reserva_modelos.html", &ctx_modelos) {
+            Ok(h) => h,
+            Err(e) => {
+                return Response::text(format!("Error renderizando plantilla: {}", e))
+                    .with_status_code(500);
+            }
+        };
+
+        // Resumen del carrito (vacio) actualizado fuera de banda (hx-swap-oob).
+        let mut ctx_resumen = Context::new();
+        ctx_resumen.insert("carrito_cantidad", &0usize);
+        ctx_resumen.insert("oob", &true);
+        let resumen_html = match templates::render("partials/carrito_resumen.html", &ctx_resumen) {
+            Ok(h) => h,
+            Err(e) => {
+                return Response::text(format!("Error renderizando plantilla: {}", e))
+                    .with_status_code(500);
+            }
+        };
+
+        Response::html(format!("{}{}", modelos_html, resumen_html))
+            .with_additional_header("Set-Cookie", cookie_carrito(&carrito))
+    }
+
+    /// Valida que ambas fechas esten presentes, sean parseables y que fin sea
+    /// posterior a inicio. Las cotas (min/max) las aplica el input del formulario.
+    fn fechas_validas(inicio: &str, fin: &str) -> bool {
+        match (
+            NaiveDate::parse_from_str(inicio, "%Y-%m-%d"),
+            NaiveDate::parse_from_str(fin, "%Y-%m-%d"),
+        ) {
+            (Ok(i), Ok(f)) => f > i,
+            _ => false,
+        }
+    }
+    pub fn mostrar_ejemplares_modelo(
+        request: &Request,
+        conn: &Connection,
+        modelo_id: i64,
+    ) -> Response {
+        if let Err(response) = Self::obtener_usuario_sesion(request, conn) {
+            return response;
+        }
+
+        let carrito = leer_carrito(request);
+
+        // El detalle no edita fechas: las toma del carrito. Si no hay fechas se
+        // listan igual todos los ejemplares, pero no se permite agregarlos al
+        // carrito (eso lo controla `con_fechas` en la plantilla).
+        let con_fechas = carrito.tiene_fechas();
+        let inicio = carrito.fecha_inicio.clone().unwrap_or_default();
+        let fin = carrito.fecha_fin.clone().unwrap_or_default();
+
+        let modelo = match ModeloRepository::buscar_por_id(conn, modelo_id) {
+            Ok(Some(m)) => m,
+            Ok(None) => {
+                return Response::text("Modelo inexistente").with_status_code(404);
+            }
+            Err(e) => {
+                return Response::text(format!("Error cargando modelo: {}", e))
+                    .with_status_code(500);
+            }
+        };
+
+        let ejemplares = if con_fechas {
+            EjemplarService::listar_ejemplares_para_modelo(
+                conn,
+                modelo_id,
+                &inicio,
+                &fin,
+                &carrito.ejemplares,
+            )
+        } else {
+            EjemplarService::listar_ejemplares_basico(conn, modelo_id)
+        };
+
+        let ejemplares = match ejemplares {
+            Ok(e) => e,
+            Err(e) => {
+                return templates::response_mensaje_error("No se pudieron cargar los ejemplares", &e);
+            }
+        };
+
+        let tiene_imagen =
+            ImageRepository::existe_imagen_principal_modelo(conn, modelo.id).unwrap_or(false);
+        let imagen = if tiene_imagen {
+            Some(format!("/imagenes/modelos/{}/0", modelo.id))
+        } else {
+            None
+        };
+
+        let tiene_manual = ModeloRepository::tiene_manual(conn, modelo.id).unwrap_or(false);
+
+        let mut ctx = Context::new();
+        ctx.insert("modelo", &modelo);
+        ctx.insert("imagen", &imagen);
+        ctx.insert("ejemplares", &ejemplares);
+        ctx.insert("fecha_inicio", &inicio);
+        ctx.insert("fecha_fin", &fin);
+        ctx.insert("con_fechas", &con_fechas);
+        ctx.insert("tiene_manual", &tiene_manual);
+        templates::response_html(templates::render("reserva_modelo.html", &ctx))
+    }
+
+    /// Agrega/actualiza los ejemplares seleccionados de un modelo en el carrito y
+    /// vuelve a la pantalla de reservas. Los checkboxes son la seleccion definitiva
+    /// para ese modelo: lo no marcado se quita del carrito.
+    pub fn agregar_al_carrito(request: &Request, conn: &Connection, modelo_id: i64) -> Response {
+        if let Err(response) = Self::obtener_usuario_sesion(request, conn) {
+            return response;
+        }
+
+        let mut carrito = leer_carrito(request);
+        if !carrito.tiene_fechas() {
+            return templates::response_mensaje_error(
+                "Sin fechas",
+                "Elegí las fechas en la pantalla de reservas antes de agregar ejemplares.",
+            );
+        }
+
+        let mut body = String::new();
+        if let Some(mut reader) = request.data() {
+            let _ = reader.read_to_string(&mut body);
+        }
+        let seleccionados = Self::obtener_ejemplares(&body);
+
+        // Quitar del carrito los ejemplares de este modelo y reemplazarlos por los
+        // recien seleccionados, para reflejar tanto altas como bajas.
+        let del_modelo: Vec<i64> = match EjemplarRepository::listar_por_modelo(conn, modelo_id) {
+            Ok(es) => es.iter().map(|e| e.id).collect(),
+            Err(e) => {
+                return templates::response_mensaje_error(
+                    "No se pudieron cargar los ejemplares",
+                    &e.to_string(),
+                );
+            }
+        };
+
+        carrito.ejemplares.retain(|id| !del_modelo.contains(id));
+        for id in seleccionados {
+            if del_modelo.contains(&id) && !carrito.ejemplares.contains(&id) {
+                carrito.ejemplares.push(id);
+            }
+        }
+
+        Response::redirect_303("/reservas")
+            .with_additional_header("Set-Cookie", cookie_carrito(&carrito))
+    }
+
+    pub fn mostrar_carrito(request: &Request, conn: &Connection) -> Response {
+        if let Err(response) = Self::obtener_usuario_sesion(request, conn) {
+            return response;
+        }
+
+        let carrito = leer_carrito(request);
+
+        let items = match ReservaService::listar_carrito_detalle(conn, &carrito.ejemplares) {
+            Ok(i) => i,
+            Err(e) => {
+                return templates::response_mensaje_error("No se pudo cargar el carrito", &e);
+            }
+        };
+
+        let mut ctx = Context::new();
+        ctx.insert("items", &items);
+        ctx.insert("fecha_inicio", &carrito.fecha_inicio.clone().unwrap_or_default());
+        ctx.insert("fecha_fin", &carrito.fecha_fin.clone().unwrap_or_default());
+        ctx.insert("carrito_cantidad", &carrito.ejemplares.len());
+        templates::response_html(templates::render("carrito_detalle.html", &ctx))
+    }
+
+    pub fn remover_del_carrito(
+        request: &Request,
+        conn: &Connection,
+        ejemplar_id: i64,
+    ) -> Response {
+        if let Err(response) = Self::obtener_usuario_sesion(request, conn) {
+            return response;
+        }
+
+        let mut carrito = leer_carrito(request);
+        carrito.ejemplares.retain(|id| *id != ejemplar_id);
+
+        Response::redirect_303("/reservas/carrito")
+            .with_additional_header("Set-Cookie", cookie_carrito(&carrito))
+    }
+
+    /// Finaliza el carrito creando una unica reserva con la fecha comun y todos los
+    /// ejemplares acumulados, y luego borra la cookie del carrito.
+    pub fn finalizar_reserva(request: &Request, conn: &Connection) -> Response {
         let id_usuario = match Self::obtener_usuario_sesion(request, conn) {
             Ok(id) => id,
-
             Err(response) => {
                 return response;
             }
         };
 
-        let mut body = String::new();
+        let carrito = leer_carrito(request);
+        let (fecha_inicio, fecha_fin) =
+            match (carrito.fecha_inicio.clone(), carrito.fecha_fin.clone()) {
+                (Some(i), Some(f)) => (i, f),
+                _ => {
+                    return templates::response_mensaje_error(
+                        "Sin fechas",
+                        "Elegí las fechas antes de finalizar la reserva.",
+                    );
+                }
+            };
 
+        let mut body = String::new();
         if let Some(mut reader) = request.data() {
             let _ = reader.read_to_string(&mut body);
         }
-
         let datos = Self::parsear_formulario(&body);
-
-        let fecha_inicio = datos.get("fecha_inicio").cloned().unwrap_or_default();
-
-        let fecha_fin = datos.get("fecha_fin").cloned().unwrap_or_default();
-
-        let motivo = datos.get("motivo").cloned();
-
-        let ejemplares = Self::obtener_ejemplares(&body);
+        let motivo = datos
+            .get("motivo")
+            .cloned()
+            .filter(|m| !m.trim().is_empty());
 
         match ReservaService::crear_reserva(
             conn,
@@ -202,12 +340,13 @@ impl ReservaHandler {
             fecha_inicio,
             fecha_fin,
             motivo,
-            ejemplares,
+            carrito.ejemplares.clone(),
         ) {
             Ok(_) => templates::response_mensaje_exito(
                 "Reserva creada",
                 "La reserva fue registrada correctamente.",
-            ),
+            )
+            .with_additional_header("Set-Cookie", cookie_carrito_vacio()),
 
             Err(e) => templates::response_mensaje_error("No se pudo crear la reserva", &e),
         }

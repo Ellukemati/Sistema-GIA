@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}GIA - Detalle de la reserva{% endblock %}
+
+{% block extra_head %}
+    {% include "estilos/auth.html" %}
+    {% include "estilos/catalogo.html" %}
+    {% include "estilos/ejemplares.html" %}
+    {% include "estilos/carrito.html" %}
+{% endblock %}
+
+{% block content %}
+<main class="catalogo-page">
+    <header class="catalogo-header">
+        <p class="auth-brand">GIA</p>
+        <h1>Detalle de la reserva</h1>
+        {% if fecha_inicio and fecha_fin %}
+        <p class="auth-subtitle">Fechas: {{ fecha_inicio }} a {{ fecha_fin }}</p>
+        {% endif %}
+    </header>
+
+    <section class="ejemplares-seccion">
+        <div class="carrito-acciones-top">
+            <a class="btn-volver" href="/reservas">&larr; Volver a reservas</a>
+            <span class="carrito-resumen-cantidad">{{ carrito_cantidad }}</span>
+        </div>
+
+        {% if items | length == 0 %}
+        <p class="ejemplares-vacio">No hay ejemplares en la reserva todavía.</p>
+        {% else %}
+        <ul class="ejemplares-lista">
+            {% for it in items %}
+            <li class="ejemplar-item">
+                <div class="carrito-item-row">
+                    <span class="ejemplar-datos">
+                        <span class="ejemplar-dato"><b>Modelo:</b> {{ it.modelo_nombre }}</span>
+                        <span class="ejemplar-dato"><b>Serie:</b> {{ it.numero_serie }}</span>
+                        <span class="ejemplar-dato"><b>Patrimonio:</b> {{ it.patrimonio }}</span>
+                        <span class="ejemplar-dato"><b>Ubicación:</b> {{ it.ubicacion }}</span>
+                    </span>
+                    <form method="POST" action="/reservas/carrito/remover/{{ it.ejemplar_id }}">
+                        <button type="submit" class="btn-remover">Quitar</button>
+                    </form>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </section>
+</main>
+{% endblock %}

@@ -63,6 +63,16 @@ impl ModeloRepository {
         Ok(())
     }
 
+    pub fn tiene_manual(conn: &Connection, id: i64) -> SqlResult<bool> {
+        conn.query_row(
+            "SELECT 1 FROM modelos WHERE id = ?1 AND manual_blob IS NOT NULL",
+            params![id],
+            |_| Ok(()),
+        )
+        .optional()
+        .map(|o| o.is_some())
+    }
+
     pub fn buscar_manual(
         conn: &Connection,
         id: i64,
