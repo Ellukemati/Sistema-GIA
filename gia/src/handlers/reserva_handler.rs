@@ -65,8 +65,10 @@ impl ReservaHandler {
     }
 
     /// Endpoint HTMX: devuelve el parcial con los modelos a listar.
-    /// Si llegan ambas fechas validas, filtra por disponibilidad en el rango;
-    /// si no, lista todos los modelos.
+    /// - Si falta alguna fecha (campo vacio), lista todos los modelos.
+    /// - Si ambas fechas son validas, filtra por disponibilidad en el rango.
+    /// - Si hay fechas pero son invalidas (mal formadas o fin <= inicio), muestra error.
+    /// En todos los casos validos reinicia el carrito (cambiar la fecha vacia los ejemplares).
     pub fn listar_modelos_disponibles(request: &Request, conn: &Connection) -> Response {
         if let Err(response) = Self::obtener_usuario_sesion(request, conn) {
             return response;
@@ -75,26 +77,39 @@ impl ReservaHandler {
         let inicio = request.get_param("fecha_inicio").unwrap_or_default();
         let fin = request.get_param("fecha_fin").unwrap_or_default();
 
-        if !Self::fechas_validas(&inicio, &fin) {
+        // Cambiar la fecha reinicia el carrito: las fechas nuevas reemplazan a las
+        // anteriores y se vacia la lista de ejemplares.
+        let (grupos_res, carrito) = if inicio.trim().is_empty() || fin.trim().is_empty() {
+            // Sin fechas (el usuario las limpio): listamos todos los modelos.
+            (
+                ModeloService::listar_cards_agrupadas(conn),
+                Carrito {
+                    fecha_inicio: None,
+                    fecha_fin: None,
+                    ejemplares: Vec::new(),
+                },
+            )
+        } else if Self::fechas_validas(&inicio, &fin) {
+            (
+                ModeloService::listar_cards_disponibles_agrupadas(conn, &inicio, &fin),
+                Carrito {
+                    fecha_inicio: Some(inicio.clone()),
+                    fecha_fin: Some(fin.clone()),
+                    ejemplares: Vec::new(),
+                },
+            )
+        } else {
             return templates::response_mensaje_error(
                 "Fechas inválidas",
                 "Seleccioná una fecha de inicio y una de fin válidas. La fecha de fin debe ser posterior a la de inicio.",
             );
-        }
+        };
 
-        let grupos = match ModeloService::listar_cards_disponibles_agrupadas(conn, &inicio, &fin) {
+        let grupos = match grupos_res {
             Ok(g) => g,
             Err(e) => {
                 return templates::response_mensaje_error("No se pudieron cargar los modelos", &e);
             }
-        };
-
-        // Cambiar la fecha reinicia el carrito: las fechas nuevas reemplazan a las
-        // anteriores y se vacia la lista de ejemplares.
-        let carrito = Carrito {
-            fecha_inicio: Some(inicio.clone()),
-            fecha_fin: Some(fin.clone()),
-            ejemplares: Vec::new(),
         };
 
         let mut ctx_modelos = Context::new();
@@ -240,6 +255,44 @@ impl ReservaHandler {
         }
 
         Response::redirect_303("/reservas")
+            .with_additional_header("Set-Cookie", cookie_carrito(&carrito))
+    }
+
+    pub fn mostrar_carrito(request: &Request, conn: &Connection) -> Response {
+        if let Err(response) = Self::obtener_usuario_sesion(request, conn) {
+            return response;
+        }
+
+        let carrito = leer_carrito(request);
+
+        let items = match ReservaService::listar_carrito_detalle(conn, &carrito.ejemplares) {
+            Ok(i) => i,
+            Err(e) => {
+                return templates::response_mensaje_error("No se pudo cargar el carrito", &e);
+            }
+        };
+
+        let mut ctx = Context::new();
+        ctx.insert("items", &items);
+        ctx.insert("fecha_inicio", &carrito.fecha_inicio.clone().unwrap_or_default());
+        ctx.insert("fecha_fin", &carrito.fecha_fin.clone().unwrap_or_default());
+        ctx.insert("carrito_cantidad", &carrito.ejemplares.len());
+        templates::response_html(templates::render("carrito_detalle.html", &ctx))
+    }
+
+    pub fn remover_del_carrito(
+        request: &Request,
+        conn: &Connection,
+        ejemplar_id: i64,
+    ) -> Response {
+        if let Err(response) = Self::obtener_usuario_sesion(request, conn) {
+            return response;
+        }
+
+        let mut carrito = leer_carrito(request);
+        carrito.ejemplares.retain(|id| *id != ejemplar_id);
+
+        Response::redirect_303("/reservas/carrito")
             .with_additional_header("Set-Cookie", cookie_carrito(&carrito))
     }
 

@@ -40,6 +40,21 @@ impl EjemplarRepository {
         Ok(ejemplares)
     }
 
+    pub fn buscar_por_id(conn: &Connection, id: i64) -> SqlResult<Option<Ejemplar>> {
+        let mut stmt = conn.prepare(
+            "SELECT id, modelo_id, numero_serie, codigo_qr, patrimonio, observaciones, accesorios, esta_disponible, ubicacion
+             FROM ejemplares
+             WHERE id = ?1",
+        )?;
+
+        let mut filas = stmt.query_map([id], Ejemplar::from_row)?;
+
+        match filas.next() {
+            Some(ejemplar) => Ok(Some(ejemplar?)),
+            None => Ok(None),
+        }
+    }
+
     pub fn listar_por_modelo(conn: &Connection, modelo_id: i64) -> SqlResult<Vec<Ejemplar>> {
         let mut stmt = conn.prepare(
             "SELECT id, modelo_id, numero_serie, codigo_qr, patrimonio, observaciones, accesorios, esta_disponible, ubicacion

@@ -5,6 +5,7 @@
     </div>
     <form method="POST" action="/reservas/finalizar" class="carrito-resumen-form">
         <input type="text" name="motivo" class="carrito-motivo" placeholder="Motivo (opcional)">
+        <a class="btn-ver-detalle" href="/reservas/carrito">Ver detalle</a>
         <button type="submit" class="btn-finalizar"{% if carrito_cantidad == 0 %} disabled{% endif %}>
             Finalizar reserva
         </button>

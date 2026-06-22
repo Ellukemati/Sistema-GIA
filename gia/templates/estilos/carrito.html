@@ -59,6 +59,25 @@
         box-shadow: 0 0 0 3px var(--color-focus-ring);
     }
 
+    .btn-ver-detalle {
+        display: inline-block;
+        padding: 0.6rem 1.25rem;
+        font-size: 0.95rem;
+        font-weight: 700;
+        text-decoration: none;
+        color: var(--color-primary);
+        background-color: var(--color-surface);
+        border: 1.5px solid var(--color-primary);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: background-color 0.15s ease, color 0.15s ease;
+    }
+
+    .btn-ver-detalle:hover {
+        color: var(--color-surface);
+        background-color: var(--color-primary);
+    }
+
     .btn-finalizar {
         padding: 0.6rem 1.25rem;
         font-size: 0.95rem;
@@ -69,6 +88,39 @@
         border-radius: var(--radius-sm);
         cursor: pointer;
         transition: background-color 0.15s ease;
+    }
+
+    .carrito-acciones-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-md);
+    }
+
+    .carrito-item-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: var(--spacing-md);
+        padding: var(--spacing-md);
+    }
+
+    .btn-remover {
+        padding: 0.45rem 0.9rem;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--color-danger, #c0392b);
+        background-color: var(--color-surface);
+        border: 1.5px solid var(--color-danger, #c0392b);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: background-color 0.15s ease, color 0.15s ease;
+    }
+
+    .btn-remover:hover {
+        color: var(--color-surface);
+        background-color: var(--color-danger, #c0392b);
     }
 
     .btn-finalizar:hover:not(:disabled) {

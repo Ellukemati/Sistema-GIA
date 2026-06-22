@@ -5,13 +5,25 @@ use serde::Serialize;
 use crate::{
     models::reserva::Reserva,
     repository::{
-        ejemplar_repository::EjemplarRepository,
+        ejemplar_repository::EjemplarRepository, modelo_repository::ModeloRepository,
         reserva_instrumento_repository::ReservaInstrumentoRepository,
         reserva_repository::ReservaRepository,
     },
 };
 
 pub struct ReservaService;
+
+/// Item del carrito listo para mostrar en el detalle, con el nombre del modelo
+/// al que pertenece el ejemplar.
+#[derive(Serialize)]
+pub struct CarritoItemDTO {
+    pub ejemplar_id: i64,
+    pub modelo_id: i64,
+    pub modelo_nombre: String,
+    pub numero_serie: String,
+    pub patrimonio: String,
+    pub ubicacion: String,
+}
 
 /// Datos de un ejemplar listos para mostrar en la pantalla de seleccion,
 /// con su disponibilidad para las fechas y si ya esta en el carrito.
@@ -107,6 +119,44 @@ impl ReservaService {
         }
 
         Ok(dtos)
+    }
+
+    /// Devuelve el detalle de los ejemplares que estan en el carrito (en el orden
+    /// en que se agregaron), resolviendo el nombre del modelo de cada uno.
+    pub fn listar_carrito_detalle(
+        conn: &Connection,
+        ids: &[i64],
+    ) -> Result<Vec<CarritoItemDTO>, String> {
+        let mut items = Vec::with_capacity(ids.len());
+
+        for id in ids {
+            let ejemplar = match EjemplarRepository::buscar_por_id(conn, *id)
+                .map_err(|e| e.to_string())?
+            {
+                Some(e) => e,
+                None => continue,
+            };
+
+            let modelo_nombre = ModeloRepository::buscar_por_id(conn, ejemplar.modelo_id)
+                .map_err(|e| e.to_string())?
+                .map(|m| m.nombre_modelo)
+                .unwrap_or_else(|| "Modelo".to_string());
+
+            items.push(CarritoItemDTO {
+                ejemplar_id: ejemplar.id,
+                modelo_id: ejemplar.modelo_id,
+                modelo_nombre,
+                numero_serie: ejemplar.numero_serie.unwrap_or_else(|| "Sin serie".to_string()),
+                patrimonio: ejemplar
+                    .patrimonio
+                    .unwrap_or_else(|| "Sin patrimonio".to_string()),
+                ubicacion: ejemplar
+                    .ubicacion
+                    .unwrap_or_else(|| "Sin ubicación".to_string()),
+            });
+        }
+
+        Ok(items)
     }
 
     fn validar_ejemplares(ejemplares: &[i64]) -> Result<(), String> {

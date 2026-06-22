@@ -28,6 +28,29 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
             )
         },
 
+        (GET) (/reservas/carrito) => {
+
+            let conn_guard =
+                conn.lock().unwrap();
+
+            ReservaHandler::mostrar_carrito(
+                request,
+                &conn_guard
+            )
+        },
+
+        (POST) (/reservas/carrito/remover/{ejemplar_id: i64}) => {
+
+            let conn_guard =
+                conn.lock().unwrap();
+
+            ReservaHandler::remover_del_carrito(
+                request,
+                &conn_guard,
+                ejemplar_id,
+            )
+        },
+
         (GET) (/reservas/modelo/{modelo_id: i64}) => {
 
             let conn_guard =
