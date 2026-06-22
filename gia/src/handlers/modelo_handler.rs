@@ -6,6 +6,7 @@ use crate::repository::usuario_repository::UsuarioRepository;
 use crate::service::image_service::procesar_modelo;
 use crate::service::manual_service::validar_y_procesar_manual;
 use crate::service::modelo_service::{CrearModeloData, ModeloService};
+use crate::service::ejemplar_service::EjemplarService;
 use crate::templates;
 use crate::utils::extraer_token_sesion;
 
@@ -213,5 +214,59 @@ impl ModeloHandler {
                 ),
             )
         }
+    }
+
+    pub fn listar_modelos(conn: &Connection) -> Response {
+        match ModeloService::listar_cards_agrupadas(conn) {
+            Ok(grupos) => {
+                let mut ctx = Context::new();
+                ctx.insert("grupos", &grupos);
+                templates::response_html(templates::render("modelo_listado.html", &ctx))
+            }
+            Err(e) => templates::response_mensaje_error("No se pudieron cargar los modelos", &e),
+        }
+    }
+
+    pub fn mostrar_detalle(conn: &Connection, id: i64) -> Response {
+        let modelo = match ModeloRepository::buscar_por_id(conn, id) {
+            Ok(Some(m)) => m,
+            Ok(None) => {
+                return templates::response_mensaje_error_con_status(
+                    "Modelo no encontrado",
+                    "El modelo solicitado no existe.",
+                    404,
+                );
+            }
+            Err(e) => {
+                return templates::response_mensaje_error_con_status(
+                    "Error interno",
+                    &format!("No se pudo cargar el modelo: {}", e),
+                    500,
+                );
+            }
+        };
+
+        let imagen = match ImageRepository::existe_imagen_principal_modelo(conn, id) {
+            Ok(true) => Some(format!("/imagenes/modelos/{}/0", id)),
+            _ => None,
+        };
+
+        let tiene_manual = ModeloRepository::tiene_manual(conn, id).unwrap_or(false);
+        let ejemplares = EjemplarService::listar_ejemplares_basico(conn, id);
+
+        let ejemplares = match ejemplares {
+            Ok(e) => e,
+            Err(e) => {
+                return templates::response_mensaje_error("No se pudieron cargar los ejemplares", &e);
+            }
+        };
+
+        let mut ctx = Context::new();
+        ctx.insert("modelo", &modelo);
+        ctx.insert("imagen", &imagen);
+        ctx.insert("tiene_manual", &tiene_manual);
+        ctx.insert("ejemplares", &ejemplares);
+        ctx.insert("con_fechas", &false);
+        templates::response_html(templates::render("modelo_detalle.html", &ctx))
     }
 }

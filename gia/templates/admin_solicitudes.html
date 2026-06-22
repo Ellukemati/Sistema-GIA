@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - GIA</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; }
+        
+        .dashboard-container { display: flex; flex-direction: column; gap: 20px; max-width: 1200px; margin: auto; }
+        
+        details.columna { 
+            background: white; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+            overflow: hidden;
+        }
+        
+        details > summary {
+            padding: 15px 20px;
+            font-size: 1.25em;
+            font-weight: bold;
+            background-color: #f8f9fa;
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e9ecef;
+            transition: background-color 0.2s;
+        }
+
+        details > summary:hover {
+            background-color: #e2e6ea;
+        }
+
+        details > summary::after {
+            content: '▼';
+            font-size: 0.7em;
+            color: #6c757d;
+            transition: transform 0.3s ease;
+        }
+        
+        details[open] > summary::after {
+            transform: rotate(180deg);
+        }
+
+        .detalles-contenido {
+            padding: 20px;
+        }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+        th, td { border-bottom: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #f8f9fa; }
+        .btn-aprobar { background-color: #28a745; color: white; border: none; padding: 8px 12px; cursor: pointer; border-radius: 4px; }
+        .btn-rechazar { background-color: #dc3545; color: white; border: none; padding: 8px 12px; cursor: pointer; border-radius: 4px; }
+        .btn-aprobar:hover { background-color: #218838; }
+        .btn-rechazar:hover { background-color: #c82333; }
+
+        .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    }
+    </style>
+</head>
+<body>
+    <div style="max-width: 1200px; margin: auto;">
+        <h1>⚙️ Panel de Control</h1>
+    </div>
+
+    <div id="tablas-container" hx-get="/admin/tablas/recargar" hx-trigger="every 10s">
+        {% include "partials/admin_tablas.html" %}
+    </div>
+
+    <script>
+        document.addEventListener('htmx:beforeSwap', function(event) {
+            if (event.detail.target.id === 'tablas-container') {
+                const details = document.querySelectorAll('#tablas-container details');
+                const states = Array.from(details).map(d => d.open);
+                sessionStorage.setItem('gia_admin_panels', JSON.stringify(states));
+            }
+        });
+
+        document.addEventListener('htmx:afterSwap', function(event) {
+            if (event.detail.target.id === 'tablas-container') {
+                const savedStates = JSON.parse(sessionStorage.getItem('gia_admin_panels'));
+                if (savedStates) {
+                    const details = document.querySelectorAll('#tablas-container details');
+                    details.forEach((d, index) => {
+                        if (savedStates[index]) {
+                            d.setAttribute('open', '');
+                        } else {
+                            d.removeAttribute('open');
+                        }
+                    });
+                }
+            }
+        });
+    </script>
+</body>
+</html>

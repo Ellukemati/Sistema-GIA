@@ -1,6 +1,8 @@
 use rusqlite::{Result as SqlResult, Row};
+use serde::Serialize;
 
 /// Representa un ejemplar en la tabla `ejemplares`
+#[derive(Serialize)]
 pub struct Ejemplar {
     pub id: i64,
     pub modelo_id: i64,

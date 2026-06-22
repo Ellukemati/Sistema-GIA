@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}GIA - {{ modelo.nombre_modelo }}{% endblock %}
+
+{% block extra_head %}
+    {% include "estilos/auth.html" %}
+    {% include "estilos/detalle.html" %}
+    {% include "estilos/ejemplares.html" %}
+{% endblock %}
+
+{% block content %}
+<main class="detalle-page">
+    <article class="detalle-card">
+        <div class="detalle-media">
+            {% if imagen %}
+            <img class="detalle-img" src="{{ imagen }}" alt="{{ modelo.nombre_modelo }}">
+            {% else %}
+            <div class="detalle-sin-imagen">Sin imagen</div>
+            {% endif %}
+        </div>
+
+        <div class="detalle-body">
+            <h1 class="detalle-nombre">{{ modelo.nombre_modelo }}</h1>
+
+            <div class="detalle-meta">
+                <span class="detalle-badge"><span>Marca:</span> {{ modelo.marca }}</span>
+                {% if modelo.categoria %}
+                <span class="detalle-badge"><span>Categoría:</span> {{ modelo.categoria }}</span>
+                {% else %}
+                <span class="detalle-badge"><span>Categoría:</span> Sin categoría</span>
+                {% endif %}
+            </div>
+
+            <p class="detalle-descripcion-label">Descripción</p>
+            {% if modelo.descripcion %}
+            <p class="detalle-descripcion">{{ modelo.descripcion }}</p>
+            {% else %}
+            <p class="detalle-descripcion detalle-descripcion--vacia">Sin descripción.</p>
+            {% endif %}
+
+            <div class="detalle-acciones">
+                {% if tiene_manual %}
+                <a class="btn-manual" href="/manuales/{{ modelo.id }}">Manual</a>
+                {% else %}
+                <span class="btn-manual btn-manual--disabled" aria-disabled="true" title="Este modelo no tiene un manual cargado">Manual</span>
+                {% endif %}
+            </div>
+        </div>
+    </article>
+
+    <section class="ejemplares-seccion">
+        {% if con_fechas %}
+        <h2 class="ejemplares-titulo">Ejemplares disponibles</h2>
+        <p class="ejemplares-fechas">
+            Para las fechas <strong>{{ fecha_inicio }}</strong> a <strong>{{ fecha_fin }}</strong>.
+        </p>
+
+        <form method="POST" action="/reservas/modelo/{{ modelo.id }}/agregar">
+            <input type="hidden" name="fecha_inicio" value="{{ fecha_inicio }}">
+            <input type="hidden" name="fecha_fin" value="{{ fecha_fin }}">
+
+            {% include "partials/reserva_ejemplares.html" %}
+
+            <div class="ejemplares-acciones">
+                <a class="btn-volver" href="/reservas">&larr; Volver a modelos</a>
+                <button type="submit" class="btn-manual">Agregar a la reserva</button>
+            </div>
+        </form>
+        {% else %}
+        <h2 class="ejemplares-titulo">Ejemplares</h2>
+        <p class="ejemplares-fechas">
+            Para agregar ejemplares a la reserva, primero elegí las fechas en la pantalla de reservas.
+        </p>
+
+        {% include "partials/reserva_ejemplares.html" %}
+
+        <div class="ejemplares-acciones">
+            <a class="btn-volver" href="/reservas">&larr; Volver a modelos</a>
+        </div>
+        {% endif %}
+    </section>
+</main>
+{% endblock %}

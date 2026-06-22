@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}GIA - Catálogo de modelos{% endblock %}
+
+{% block extra_head %}
+    {% include "estilos/auth.html" %}
+    {% include "estilos/catalogo.html" %}
+{% endblock %}
+
+{% block content %}
+<main class="catalogo-page">
+    <header class="catalogo-header">
+        <p class="auth-brand">GIA</p>
+        <h1>Catálogo de modelos</h1>
+        <p class="auth-subtitle">Modelos de instrumentos disponibles</p>
+    </header>
+
+    {% if grupos | length == 0 %}
+    <p class="catalogo-vacio">No hay modelos cargados.</p>
+    {% else %}
+        {% for grupo in grupos %}
+        <section class="categoria-seccion">
+            <h2 class="categoria-titulo">{{ grupo.categoria }}</h2>
+            <div class="cards-grid">
+                {% for m in grupo.modelos %}
+                <a class="modelo-card" href="/modelo/{{ m.id }}">
+                    <div class="modelo-card-media">
+                        {% if m.imagen %}
+                        <img class="modelo-card-img" src="{{ m.imagen }}" alt="{{ m.nombre_modelo }}" loading="lazy">
+                        {% else %}
+                        <div class="modelo-card-sin-imagen">Sin imagen</div>
+                        {% endif %}
+                    </div>
+                    <p class="modelo-card-nombre">{{ m.nombre_modelo }}</p>
+                </a>
+                {% endfor %}
+            </div>
+        </section>
+        {% endfor %}
+    {% endif %}
+</main>
+{% endblock %}

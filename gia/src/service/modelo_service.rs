@@ -1,7 +1,10 @@
 use crate::models::modelo::Modelo;
+use crate::repository::ejemplar_repository::EjemplarRepository;
+use crate::repository::image_repository::ImageRepository;
 use crate::repository::modelo_repository::ModeloRepository;
+use crate::repository::reserva_repository::ReservaRepository;
 use rusqlite::Connection;
-
+use serde::Serialize;
 pub struct ModeloService;
 
 pub struct CrearModeloData {
@@ -9,6 +12,19 @@ pub struct CrearModeloData {
     pub nombre_modelo: String,
     pub categoria: Option<String>,
     pub descripcion: Option<String>,
+}
+#[derive(Serialize)]
+pub struct ModeloCardDTO {
+    pub id: i64,
+    pub nombre_modelo: String,
+    pub categoria: Option<String>,
+    pub imagen: Option<String>
+}
+
+#[derive(Serialize)]
+pub struct GrupoCategoriaDTO {
+    pub categoria: String,
+    pub modelos: Vec<ModeloCardDTO>,
 }
 
 impl ModeloService {
@@ -32,5 +48,339 @@ impl ModeloService {
             }),
             Err(e) => Err(format!("Error en la base de datos al crear modelo: {}", e)),
         }
+    }
+
+    /// Construye un `ModeloCardDTO` a partir de un `Modelo`, resolviendo la URL
+    /// de su imagen principal (orden 0) si existe.
+    fn card_de_modelo(conn: &Connection, modelo: Modelo) -> Result<ModeloCardDTO, String> {
+        let tiene_imagen = ImageRepository::existe_imagen_principal_modelo(conn, modelo.id)
+            .map_err(|e| {
+                format!(
+                    "Error al consultar la imagen del modelo {}: {}",
+                    modelo.id, e
+                )
+            })?;
+
+        let imagen = if tiene_imagen {
+            Some(format!("/imagenes/modelos/{}/0", modelo.id))
+        } else {
+            None
+        };
+
+        Ok(ModeloCardDTO {
+            id: modelo.id,
+            nombre_modelo: modelo.nombre_modelo,
+            categoria: modelo.categoria,
+            imagen,
+        })
+    }
+
+    /// Agrupa las tarjetas por categoria, conservando el orden de aparicion.
+    /// Los modelos sin categoria quedan como "Sin categoria".
+    fn agrupar_por_categoria(cards: Vec<ModeloCardDTO>) -> Vec<GrupoCategoriaDTO> {
+        let mut grupos: Vec<GrupoCategoriaDTO> = Vec::new();
+        for card in cards {
+            let categoria = card
+                .categoria
+                .clone()
+                .filter(|c| !c.trim().is_empty())
+                .unwrap_or_else(|| "Sin categoria".to_string());
+
+            match grupos.iter_mut().find(|g| g.categoria == categoria) {
+                Some(grupo) => grupo.modelos.push(card),
+                None => grupos.push(GrupoCategoriaDTO {
+                    categoria,
+                    modelos: vec![card],
+                }),
+            }
+        }
+
+        grupos
+    }
+
+    /// Crea un vector de modelosCardDTO que tiene la info esencial para mostrar un modelo.
+    pub fn listar_cards(conn: &Connection) -> Result<Vec<ModeloCardDTO>, String> {
+        let modelos = ModeloRepository::listar_todos(conn)
+            .map_err(|e| format!("Error al listar los modelos: {}", e))?;
+
+        let mut cards = Vec::with_capacity(modelos.len());
+        for modelo in modelos {
+            cards.push(Self::card_de_modelo(conn, modelo)?);
+        }
+
+        Ok(cards)
+    }
+
+    /// Igual que `listar_cards`, pero agrupando las tarjetas por categoria.
+    /// Los modelos sin categoria quedan como "Sin categoria".
+    pub fn listar_cards_agrupadas(conn: &Connection) -> Result<Vec<GrupoCategoriaDTO>, String> {
+        let cards = Self::listar_cards(conn)?;
+        Ok(Self::agrupar_por_categoria(cards))
+    }
+
+    /// Lista, agrupados por categoria, solo los modelos que tienen al menos un
+    /// ejemplar disponible en el rango de fechas indicado.
+    pub fn listar_cards_disponibles_agrupadas(
+        conn: &Connection,
+        inicio: &str,
+        fin: &str,
+    ) -> Result<Vec<GrupoCategoriaDTO>, String> {
+        let modelos = ModeloRepository::listar_todos(conn)
+            .map_err(|e| format!("Error al listar los modelos: {}", e))?;
+
+        let mut cards = Vec::new();
+        for modelo in modelos {
+            let ejemplares = EjemplarRepository::listar_por_modelo(conn, modelo.id)
+                .map_err(|e| {
+                    format!(
+                        "Error al listar ejemplares del modelo {}: {}",
+                        modelo.id, e
+                    )
+                })?;
+
+            let mut hay_disponible = false;
+            for ejemplar in &ejemplares {
+                if ReservaRepository::ejemplar_disponible(conn, ejemplar.id, inicio, fin)
+                    .map_err(|e| e.to_string())?
+                {
+                    hay_disponible = true;
+                    break;
+                }
+            }
+
+            if hay_disponible {
+                cards.push(Self::card_de_modelo(conn, modelo)?);
+            }
+        }
+
+        Ok(Self::agrupar_por_categoria(cards))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::modelo::Modelo;
+    use crate::repository::image_repository::ImageRepository;
+    use crate::repository::modelo_repository::ModeloRepository;
+    use rusqlite::Connection;
+
+    fn card(id: i64, nombre: &str, categoria: Option<&str>) -> ModeloCardDTO {
+        ModeloCardDTO {
+            id,
+            nombre_modelo: nombre.to_string(),
+            categoria: categoria.map(String::from),
+            imagen: None,
+        }
+    }
+
+    fn crear_db_test() -> Connection {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute(
+            "CREATE TABLE modelos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                marca TEXT NOT NULL,
+                nombre_modelo TEXT NOT NULL,
+                categoria TEXT,
+                descripcion TEXT,
+                manual_blob BLOB,
+                manual_mime TEXT
+            )",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "CREATE TABLE modelo_imagen (
+                modelo_id INTEGER NOT NULL,
+                orden INTEGER NOT NULL,
+                imagen_blob BLOB NOT NULL,
+                imagen_mime TEXT NOT NULL,
+                PRIMARY KEY (modelo_id, orden)
+            )",
+            [],
+        )
+        .unwrap();
+        conn
+    }
+
+    fn insertar_modelo(conn: &Connection, nombre: &str, categoria: Option<&str>) -> i64 {
+        let modelo = Modelo {
+            id: 0,
+            marca: "Marca".into(),
+            nombre_modelo: nombre.into(),
+            categoria: categoria.map(String::from),
+            descripcion: None,
+        };
+        ModeloRepository::crear(conn, &modelo).unwrap()
+    }
+
+    fn modelo_test(id: i64) -> Modelo {
+        Modelo {
+            id,
+            marca: "Marca".into(),
+            nombre_modelo: "Modelo X".into(),
+            categoria: Some("Cuerdas".into()),
+            descripcion: None,
+        }
+    }
+
+    #[test]
+    fn agrupar_por_categoria_lista_vacia() {
+        let grupos = ModeloService::agrupar_por_categoria(vec![]);
+        assert!(grupos.is_empty());
+    }
+
+    #[test]
+    fn agrupar_por_categoria_una_sola_tarjeta() {
+        let grupos = ModeloService::agrupar_por_categoria(vec![card(1, "Violín", Some("Cuerdas"))]);
+
+        assert_eq!(grupos.len(), 1);
+        assert_eq!(grupos[0].categoria, "Cuerdas");
+        assert_eq!(grupos[0].modelos.len(), 1);
+        assert_eq!(grupos[0].modelos[0].id, 1);
+    }
+
+    #[test]
+    fn agrupar_por_categoria_varias_misma_categoria() {
+        let grupos = ModeloService::agrupar_por_categoria(vec![
+            card(1, "Violín", Some("Cuerdas")),
+            card(2, "Viola", Some("Cuerdas")),
+        ]);
+
+        assert_eq!(grupos.len(), 1);
+        assert_eq!(grupos[0].categoria, "Cuerdas");
+        assert_eq!(grupos[0].modelos.len(), 2);
+        assert_eq!(grupos[0].modelos[0].id, 1);
+        assert_eq!(grupos[0].modelos[1].id, 2);
+    }
+
+    #[test]
+    fn agrupar_por_categoria_varias_categorias_distintas() {
+        let grupos = ModeloService::agrupar_por_categoria(vec![
+            card(1, "Violín", Some("Cuerdas")),
+            card(2, "Flauta", Some("Viento")),
+            card(3, "Viola", Some("Cuerdas")),
+        ]);
+
+        assert_eq!(grupos.len(), 2);
+        assert_eq!(grupos[0].categoria, "Cuerdas");
+        assert_eq!(grupos[0].modelos.len(), 2);
+        assert_eq!(grupos[1].categoria, "Viento");
+        assert_eq!(grupos[1].modelos.len(), 1);
+    }
+
+    #[test]
+    fn agrupar_por_categoria_sin_categoria_usa_sin_categoria() {
+        let grupos = ModeloService::agrupar_por_categoria(vec![card(1, "Genérico", None)]);
+
+        assert_eq!(grupos.len(), 1);
+        assert_eq!(grupos[0].categoria, "Sin categoria");
+    }
+
+    #[test]
+    fn agrupar_por_categoria_categoria_solo_espacios_usa_sin_categoria() {
+        let grupos = ModeloService::agrupar_por_categoria(vec![card(1, "Genérico", Some("   "))]);
+
+        assert_eq!(grupos.len(), 1);
+        assert_eq!(grupos[0].categoria, "Sin categoria");
+    }
+
+    #[test]
+    fn agrupar_por_categoria_conserva_orden_de_aparicion() {
+        let grupos = ModeloService::agrupar_por_categoria(vec![
+            card(1, "A", Some("Viento")),
+            card(2, "B", Some("Cuerdas")),
+            card(3, "C", Some("Viento")),
+        ]);
+
+        assert_eq!(grupos[0].categoria, "Viento");
+        assert_eq!(grupos[0].modelos[0].id, 1);
+        assert_eq!(grupos[0].modelos[1].id, 3);
+        assert_eq!(grupos[1].categoria, "Cuerdas");
+        assert_eq!(grupos[1].modelos[0].id, 2);
+    }
+
+    #[test]
+    fn card_de_modelo_con_imagen_principal() {
+        let conn = crear_db_test();
+        ImageRepository::guardar_modelo(&conn, 1, 0, b"fake", "image/jpeg").unwrap();
+
+        let card = ModeloService::card_de_modelo(&conn, modelo_test(1)).unwrap();
+
+        assert_eq!(card.imagen, Some("/imagenes/modelos/1/0".into()));
+        assert_eq!(card.nombre_modelo, "Modelo X");
+    }
+
+    #[test]
+    fn card_de_modelo_sin_imagen() {
+        let conn = crear_db_test();
+        let card = ModeloService::card_de_modelo(&conn, modelo_test(1)).unwrap();
+        assert!(card.imagen.is_none());
+    }
+
+    #[test]
+    fn listar_cards_sin_modelos_retorna_vacio() {
+        let conn = crear_db_test();
+        let cards = ModeloService::listar_cards(&conn).unwrap();
+        assert!(cards.is_empty());
+    }
+
+    #[test]
+    fn listar_cards_retorna_cards_ordenadas_por_nombre() {
+        let conn = crear_db_test();
+        insertar_modelo(&conn, "Viola", Some("Cuerdas"));
+        insertar_modelo(&conn, "Violín", Some("Cuerdas"));
+
+        let cards = ModeloService::listar_cards(&conn).unwrap();
+
+        assert_eq!(cards.len(), 2);
+        assert_eq!(cards[0].nombre_modelo, "Viola");
+        assert_eq!(cards[0].categoria, Some("Cuerdas".into()));
+        assert_eq!(cards[1].nombre_modelo, "Violín");
+        assert!(cards[0].imagen.is_none());
+        assert!(cards[1].imagen.is_none());
+    }
+
+    #[test]
+    fn listar_cards_incluye_url_de_imagen_principal() {
+        let conn = crear_db_test();
+        let id = insertar_modelo(&conn, "Flauta", Some("Viento"));
+        ImageRepository::guardar_modelo(&conn, id, 0, b"fake", "image/jpeg").unwrap();
+
+        let cards = ModeloService::listar_cards(&conn).unwrap();
+
+        assert_eq!(cards.len(), 1);
+        assert_eq!(cards[0].id, id);
+        assert_eq!(cards[0].imagen, Some(format!("/imagenes/modelos/{}/0", id)));
+    }
+
+    #[test]
+    fn listar_cards_mezcla_modelos_con_y_sin_imagen() {
+        let conn = crear_db_test();
+        let id_con_imagen = insertar_modelo(&conn, "Clarinete", Some("Viento"));
+        insertar_modelo(&conn, "Oboe", Some("Viento"));
+        ImageRepository::guardar_modelo(&conn, id_con_imagen, 0, b"fake", "image/jpeg").unwrap();
+
+        let cards = ModeloService::listar_cards(&conn).unwrap();
+
+        assert_eq!(cards.len(), 2);
+        assert_eq!(cards[0].nombre_modelo, "Clarinete");
+        assert_eq!(
+            cards[0].imagen,
+            Some(format!("/imagenes/modelos/{}/0", id_con_imagen))
+        );
+        assert_eq!(cards[1].nombre_modelo, "Oboe");
+        assert!(cards[1].imagen.is_none());
+    }
+
+    #[test]
+    fn listar_cards_preserva_categoria_opcional() {
+        let conn = crear_db_test();
+        insertar_modelo(&conn, "Genérico", None);
+
+        let cards = ModeloService::listar_cards(&conn).unwrap();
+
+        assert_eq!(cards.len(), 1);
+        assert!(cards[0].categoria.is_none());
     }
 }

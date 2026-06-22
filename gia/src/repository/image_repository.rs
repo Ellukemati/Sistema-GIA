@@ -80,4 +80,14 @@ impl ImageRepository {
         )
         .optional()
     }
+
+    pub fn existe_imagen_principal_modelo(conn: &Connection, modelo_id: i64) -> SqlResult<bool> {
+        conn.query_row(
+            "SELECT 1 FROM modelo_imagen WHERE modelo_id = ?1 AND orden = 0",
+            params![modelo_id],
+            |_| Ok(()),
+        )
+        .optional()
+        .map(|o| o.is_some())
+    }
 }

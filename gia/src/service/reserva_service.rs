@@ -1,15 +1,29 @@
 use chrono::{Duration, Local, NaiveDate};
 use rusqlite::Connection;
+use serde::Serialize;
 
 use crate::{
     models::reserva::Reserva,
     repository::{
+        ejemplar_repository::EjemplarRepository, modelo_repository::ModeloRepository,
         reserva_instrumento_repository::ReservaInstrumentoRepository,
         reserva_repository::ReservaRepository,
     },
 };
 
 pub struct ReservaService;
+
+/// Item del carrito listo para mostrar en el detalle, con el nombre del modelo
+/// al que pertenece el ejemplar.
+#[derive(Serialize)]
+pub struct CarritoItemDTO {
+    pub ejemplar_id: i64,
+    pub modelo_id: i64,
+    pub modelo_nombre: String,
+    pub numero_serie: String,
+    pub patrimonio: String,
+    pub ubicacion: String,
+}
 
 impl ReservaService {
     pub fn crear_reserva(
@@ -58,6 +72,43 @@ impl ReservaService {
         }
 
         Ok(())
+    }
+
+    /// Devuelve el detalle de los ejemplares que estan en el carrito
+    pub fn listar_carrito_detalle(
+        conn: &Connection,
+        ids: &[i64],
+    ) -> Result<Vec<CarritoItemDTO>, String> {
+        let mut items = Vec::with_capacity(ids.len());
+
+        for id in ids {
+            let ejemplar = match EjemplarRepository::buscar_por_id(conn, *id)
+                .map_err(|e| e.to_string())?
+            {
+                Some(e) => e,
+                None => continue,
+            };
+
+            let modelo_nombre = ModeloRepository::buscar_por_id(conn, ejemplar.modelo_id)
+                .map_err(|e| e.to_string())?
+                .map(|m| m.nombre_modelo)
+                .unwrap_or_else(|| "Modelo".to_string());
+
+            items.push(CarritoItemDTO {
+                ejemplar_id: ejemplar.id,
+                modelo_id: ejemplar.modelo_id,
+                modelo_nombre,
+                numero_serie: ejemplar.numero_serie.unwrap_or_else(|| "Sin serie".to_string()),
+                patrimonio: ejemplar
+                    .patrimonio
+                    .unwrap_or_else(|| "Sin patrimonio".to_string()),
+                ubicacion: ejemplar
+                    .ubicacion
+                    .unwrap_or_else(|| "Sin ubicación".to_string()),
+            });
+        }
+
+        Ok(items)
     }
 
     fn validar_ejemplares(ejemplares: &[i64]) -> Result<(), String> {
@@ -130,6 +181,77 @@ impl ReservaService {
 mod tests {
 
     use super::*;
+    use crate::models::ejemplar::Ejemplar;
+    use crate::models::modelo::Modelo;
+    use crate::repository::ejemplar_repository::EjemplarRepository;
+    use crate::repository::modelo_repository::ModeloRepository;
+    use rusqlite::Connection;
+
+    fn crear_db_test() -> Connection {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute(
+            "CREATE TABLE modelos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                marca TEXT NOT NULL,
+                nombre_modelo TEXT NOT NULL,
+                categoria TEXT,
+                descripcion TEXT,
+                manual_blob BLOB,
+                manual_mime TEXT
+            )",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "CREATE TABLE ejemplares (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                modelo_id INTEGER NOT NULL,
+                numero_serie TEXT UNIQUE,
+                codigo_qr TEXT UNIQUE,
+                patrimonio TEXT UNIQUE,
+                observaciones TEXT,
+                accesorios TEXT,
+                esta_disponible BOOLEAN DEFAULT TRUE,
+                ubicacion TEXT
+            )",
+            [],
+        )
+        .unwrap();
+        conn
+    }
+
+    fn insertar_modelo(conn: &Connection, nombre: &str) -> i64 {
+        let modelo = Modelo {
+            id: 0,
+            marca: "Marca".into(),
+            nombre_modelo: nombre.into(),
+            categoria: None,
+            descripcion: None,
+        };
+        ModeloRepository::crear(conn, &modelo).unwrap()
+    }
+
+    fn insertar_ejemplar(
+        conn: &Connection,
+        modelo_id: i64,
+        numero_serie: Option<&str>,
+        patrimonio: Option<&str>,
+        ubicacion: Option<&str>,
+        codigo_qr: Option<&str>,
+    ) -> i64 {
+        let ejemplar = Ejemplar {
+            id: 0,
+            modelo_id,
+            numero_serie: numero_serie.map(String::from),
+            codigo_qr: codigo_qr.map(String::from),
+            patrimonio: patrimonio.map(String::from),
+            observaciones: None,
+            accesorios: None,
+            esta_disponible: true,
+            ubicacion: ubicacion.map(String::from),
+        };
+        EjemplarRepository::crear(conn, &ejemplar).unwrap()
+    }
 
     #[test]
     fn validar_ejemplares_lista_vacia() {
@@ -195,5 +317,114 @@ mod tests {
         let resultado = ReservaService::validar_fechas(&inicio, &fin);
 
         assert!(resultado.is_ok());
+    }
+
+    #[test]
+    fn listar_carrito_detalle_ids_vacio_retorna_vacio() {
+        let conn = crear_db_test();
+
+        let items = ReservaService::listar_carrito_detalle(&conn, &[]).unwrap();
+
+        assert!(items.is_empty());
+    }
+
+    #[test]
+    fn listar_carrito_detalle_retorna_datos_completos() {
+        let conn = crear_db_test();
+        let modelo_id = insertar_modelo(&conn, "Violín");
+        let ejemplar_id = insertar_ejemplar(
+            &conn,
+            modelo_id,
+            Some("SN-001"),
+            Some("PAT-001"),
+            Some("Depósito"),
+            Some("QR-001"),
+        );
+
+        let items = ReservaService::listar_carrito_detalle(&conn, &[ejemplar_id]).unwrap();
+
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].ejemplar_id, ejemplar_id);
+        assert_eq!(items[0].modelo_id, modelo_id);
+        assert_eq!(items[0].modelo_nombre, "Violín");
+        assert_eq!(items[0].numero_serie, "SN-001");
+        assert_eq!(items[0].patrimonio, "PAT-001");
+        assert_eq!(items[0].ubicacion, "Depósito");
+    }
+
+    #[test]
+    fn listar_carrito_detalle_campos_opcionales_usan_defaults() {
+        let conn = crear_db_test();
+        let modelo_id = insertar_modelo(&conn, "Viola");
+        let ejemplar_id = insertar_ejemplar(&conn, modelo_id, None, None, None, None);
+
+        let items = ReservaService::listar_carrito_detalle(&conn, &[ejemplar_id]).unwrap();
+
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].numero_serie, "Sin serie");
+        assert_eq!(items[0].patrimonio, "Sin patrimonio");
+        assert_eq!(items[0].ubicacion, "Sin ubicación");
+    }
+
+    #[test]
+    fn listar_carrito_detalle_omite_ejemplares_inexistentes() {
+        let conn = crear_db_test();
+        let modelo_id = insertar_modelo(&conn, "Violín");
+        let ejemplar_id = insertar_ejemplar(&conn, modelo_id, Some("SN-1"), None, None, None);
+
+        let items = ReservaService::listar_carrito_detalle(&conn, &[999, ejemplar_id, 888]).unwrap();
+
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].ejemplar_id, ejemplar_id);
+    }
+
+    #[test]
+    fn listar_carrito_detalle_conserva_orden_de_ids() {
+        let conn = crear_db_test();
+        let modelo_id = insertar_modelo(&conn, "Violín");
+        let id_a = insertar_ejemplar(&conn, modelo_id, Some("A"), None, None, None);
+        let id_b = insertar_ejemplar(&conn, modelo_id, Some("B"), None, None, None);
+        let id_c = insertar_ejemplar(&conn, modelo_id, Some("C"), None, None, None);
+
+        let items = ReservaService::listar_carrito_detalle(&conn, &[id_c, id_a, id_b]).unwrap();
+
+        assert_eq!(items.len(), 3);
+        assert_eq!(items[0].ejemplar_id, id_c);
+        assert_eq!(items[1].ejemplar_id, id_a);
+        assert_eq!(items[2].ejemplar_id, id_b);
+    }
+
+    #[test]
+    fn listar_carrito_detalle_modelo_inexistente_usa_nombre_default() {
+        let conn = crear_db_test();
+        conn.execute(
+            "INSERT INTO ejemplares (modelo_id, numero_serie)
+             VALUES (999, 'SN-HUERFANO')",
+            [],
+        )
+        .unwrap();
+        let ejemplar_id = conn.last_insert_rowid();
+
+        let items = ReservaService::listar_carrito_detalle(&conn, &[ejemplar_id]).unwrap();
+
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].modelo_id, 999);
+        assert_eq!(items[0].modelo_nombre, "Modelo");
+    }
+
+    #[test]
+    fn listar_carrito_detalle_varios_ejemplares_de_distintos_modelos() {
+        let conn = crear_db_test();
+        let modelo_violin = insertar_modelo(&conn, "Violín");
+        let modelo_viola = insertar_modelo(&conn, "Viola");
+        let id_violin = insertar_ejemplar(&conn, modelo_violin, Some("V-1"), None, None, None);
+        let id_viola = insertar_ejemplar(&conn, modelo_viola, Some("VA-1"), None, None, None);
+
+        let items =
+            ReservaService::listar_carrito_detalle(&conn, &[id_violin, id_viola]).unwrap();
+
+        assert_eq!(items.len(), 2);
+        assert_eq!(items[0].modelo_nombre, "Violín");
+        assert_eq!(items[1].modelo_nombre, "Viola");
     }
 }
