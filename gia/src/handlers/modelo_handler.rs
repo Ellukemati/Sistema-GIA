@@ -5,8 +5,8 @@ use crate::repository::sesion_repository::SesionRepository;
 use crate::repository::usuario_repository::UsuarioRepository;
 use crate::service::image_service::procesar_modelo;
 use crate::service::manual_service::validar_y_procesar_manual;
-use crate::service::reserva_service::ReservaService;
 use crate::service::modelo_service::{CrearModeloData, ModeloService};
+use crate::service::ejemplar_service::EjemplarService;
 use crate::templates;
 use crate::utils::extraer_token_sesion;
 
@@ -252,7 +252,7 @@ impl ModeloHandler {
         };
 
         let tiene_manual = ModeloRepository::tiene_manual(conn, id).unwrap_or(false);
-        let ejemplares = ReservaService::listar_ejemplares_basico(conn, id);
+        let ejemplares = EjemplarService::listar_ejemplares_basico(conn, id);
 
         let ejemplares = match ejemplares {
             Ok(e) => e,

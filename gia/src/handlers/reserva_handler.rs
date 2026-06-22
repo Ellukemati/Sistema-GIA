@@ -6,6 +6,7 @@ use crate::{
     },
     service::modelo_service::ModeloService,
     service::reserva_service::ReservaService,
+    service::ejemplar_service::EjemplarService,
     utils::{
         cookie_carrito, cookie_carrito_vacio, extraer_token_sesion, leer_carrito, Carrito,
     },
@@ -179,7 +180,7 @@ impl ReservaHandler {
         };
 
         let ejemplares = if con_fechas {
-            ReservaService::listar_ejemplares_para_modelo(
+            EjemplarService::listar_ejemplares_para_modelo(
                 conn,
                 modelo_id,
                 &inicio,
@@ -187,7 +188,7 @@ impl ReservaHandler {
                 &carrito.ejemplares,
             )
         } else {
-            ReservaService::listar_ejemplares_basico(conn, modelo_id)
+            EjemplarService::listar_ejemplares_basico(conn, modelo_id)
         };
 
         let ejemplares = match ejemplares {
