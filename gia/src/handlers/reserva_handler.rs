@@ -4,12 +4,10 @@ use crate::{
         ejemplar_repository::EjemplarRepository, image_repository::ImageRepository,
         modelo_repository::ModeloRepository, sesion_repository::SesionRepository,
     },
+    service::ejemplar_service::EjemplarService,
     service::modelo_service::ModeloService,
     service::reserva_service::ReservaService,
-    service::ejemplar_service::EjemplarService,
-    utils::{
-        cookie_carrito, cookie_carrito_vacio, extraer_token_sesion, leer_carrito, Carrito,
-    },
+    utils::{Carrito, cookie_carrito, cookie_carrito_vacio, extraer_token_sesion, leer_carrito},
 };
 
 use chrono::{Duration, Local, NaiveDate};
@@ -58,7 +56,10 @@ impl ReservaHandler {
         ctx.insert("fecha_minima", &fecha_minima);
         ctx.insert("fecha_maxima", &fecha_maxima);
         ctx.insert("grupos", &grupos);
-        ctx.insert("fecha_inicio", &carrito.fecha_inicio.clone().unwrap_or_default());
+        ctx.insert(
+            "fecha_inicio",
+            &carrito.fecha_inicio.clone().unwrap_or_default(),
+        );
         ctx.insert("fecha_fin", &carrito.fecha_fin.clone().unwrap_or_default());
         ctx.insert("carrito_cantidad", &carrito.ejemplares.len());
         ctx.insert("oob", &false);
@@ -69,7 +70,7 @@ impl ReservaHandler {
     /// - Si falta alguna fecha (campo vacio), lista todos los modelos.
     /// - Si ambas fechas son validas, filtra por disponibilidad en el rango.
     /// - Si hay fechas pero son invalidas (mal formadas o fin <= inicio), muestra error.
-    /// En todos los casos validos reinicia el carrito (cambiar la fecha vacia los ejemplares).
+    ///   En todos los casos validos reinicia el carrito (cambiar la fecha vacia los ejemplares).
     pub fn listar_modelos_disponibles(request: &Request, conn: &Connection) -> Response {
         if let Err(response) = Self::obtener_usuario_sesion(request, conn) {
             return response;
@@ -194,7 +195,10 @@ impl ReservaHandler {
         let ejemplares = match ejemplares {
             Ok(e) => e,
             Err(e) => {
-                return templates::response_mensaje_error("No se pudieron cargar los ejemplares", &e);
+                return templates::response_mensaje_error(
+                    "No se pudieron cargar los ejemplares",
+                    &e,
+                );
             }
         };
 
@@ -280,17 +284,16 @@ impl ReservaHandler {
 
         let mut ctx = Context::new();
         ctx.insert("items", &items);
-        ctx.insert("fecha_inicio", &carrito.fecha_inicio.clone().unwrap_or_default());
+        ctx.insert(
+            "fecha_inicio",
+            &carrito.fecha_inicio.clone().unwrap_or_default(),
+        );
         ctx.insert("fecha_fin", &carrito.fecha_fin.clone().unwrap_or_default());
         ctx.insert("carrito_cantidad", &carrito.ejemplares.len());
         templates::response_html(templates::render("carrito_detalle.html", &ctx))
     }
 
-    pub fn remover_del_carrito(
-        request: &Request,
-        conn: &Connection,
-        ejemplar_id: i64,
-    ) -> Response {
+    pub fn remover_del_carrito(request: &Request, conn: &Connection, ejemplar_id: i64) -> Response {
         if let Err(response) = Self::obtener_usuario_sesion(request, conn) {
             return response;
         }

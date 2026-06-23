@@ -291,6 +291,37 @@
         color: var(--color-primary-hover);
     }
 
+    /* SOPORTE PARA OJITO (VISIBILIDAD DE CONTRASEÑA OPCIONAL) */
+    .password-wrapper {
+        position: relative;
+        width: 100%;
+        display: flex;
+        align-items: center;
+    }
+    
+    .toggle-password {
+        position: absolute;
+        right: 0.75rem;
+        background: none;
+        border: none;
+        color: var(--color-muted);
+        cursor: pointer;
+        padding: var(--spacing-xs);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 5;
+    }
+
+    .toggle-password:hover {
+        color: var(--color-primary);
+    }
+
+    .password-wrapper input {
+        padding-right: 2.75rem !important;
+    }
+    /* ========================================== */
+
     @media (min-width: 480px) {
         .auth-page {
             padding: var(--spacing-lg);

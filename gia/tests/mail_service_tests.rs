@@ -2,15 +2,12 @@
 use gia::constants::MOCK_MAILS;
 use gia::service::mail_service::MailService;
 
-// Pruebas de integración para el servicio de mail. Se ignoran por defecto en 'cargo test' para no requerir internet obligatoriamente.
-// Se corren con 'cargo test -- --ignored'.
-// Se adaptan automáticamente al estado de la constante `MOCK_MAILS`.
-// Si el mock está en false, se conectan a la API de Mailtrap usando la red y aplicando las esperas.
-// Si el mock está en true, corren al instante simulando el éxito sin llamadas de red ni demoras.
+// Ignorado para no enviar mails reales a Mailtrap durante pruebas automáticas (salvo usando cargo test -- --include-ignored),
+// pero se puede ejecutar manualmente para verificar el flujo completo. MOCK_MAILS = true para no enviar mails a Mailtrap.
 #[test]
 #[ignore]
 fn test_circuito_de_notificaciones() {
-    // CASO 1: Notificación de Reserva Aprobada
+    // CASO 1: Notificación de Reserva Confirmada
     let resultado_reserva_aprobada = MailService::enviar_notificacion_reserva_aprobada(
         "docentest@fi.uba.ar",
         "Juan Pérez",
@@ -44,7 +41,7 @@ fn test_circuito_de_notificaciones() {
         std::thread::sleep(std::time::Duration::from_millis(10500));
     }
 
-    // CASO 3: Notificación de Docente Aprobado
+    // CASO 3: Notificación de cuenta de Docente habilitada
     let resultado_profe_aprobado =
         MailService::enviar_notificacion_profesor_aprobado("docentest@fi.uba.ar", "Carlos Gómez");
     assert!(
@@ -56,7 +53,7 @@ fn test_circuito_de_notificaciones() {
         std::thread::sleep(std::time::Duration::from_millis(10500));
     }
 
-    // CASO 4: Notificación de Profesor Rechazado
+    // CASO 4: Notificación de Solicitud de Registro de Docente Rechazada
     let resultado_profe_rechazado =
         MailService::enviar_notificacion_profesor_rechazado("docentest@fi.uba.ar", "Aníbal López");
     assert!(
@@ -70,6 +67,8 @@ fn test_circuito_de_notificaciones() {
     }
 }
 
+// Ignorado para no enviar mails reales a Mailtrap durante pruebas automáticas (salvo usando cargo test -- --include-ignored),
+// pero se puede ejecutar manualmente para verificar el flujo completo. MOCK_MAILS = true para no enviar mails a Mailtrap.
 #[test]
 #[ignore]
 fn test_enviar_comunicado_en_lote() {
@@ -119,10 +118,15 @@ fn test_extraccion_destinatarios_con_emails_invalidos() {
             "Se esperaba que simule exitosamente 1 envío"
         );
     } else {
-        // En modo real, Lettre parsea el string roto y devuelve Err
+        // En modo real, Lettre falla al parsear el mail y el servicio lo maneja devolviendo Ok(0)
         assert!(
-            resultado.is_err(),
-            "En modo REAL debería haber fallado debido al formato de email inválido"
+            resultado.is_ok(),
+            "El servicio debería manejar el error internamente y devolver Ok"
+        );
+        assert_eq!(
+            resultado.unwrap(),
+            0,
+            "Se esperaba que devuelva 0 envíos exitosos debido al formato de email inválido"
         );
     }
 }

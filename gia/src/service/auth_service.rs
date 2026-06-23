@@ -1,39 +1,44 @@
-use crate::models::usuario::Usuario;
-use crate::repository::sesion_repository::SesionRepository;
-use crate::repository::usuario_repository::UsuarioRepository;
 use bcrypt::{hash, verify};
 use rusqlite::Connection;
 use std::time::{SystemTime, UNIX_EPOCH};
+
+use crate::constants::{
+    BCRYPT_COST_FACTOR, EXPIRACION_INVITACION_SEGUNDOS, EXPIRACION_RECUPERACION_SEGUNDOS,
+};
+use crate::models::invitacion::Invitacion;
+use crate::models::usuario::Usuario;
+use crate::repository::invitacion_repository::InvitacionRepository;
+use crate::repository::sesion_repository::SesionRepository;
+use crate::repository::token_repository::TokenRepository;
+use crate::repository::usuario_repository::UsuarioRepository;
+use crate::service::mail_service::MailService;
 
 pub struct AuthService;
 
 impl AuthService {
     pub fn registrar_cuenta(
-        conn: &Connection, // Agrego conexión
+        conn: &Connection,
         legajo: i32,
         nombre: String,
         apellido: String,
         email: String,
-        tipo: &str, // asi esta en las constantes (&str)
+        tipo: &str,
         password: &str,
     ) -> Result<Usuario, String> {
         if !Self::validar_email_fiuba(&email) {
             return Err("El email debe pertenecer a FIUBA".to_string());
         }
 
-        // Verificar que el usuario no exista
         match UsuarioRepository::buscar_por_email(conn, &email) {
             Ok(Some(_)) => return Err("Ya existe un usuario con ese email".to_string()),
-            Ok(None) => {} // Todo en orden, continuamos
+            Ok(None) => {}
             Err(e) => return Err(format!("Error consultando usuarios: {}", e)),
         }
 
-        // Hashear la contraseña
         let password_hash = Self::hashear_password(password);
 
-        // Armar struct
         let nuevo_usuario = Usuario {
-            id: 0, // se asigna en la db
+            id: 0,
             legajo,
             nombre,
             apellido,
@@ -41,20 +46,16 @@ impl AuthService {
             tipo: tipo.to_string(),
             password_hash,
             aprobado: false,
-            momento_creacion: String::new(), // se asigna en la db
+            momento_creacion: String::new(),
             avatar_blob: None,
             avatar_mime: None,
         };
 
-        // Insertar en la base de datos y volver a obtener el usuario con los campos actualizados
         match UsuarioRepository::crear(conn, &nuevo_usuario) {
-            Ok(_) => {
-                // con esto se obtiene el id y el momento de creación
-                match UsuarioRepository::buscar_por_email(conn, &email) {
-                    Ok(Some(user)) => Ok(user),
-                    _ => Err("Usuario creado, pero hubo un error al recuperarlo".to_string()),
-                }
-            }
+            Ok(_) => match UsuarioRepository::buscar_por_email(conn, &email) {
+                Ok(Some(user)) => Ok(user),
+                _ => Err("Usuario creado, pero hubo un error al recuperarlo".to_string()),
+            },
             Err(e) => Err(format!("Error en la base de datos al crear cuenta: {}", e)),
         }
     }
@@ -74,7 +75,6 @@ impl AuthService {
                     );
                 }
                 if Self::verificar_password(password, &usuario.password_hash) {
-                    // Generar un token único basado en el tiempo actual
                     let time = SystemTime::now()
                         .duration_since(UNIX_EPOCH)
                         .unwrap()
@@ -98,11 +98,173 @@ impl AuthService {
         email.ends_with("@fi.uba.ar")
     }
 
-    // Metodos auxiliares
+    pub fn solicitar_recuperacion(conn: &Connection, email: &str) -> Result<(), String> {
+        let usuario = match UsuarioRepository::buscar_por_email(conn, email)
+            .map_err(|e| e.to_string())?
+        {
+            Some(u) => u,
+            None => {
+                return Err("Si el email es válido, recibirás un correo a la brevedad.".to_string());
+            }
+        };
 
-    // Aca podriamos usar un crate, por ahora queda asi
+        let ahora_nano = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let token = format!("{:x}_{}", ahora_nano, usuario.id);
+
+        let ahora_segundos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64;
+
+        let expira_en = ahora_segundos + EXPIRACION_RECUPERACION_SEGUNDOS;
+
+        TokenRepository::guardar(conn, usuario.id, &token, expira_en)
+            .map_err(|e| format!("Error en repositorio de tokens: {}", e))?;
+
+        let link = format!(
+            "http://localhost:8080/restablecer-contrasena?token={}",
+            token
+        );
+        let nombre_completo = format!("{} {}", usuario.nombre, usuario.apellido);
+
+        MailService::enviar_link_recuperacion(&usuario.email, &nombre_completo, &link)?;
+
+        Ok(())
+    }
+
+    pub fn restablecer_password(
+        conn: &Connection,
+        token: &str,
+        nuevo_password: &str,
+    ) -> Result<(), String> {
+        let ahora_segundos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64;
+
+        let id_usuario = match TokenRepository::buscar_valido(conn, token, ahora_segundos)
+            .map_err(|e| e.to_string())?
+        {
+            Some(id) => id,
+            None => return Err("El enlace de recuperación es inválido o ha expirado.".to_string()),
+        };
+
+        let nuevo_hash = Self::hashear_password(nuevo_password);
+
+        conn.execute(
+            "UPDATE usuarios SET password_hash = ? WHERE id = ?",
+            rusqlite::params![nuevo_hash, id_usuario],
+        )
+        .map_err(|e| format!("Error al actualizar contraseña: {}", e))?;
+
+        let _ = TokenRepository::eliminar(conn, id_usuario);
+
+        Ok(())
+    }
+
+    /// INVITACIÓN DE NUEVOS USUARIOS POR MAIL
+    pub fn invitar_usuario(conn: &Connection, email: &str, tipo: &str) -> Result<(), String> {
+        if !Self::validar_email_fiuba(email) {
+            return Err("El email debe pertenecer a FIUBA".to_string());
+        }
+
+        if let Ok(Some(_)) = UsuarioRepository::buscar_por_email(conn, email) {
+            return Err("Este usuario ya está registrado en el sistema.".to_string());
+        }
+
+        let ahora_nano = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let token = format!("inv_{:x}", ahora_nano);
+
+        let ahora_segundos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64;
+        let expira_en = ahora_segundos + EXPIRACION_INVITACION_SEGUNDOS;
+
+        // Instanciamos el modelo intermedio
+        let nueva_invitacion = Invitacion {
+            email: email.to_string(),
+            token: token.clone(),
+            tipo: tipo.to_string(),
+            expira_en,
+        };
+
+        InvitacionRepository::guardar(conn, &nueva_invitacion)
+            .map_err(|e| format!("Error en repositorio de invitaciones: {}", e))?;
+
+        let link = format!("http://localhost:8080/registro-invitacion?token={}", token);
+        MailService::enviar_link_invitacion(email, tipo, &link)?;
+
+        Ok(())
+    }
+
+    pub fn registrar_por_invitacion(
+        conn: &Connection,
+        token: &str,
+        nombre: String,
+        apellido: String,
+        legajo: i32,
+        password: &str,
+    ) -> Result<(), String> {
+        let ahora_segundos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64;
+
+        let invitacion = match InvitacionRepository::buscar_valido(conn, token, ahora_segundos)
+            .map_err(|e| e.to_string())?
+        {
+            Some(inv) => inv,
+            None => {
+                let _ = InvitacionRepository::eliminar(conn, token);
+                return Err("El enlace de invitación es inválido o ha expirado.".to_string());
+            }
+        };
+
+        match UsuarioRepository::buscar_por_legajo(conn, legajo) {
+            Ok(Some(_)) => {
+                return Err("El legajo ingresado ya se encuentra registrado.".to_string());
+            }
+            Ok(None) => {}
+            Err(e) => return Err(format!("Error consultando legajos: {}", e)),
+        }
+
+        let password_hash = Self::hashear_password(password);
+
+        let nuevo_usuario = Usuario {
+            id: 0,
+            legajo,
+            nombre,
+            apellido,
+            email: invitacion.email.clone(),
+            tipo: invitacion.tipo,
+            password_hash,
+            aprobado: false,
+            momento_creacion: String::new(),
+            avatar_blob: None,
+            avatar_mime: None,
+        };
+
+        let id_generado = UsuarioRepository::crear(conn, &nuevo_usuario)
+            .map_err(|e| format!("Error en el repositorio al crear cuenta: {}", e))?;
+
+        // Es aprobado automáticamente porque fue invitado por un admin y no necesita aprobación manual
+        UsuarioRepository::actualizar_aprobacion(conn, id_generado, true)
+            .map_err(|e| format!("Error al activar los permisos en el repositorio: {}", e))?;
+
+        let _ = InvitacionRepository::eliminar(conn, token);
+
+        Ok(())
+    }
+
     fn hashear_password(password: &str) -> String {
-        hash(password, 4).unwrap_or_else(|_| String::new())
+        hash(password, BCRYPT_COST_FACTOR).unwrap_or_else(|_| String::new())
     }
 
     fn verificar_password(password: &str, hash_guardado: &str) -> bool {
@@ -114,6 +276,10 @@ impl AuthService {
 mod tests {
     use super::*;
     use rusqlite::Connection;
+    use std::sync::Mutex;
+
+    // Bloqueo global para evitar que los hilos le peguen en simultáneo a Mailtrap
+    static LOCK_MAILTRAP: Mutex<()> = Mutex::new(());
 
     fn crear_db_test() -> Connection {
         let conn = Connection::open_in_memory().unwrap();
@@ -125,8 +291,7 @@ mod tests {
                 momento_creacion TEXT DEFAULT CURRENT_TIMESTAMP, avatar_blob BLOB, avatar_mime TEXT
             )",
             [],
-        )
-        .unwrap();
+        ).unwrap();
         conn.execute(
             "CREATE TABLE sesiones (
                 token TEXT PRIMARY KEY, id_usuario INTEGER NOT NULL,
@@ -135,7 +300,34 @@ mod tests {
             [],
         )
         .unwrap();
+        conn.execute(
+            "CREATE TABLE tokens_recuperacion (
+                id_usuario INTEGER NOT NULL PRIMARY KEY,
+                token TEXT NOT NULL UNIQUE,
+                expira_en INTEGER NOT NULL
+            )",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "CREATE TABLE tokens_invitacion (
+                email TEXT NOT NULL PRIMARY KEY,
+                token TEXT NOT NULL UNIQUE,
+                tipo TEXT NOT NULL,
+                expira_en INTEGER NOT NULL
+            )",
+            [],
+        )
+        .unwrap();
+
         conn
+    }
+
+    fn esperar_cuota_mailtrap() {
+        if !crate::constants::MOCK_MAILS {
+            println!("Esperando 10.5 segundos para liberar la cuota de Mailtrap...");
+            std::thread::sleep(std::time::Duration::from_millis(10500));
+        }
     }
 
     #[test]
@@ -146,7 +338,7 @@ mod tests {
     }
 
     #[test]
-    fn test_registrar_cuenta_y_login_exitoso() {
+    fn test_registrar_cuenta_y_login() {
         let conn = crear_db_test();
 
         let usuario = AuthService::registrar_cuenta(
@@ -231,6 +423,291 @@ mod tests {
         assert_eq!(
             resultado_duplicado.unwrap_err(),
             "Ya existe un usuario con ese email"
+        );
+    }
+
+    #[test]
+    fn test_solicitar_recuperacion_usuario_inexistente() {
+        let conn = crear_db_test();
+        let resultado = AuthService::solicitar_recuperacion(&conn, "incognito@fi.uba.ar");
+
+        assert!(resultado.is_err());
+        assert_eq!(
+            resultado.unwrap_err(),
+            "Si el email es válido, recibirás un correo a la brevedad."
+        );
+    }
+
+    #[test]
+    fn test_restablecer_password_falla_por_token_invalido() {
+        let conn = crear_db_test();
+
+        let resultado =
+            AuthService::restablecer_password(&conn, "token_inexistente_123", "nueva_clave_larga");
+
+        assert!(resultado.is_err());
+        assert_eq!(
+            resultado.unwrap_err(),
+            "El enlace de recuperación es inválido o ha expirado."
+        );
+    }
+
+    // Ignorado para no enviar mails reales a Mailtrap durante pruebas automáticas (salvo usando cargo test -- --include-ignored),
+    // pero se puede ejecutar manualmente para verificar el flujo completo. MOCK_MAILS = true para no enviar mails a Mailtrap.
+    #[test]
+    #[ignore]
+    fn test_circuito_completo_recuperacion() {
+        // LOCK INTERNO: Frena otros hilos de envío de mail hasta terminar la ejecución
+        let _guard = LOCK_MAILTRAP.lock().unwrap();
+
+        let conn = crear_db_test();
+
+        let _ = AuthService::registrar_cuenta(
+            &conn,
+            99999,
+            "Van".to_string(),
+            "Gogh".to_string(),
+            "vgogh@fi.uba.ar".to_string(),
+            "P",
+            "clavegogh123",
+        )
+        .unwrap();
+
+        let resultado_solicitud = AuthService::solicitar_recuperacion(&conn, "vgogh@fi.uba.ar");
+        esperar_cuota_mailtrap();
+        assert!(resultado_solicitud.is_ok());
+
+        let token_guardado: String = conn
+            .query_row(
+                "SELECT token FROM tokens_recuperacion WHERE id_usuario = 1",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        let resultado_cambio =
+            AuthService::restablecer_password(&conn, &token_guardado, "clavenueva789");
+        assert!(resultado_cambio.is_ok());
+
+        let token_existe: i32 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM tokens_recuperacion WHERE token = ?",
+                [token_guardado],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(token_existe, 0);
+
+        conn.execute("UPDATE usuarios SET aprobado = 1 WHERE id = 1", [])
+            .unwrap();
+
+        let login_viejo = AuthService::login(&conn, "vgogh@fi.uba.ar", "clavegogh123");
+        assert!(login_viejo.is_err());
+
+        let login_nuevo = AuthService::login(&conn, "vgogh@fi.uba.ar", "clavenueva789");
+        assert!(login_nuevo.is_ok());
+    }
+
+    #[test]
+    #[ignore]
+    fn test_restablecer_password_falla_por_token_expirado() {
+        let _guard = LOCK_MAILTRAP.lock().unwrap();
+
+        let conn = crear_db_test();
+
+        let usuario = AuthService::registrar_cuenta(
+            &conn,
+            55555,
+            "Lionel".to_string(),
+            "Messi".to_string(),
+            "lmessi@fi.uba.ar".to_string(),
+            "P",
+            "clavebase123",
+        )
+        .unwrap();
+
+        AuthService::solicitar_recuperacion(&conn, "lmessi@fi.uba.ar").unwrap();
+        esperar_cuota_mailtrap();
+
+        let token_guardado: String = conn
+            .query_row(
+                "SELECT token FROM tokens_recuperacion WHERE id_usuario = ?",
+                [usuario.id],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        conn.execute(
+            "UPDATE tokens_recuperacion SET expira_en = 0 WHERE token = ?",
+            [&token_guardado],
+        )
+        .unwrap();
+
+        let resultado =
+            AuthService::restablecer_password(&conn, &token_guardado, "nueva_clave_larga");
+
+        assert!(resultado.is_err());
+        assert_eq!(
+            resultado.unwrap_err(),
+            "El enlace de recuperación es inválido o ha expirado."
+        );
+    }
+
+    #[test]
+    #[ignore]
+    fn test_circuito_invitacion_admin() {
+        let _guard = LOCK_MAILTRAP.lock().unwrap();
+
+        let conn = crear_db_test();
+
+        let resultado_invitacion =
+            AuthService::invitar_usuario(&conn, "admin_nuevo@fi.uba.ar", "A");
+        esperar_cuota_mailtrap();
+        assert!(resultado_invitacion.is_ok());
+
+        let token_generado: String = conn
+            .query_row(
+                "SELECT token FROM tokens_invitacion WHERE email = 'admin_nuevo@fi.uba.ar'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        let resultado_alta = AuthService::registrar_por_invitacion(
+            &conn,
+            &token_generado,
+            "Admin".to_string(),
+            "Nuevo".to_string(),
+            85214,
+            "adminpass123",
+        );
+        assert!(resultado_alta.is_ok());
+
+        let cantidad_tokens: i32 = conn
+            .query_row("SELECT COUNT(*) FROM tokens_invitacion", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(cantidad_tokens, 0);
+
+        let usuario_creado: Usuario =
+            UsuarioRepository::buscar_por_email(&conn, "admin_nuevo@fi.uba.ar")
+                .unwrap()
+                .unwrap();
+
+        assert_eq!(usuario_creado.nombre, "Admin");
+        assert_eq!(usuario_creado.tipo, "A");
+        assert!(usuario_creado.aprobado);
+
+        let login = AuthService::login(&conn, "admin_nuevo@fi.uba.ar", "adminpass123");
+        assert!(login.is_ok());
+    }
+
+    #[test]
+    fn test_invitacion_falla_si_usuario_ya_existe() {
+        let conn = crear_db_test();
+
+        AuthService::registrar_cuenta(
+            &conn,
+            7777,
+            "Existente".to_string(),
+            "User".to_string(),
+            "registrado@fi.uba.ar".to_string(),
+            "P",
+            "123456",
+        )
+        .unwrap();
+
+        let resultado_invitar = AuthService::invitar_usuario(&conn, "registrado@fi.uba.ar", "A");
+        assert!(resultado_invitar.is_err());
+        assert_eq!(
+            resultado_invitar.unwrap_err(),
+            "Este usuario ya está registrado en el sistema."
+        );
+    }
+
+    #[test]
+    #[ignore]
+    fn test_registro_invitacion_falla_legajo_duplicado() {
+        let _guard = LOCK_MAILTRAP.lock().unwrap();
+
+        let conn = crear_db_test();
+
+        AuthService::registrar_cuenta(
+            &conn,
+            4444,
+            "Juan".to_string(),
+            "Perez".to_string(),
+            "jperez@fi.uba.ar".to_string(),
+            "P",
+            "clave123",
+        )
+        .unwrap();
+
+        AuthService::invitar_usuario(&conn, "invitado_nuevo@fi.uba.ar", "P").unwrap();
+        esperar_cuota_mailtrap();
+
+        let token_generado: String = conn
+            .query_row(
+                "SELECT token FROM tokens_invitacion WHERE email = 'invitado_nuevo@fi.uba.ar'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        let resultado_alta = AuthService::registrar_por_invitacion(
+            &conn,
+            &token_generado,
+            "Mateo".to_string(),
+            "Gomez".to_string(),
+            4444,
+            "pass789",
+        );
+
+        assert!(resultado_alta.is_err());
+        assert_eq!(
+            resultado_alta.unwrap_err(),
+            "El legajo ingresado ya se encuentra registrado."
+        );
+    }
+
+    #[test]
+    #[ignore]
+    fn test_registro_invitacion_falla_token_expirado() {
+        let _guard = LOCK_MAILTRAP.lock().unwrap();
+
+        let conn = crear_db_test();
+
+        AuthService::invitar_usuario(&conn, "viejo@fi.uba.ar", "P").unwrap();
+        esperar_cuota_mailtrap();
+
+        let token_generado: String = conn
+            .query_row(
+                "SELECT token FROM tokens_invitacion WHERE email = 'viejo@fi.uba.ar'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        conn.execute(
+            "UPDATE tokens_invitacion SET expira_en = 0 WHERE token = ?",
+            [&token_generado],
+        )
+        .unwrap();
+
+        let resultado_alta = AuthService::registrar_por_invitacion(
+            &conn,
+            &token_generado,
+            "Test".to_string(),
+            "User".to_string(),
+            998877,
+            "password123",
+        );
+
+        assert!(resultado_alta.is_err());
+        assert_eq!(
+            resultado_alta.unwrap_err(),
+            "El enlace de invitación es inválido o ha expirado."
         );
     }
 }

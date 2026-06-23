@@ -125,6 +125,30 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
         [],
     )?;
 
+    // Crear tabla tokens para recuperación de contraseñas
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS tokens_recuperacion (
+            id_usuario INTEGER NOT NULL,
+            token TEXT NOT NULL UNIQUE,
+            expira_en INTEGER NOT NULL, -- Timestamp Unix Epoch en segundos
+            PRIMARY KEY (id_usuario),
+            FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE
+        )",
+        [],
+    )?;
+
+    // Crear tabla tokens para invitación de nuevos usuarios
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS tokens_invitacion (
+            email TEXT NOT NULL,
+            token TEXT NOT NULL UNIQUE,
+            tipo TEXT NOT NULL,         -- 'A' para Admin, 'P' para Profesor = Docente
+            expira_en INTEGER NOT NULL, -- Timestamp Unix Epoch en segundos
+            PRIMARY KEY (email)
+        )",
+        [],
+    )?;
+
     // Creacion de un admin por defecto
     let admin_count: i32 = conn.query_row(
         "SELECT COUNT(*) FROM usuarios WHERE tipo = ?1",

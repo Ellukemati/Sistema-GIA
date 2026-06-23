@@ -54,6 +54,11 @@ impl ReservaService {
             }
         }
 
+        let ahora_string = Local::now()
+            .naive_local()
+            .format("%Y-%m-%d %H:%M:%S")
+            .to_string();
+
         let reserva = Reserva {
             id: 0,
             id_usuario,
@@ -61,7 +66,7 @@ impl ReservaService {
             fecha_fin,
             estado: "pendiente".to_string(),
             motivo,
-            momento_creacion: "".to_string(),
+            momento_creacion: ahora_string,
         };
 
         let reserva_id = ReservaRepository::crear(conn, &reserva).map_err(|e| e.to_string())?;
@@ -82,12 +87,11 @@ impl ReservaService {
         let mut items = Vec::with_capacity(ids.len());
 
         for id in ids {
-            let ejemplar = match EjemplarRepository::buscar_por_id(conn, *id)
-                .map_err(|e| e.to_string())?
-            {
-                Some(e) => e,
-                None => continue,
-            };
+            let ejemplar =
+                match EjemplarRepository::buscar_por_id(conn, *id).map_err(|e| e.to_string())? {
+                    Some(e) => e,
+                    None => continue,
+                };
 
             let modelo_nombre = ModeloRepository::buscar_por_id(conn, ejemplar.modelo_id)
                 .map_err(|e| e.to_string())?
@@ -98,7 +102,9 @@ impl ReservaService {
                 ejemplar_id: ejemplar.id,
                 modelo_id: ejemplar.modelo_id,
                 modelo_nombre,
-                numero_serie: ejemplar.numero_serie.unwrap_or_else(|| "Sin serie".to_string()),
+                numero_serie: ejemplar
+                    .numero_serie
+                    .unwrap_or_else(|| "Sin serie".to_string()),
                 patrimonio: ejemplar
                     .patrimonio
                     .unwrap_or_else(|| "Sin patrimonio".to_string()),
@@ -375,7 +381,8 @@ mod tests {
         let modelo_id = insertar_modelo(&conn, "Violín");
         let ejemplar_id = insertar_ejemplar(&conn, modelo_id, Some("SN-1"), None, None, None);
 
-        let items = ReservaService::listar_carrito_detalle(&conn, &[999, ejemplar_id, 888]).unwrap();
+        let items =
+            ReservaService::listar_carrito_detalle(&conn, &[999, ejemplar_id, 888]).unwrap();
 
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].ejemplar_id, ejemplar_id);
@@ -423,8 +430,7 @@ mod tests {
         let id_violin = insertar_ejemplar(&conn, modelo_violin, Some("V-1"), None, None, None);
         let id_viola = insertar_ejemplar(&conn, modelo_viola, Some("VA-1"), None, None, None);
 
-        let items =
-            ReservaService::listar_carrito_detalle(&conn, &[id_violin, id_viola]).unwrap();
+        let items = ReservaService::listar_carrito_detalle(&conn, &[id_violin, id_viola]).unwrap();
 
         assert_eq!(items.len(), 2);
         assert_eq!(items[0].modelo_nombre, "Violín");

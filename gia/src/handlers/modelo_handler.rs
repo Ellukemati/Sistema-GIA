@@ -3,10 +3,10 @@ use crate::repository::image_repository::ImageRepository;
 use crate::repository::modelo_repository::ModeloRepository;
 use crate::repository::sesion_repository::SesionRepository;
 use crate::repository::usuario_repository::UsuarioRepository;
+use crate::service::ejemplar_service::EjemplarService;
 use crate::service::image_service::procesar_modelo;
 use crate::service::manual_service::validar_y_procesar_manual;
 use crate::service::modelo_service::{CrearModeloData, ModeloService};
-use crate::service::ejemplar_service::EjemplarService;
 use crate::templates;
 use crate::utils::extraer_token_sesion;
 
@@ -257,7 +257,10 @@ impl ModeloHandler {
         let ejemplares = match ejemplares {
             Ok(e) => e,
             Err(e) => {
-                return templates::response_mensaje_error("No se pudieron cargar los ejemplares", &e);
+                return templates::response_mensaje_error(
+                    "No se pudieron cargar los ejemplares",
+                    &e,
+                );
             }
         };
 
@@ -268,5 +271,51 @@ impl ModeloHandler {
         ctx.insert("ejemplares", &ejemplares);
         ctx.insert("con_fechas", &false);
         templates::response_html(templates::render("modelo_detalle.html", &ctx))
+    }
+
+    pub fn sugerir(request: &Request, conn: &Connection) -> Response {
+        let termino = request.get_param("query").unwrap_or_default();
+
+        let modelos_db = if termino.trim().is_empty() {
+            ModeloRepository::listar_todos(conn).unwrap_or_default()
+        } else {
+            ModeloRepository::listar_todos(conn)
+                .unwrap_or_default()
+                .into_iter()
+                .filter(|m| {
+                    m.nombre_modelo
+                        .to_lowercase()
+                        .contains(&termino.to_lowercase())
+                        || m.marca.to_lowercase().contains(&termino.to_lowercase())
+                })
+                .collect::<Vec<_>>()
+        };
+
+        #[derive(serde::Serialize)]
+        struct ItemSugeridoDTO {
+            pub id: i64,
+            pub nombre: String,
+            pub extra_info: String,
+        }
+
+        let items_dto: Vec<ItemSugeridoDTO> = modelos_db
+            .into_iter()
+            .take(10) // CAMBIADO: Ahora corta en un máximo de 10 sugerencias
+            .map(|m| ItemSugeridoDTO {
+                id: m.id,
+                nombre: m.nombre_modelo,
+                // Mostramos la Categoría y la Marca en gris para que el usuario vea el agrupamiento
+                extra_info: format!(
+                    "{} - {}",
+                    m.categoria.unwrap_or_else(|| "Sin categoría".to_string()),
+                    m.marca
+                ),
+            })
+            .collect();
+
+        let mut ctx = Context::new();
+        ctx.insert("items", &items_dto);
+
+        templates::response_html(templates::render("partials/items_sugeridos.html", &ctx))
     }
 }
