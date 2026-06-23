@@ -149,21 +149,17 @@ impl ReservaService {
 
         Ok(())
     }
+    pub fn cancelar_reserva(
+        conn: &Connection,
+        reserva_id: i64,
+        usuario_id: i64,
+    ) -> Result<(), String> {
+        let filas = ReservaRepository::cancelar_por_usuario(conn, reserva_id, usuario_id)
+            .map_err(|e| e.to_string())?;
 
-    pub fn cancelar_reserva(conn: &Connection, reserva_id: i64) -> Result<(), String> {
-        match ReservaRepository::buscar_por_id(conn, reserva_id) {
-            Ok(Some(_)) => {}
-
-            Ok(None) => {
-                return Err("La reserva no existe".to_string());
-            }
-
-            Err(e) => {
-                return Err(format!("Error consultando reserva: {}", e));
-            }
+        if filas == 0 {
+            return Err("La reserva no existe o ya fue cancelada".to_string());
         }
-
-        ReservaRepository::cancelar(conn, reserva_id).map_err(|e| e.to_string())?;
 
         Ok(())
     }

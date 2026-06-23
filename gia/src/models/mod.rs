@@ -4,5 +4,6 @@ pub mod imagen_modelo;
 pub mod modelo;
 pub mod reserva;
 pub mod reserva_instrumento;
+pub mod reserva_view;
 pub mod sesion;
 pub mod usuario;
