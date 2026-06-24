@@ -5,6 +5,20 @@ use std::sync::{Arc, Mutex};
 
 pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
     router!(request,
+        /*
+        A IMPLEMENTAR PANEL DE CONTROL
+
+        (GET) (/admin/dashboard) => {
+            let conn_guard = conn.lock().unwrap();
+            AdminHandler::mostrar_dashboard_admin(request, &conn_guard)
+        },
+        */
+
+        (POST) (/admin/usuarios/cambiar-rol) => {
+            let conn_guard = conn.lock().unwrap();
+            AdminHandler::procesar_cambio_rol(request, &conn_guard)
+        },
+
         (GET) (/admin/solicitudes) => {
             let conn_guard = conn.lock().unwrap();
             AdminHandler::mostrar_solicitudes(request, &conn_guard)
@@ -33,6 +47,11 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
         (POST) (/admin/profesores/{id: i64}/rechazar) => {
             let conn_guard = conn.lock().unwrap();
             AdminHandler::rechazar_profesor(request, &conn_guard, id)
+        },
+
+        (POST) (/admin/invitar) => {
+            let conn_guard = conn.lock().unwrap();
+            AdminHandler::procesar_envio_invitacion(request, &conn_guard)
         },
 
         // IDEA: Endpoint para enviar un comunicado general por mail a todos los usuarios, a un grupo específico o uno solo

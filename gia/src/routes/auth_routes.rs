@@ -14,13 +14,40 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
             AuthHandler::procesar_registro(request, &conn_guard)
         },
 
-        (GET) (/login) => {
+        (GET) (/ingreso) => {
             AuthHandler::mostrar_formulario_login()
         },
 
-        (POST) (/login) => {
+        (POST) (/ingreso) => {
             let conn_guard = conn.lock().unwrap();
             AuthHandler::procesar_login(request, &conn_guard)
+        },
+
+        (GET) (/restablecer) => {
+            AuthHandler::mostrar_formulario_solicitud()
+        },
+
+        (POST) (/restablecer) => {
+            let conn_guard = conn.lock().unwrap();
+            AuthHandler::procesar_solicitud_restablecimiento_password(request, &conn_guard)
+        },
+
+        (GET) (/restablecer-contrasena) => {
+            AuthHandler::mostrar_formulario_cambio(request)
+        },
+
+        (POST) (/restablecer-contrasena) => {
+            let conn_guard = conn.lock().unwrap();
+            AuthHandler::procesar_cambio_password(request, &conn_guard)
+        },
+
+        (GET) (/registro-invitacion) => {
+            AuthHandler::mostrar_formulario_registro_invitacion(request)
+        },
+
+        (POST) (/registro-invitacion) => {
+            let conn_guard = conn.lock().unwrap();
+            AuthHandler::procesar_alta_registro_invitacion(request, &conn_guard)
         },
 
         (GET) (/) => {

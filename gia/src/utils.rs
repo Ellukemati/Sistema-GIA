@@ -1,9 +1,9 @@
-use rouille::{Request, Response};
-use rusqlite::Connection;
 use crate::models::usuario::Usuario;
-use crate::templates;
 use crate::repository::sesion_repository::SesionRepository;
 use crate::repository::usuario_repository::UsuarioRepository;
+use crate::templates;
+use rouille::{Request, Response};
+use rusqlite::Connection;
 
 /// Extrae el valor de una cookie por su clave de los headers HTTP manualmente
 pub fn extraer_cookie(request: &Request, clave: &str) -> Option<String> {
@@ -65,7 +65,11 @@ pub fn leer_carrito(request: &Request) -> Carrito {
         .collect();
 
     Carrito {
-        fecha_inicio: if inicio.is_empty() { None } else { Some(inicio) },
+        fecha_inicio: if inicio.is_empty() {
+            None
+        } else {
+            Some(inicio)
+        },
         fecha_fin: if fin.is_empty() { None } else { Some(fin) },
         ejemplares,
     }
@@ -130,6 +134,6 @@ pub fn usuario_actual(request: &Request, conn: &Connection) -> Result<Usuario, R
             ));
         }
     };
-    
+
     Ok(usuario)
 }

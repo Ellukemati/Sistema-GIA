@@ -9,6 +9,7 @@ use crate::repository::{
     reserva_repository::ReservaRepository, sesion_repository::SesionRepository,
     usuario_repository::UsuarioRepository,
 };
+use crate::service::auth_service::AuthService;
 use crate::service::mail_service::MailService;
 use crate::templates;
 use crate::utils::extraer_token_sesion;
@@ -208,6 +209,79 @@ impl AdminHandler {
         }
 
         Response::html("")
+    }
+
+    /// Procesa el disparo de la invitación que hace un admin desde el panel de control
+    pub fn procesar_envio_invitacion(request: &Request, conn: &Connection) -> Response {
+        let mut body = String::new();
+        if let Some(mut reader) = request.data() {
+            let _ = reader.read_to_string(&mut body);
+        }
+
+        let datos_parseados = Self::parsear_formulario(&body);
+        let email = datos_parseados.get("email").cloned().unwrap_or_default();
+        let tipo = datos_parseados.get("tipo").cloned().unwrap_or_default();
+
+        if email.is_empty() || tipo.is_empty() {
+            return templates::response_mensaje_error(
+                "Campos faltantes",
+                "Por favor ingrese el correo electrónico institucional y seleccione el rol.",
+            );
+        }
+
+        match AuthService::invitar_usuario(conn, &email, &tipo) {
+            Ok(_) => templates::response_mensaje_exito(
+                "Invitación enviada",
+                &format!(
+                    "Se ha enviado un enlace de alta a la casilla institucional: {}",
+                    email
+                ),
+            ),
+            Err(e) => templates::response_mensaje_error("Error al procesar invitación", &e),
+        }
+    }
+
+    pub fn procesar_cambio_rol(request: &Request, conn: &Connection) -> Response {
+        if let Err(resp) = Self::verificar_admin(request, conn) {
+            return resp;
+        }
+
+        let mut body = String::new();
+        if let Some(mut reader) = request.data() {
+            let _ = reader.read_to_string(&mut body);
+        }
+
+        let datos_parseados = Self::parsear_formulario(&body);
+        let nuevo_tipo = datos_parseados.get("tipo").cloned().unwrap_or_default();
+
+        let id_usuario = match datos_parseados
+            .get("id_usuario")
+            .unwrap_or(&String::new())
+            .parse::<i64>()
+        {
+            Ok(val) => val,
+            Err(_) => {
+                return templates::response_mensaje_error(
+                    "Identificador inválido",
+                    "El ID de usuario provisto no tiene un formato numérico correcto.",
+                );
+            }
+        };
+
+        match crate::repository::usuario_repository::UsuarioRepository::actualizar_rol(
+            conn,
+            id_usuario,
+            &nuevo_tipo,
+        ) {
+            Ok(_) => templates::response_mensaje_exito(
+                "Rol actualizado",
+                &format!(
+                    "El usuario ha sido configurado con el rol '{}' exitosamente.",
+                    nuevo_tipo
+                ),
+            ),
+            Err(e) => templates::response_mensaje_error("Error de asignación", &e.to_string()),
+        }
     }
 
     // IDEA: Endpoint para enviar un comunicado general por mail a todos los usuarios, a un grupo específico o uno solo

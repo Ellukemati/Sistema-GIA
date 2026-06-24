@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Completar Registro - Sistema GIA</title>
+    
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    
+    {% include "estilos/auth.html" %}
+    {% include "estilos/mensajes.html" %}
+</head>
+<body>
+
+    <div class="auth-page">
+        <div class="auth-card">
+            
+            <div class="auth-header">
+                <div class="auth-brand">GIA</div>
+                <h1>Invitación Institucional</h1>
+                <p class="auth-subtitle">Completá tus datos de acceso para activar tu cuenta en el sistema.</p>
+            </div>
+
+            <div id="resultado-alta" style="margin-bottom: var(--spacing-md);"></div>
+
+            <form hx-post="/registro-invitacion" hx-target="#resultado-alta" class="auth-form">
+                
+                <input type="hidden" name="token" value="{{ token }}">
+
+                <div class="field-row">
+                    <div class="field">
+                        <label for="nombre">Nombre</label>
+                        <input type="text" id="nombre" name="nombre" required autocomplete="given-name">
+                    </div>
+                    <div class="field">
+                        <label for="apellido">Apellido</label>
+                        <input type="text" id="apellido" name="apellido" required autocomplete="family-name">
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="legajo">Legajo FIUBA</label>
+                    <input type="text" id="legajo" name="legajo" inputmode="numeric" pattern="[0-9]*" placeholder="Ej. 12345" required>
+                </div>
+
+                <div class="field">
+                    <label for="password">Contraseña</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="password" name="password" required autocomplete="new-password">
+                        <button type="button" id="btn-toggle" class="toggle-password" title="Mostrar/Ocultar contraseña">
+                            <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="password_confirm">Repetir contraseña</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="password_confirm" required autocomplete="new-password">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary">Confirmar Registro</button>
+            </form>
+
+            <div class="auth-footer">
+                <p>¿Ya te registraste? <a href="/ingreso">Iniciá sesión acá</a></p>
+            </div>
+
+        </div>
+    </div>
+
+<script>
+    const inputPassword = document.getElementById('password');
+    const inputConfirm = document.getElementById('password_confirm');
+    const btnToggle = document.getElementById('btn-toggle');
+
+    function validarContrasenas() {
+        if (inputPassword.value !== inputConfirm.value) {
+            inputConfirm.setCustomValidity("Las contraseñas no coinciden");
+        } else {
+            inputConfirm.setCustomValidity("");
+        }
+    }
+
+    inputPassword.addEventListener('input', validarContrasenas);
+    inputConfirm.addEventListener('input', validarContrasenas);
+
+    // Control de visibilidad exclusivo para el primer campo
+    btnToggle.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const iconoOjo = document.getElementById('eye-icon');
+        
+        if (inputPassword.type === 'password') {
+            inputPassword.type = 'text';
+            
+            // Icono del ojo tachado (Ocultar)
+            iconoOjo.innerHTML = `
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+            `;
+        } else {
+            inputPassword.type = 'password';
+            
+            // Icono del ojo normal (Mostrar)
+            iconoOjo.innerHTML = `
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+            `;
+        }
+    });
+</script>
+</body>
+</html>

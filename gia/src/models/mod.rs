@@ -1,9 +1,11 @@
 pub mod ejemplar;
 pub mod imagen_ejemplar;
 pub mod imagen_modelo;
+pub mod invitacion;
 pub mod modelo;
 pub mod reserva;
 pub mod reserva_instrumento;
 pub mod reserva_view;
 pub mod sesion;
+pub mod token_recuperacion;
 pub mod usuario;

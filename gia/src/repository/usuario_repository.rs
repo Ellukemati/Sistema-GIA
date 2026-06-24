@@ -35,6 +35,21 @@ impl UsuarioRepository {
         }
     }
 
+    pub fn buscar_por_legajo(conn: &Connection, legajo: i32) -> SqlResult<Option<Usuario>> {
+        let mut stmt = conn.prepare(
+            "SELECT id, nombre, apellido, email, legajo, tipo, password_hash, aprobado, momento_creacion, avatar_blob, avatar_mime 
+             FROM usuarios 
+             WHERE legajo = ?1"
+        )?;
+
+        let mut rows = stmt.query([legajo])?;
+        if let Some(row) = rows.next()? {
+            Ok(Some(Usuario::from_row(row)?))
+        } else {
+            Ok(None)
+        }
+    }
+
     pub fn crear(conn: &Connection, usuario: &Usuario) -> SqlResult<i64> {
         conn.execute(
             "INSERT INTO usuarios (nombre, apellido, email, legajo, tipo, password_hash)
@@ -87,6 +102,20 @@ impl UsuarioRepository {
 
     pub fn aprobar_profesor(conn: &Connection, id: i64) -> SqlResult<usize> {
         conn.execute("UPDATE usuarios SET aprobado = 1 WHERE id = ?1", [id])
+    }
+
+    pub fn actualizar_rol(conn: &Connection, id: i64, nuevo_tipo: &str) -> SqlResult<usize> {
+        conn.execute(
+            "UPDATE usuarios SET tipo = ?1 WHERE id = ?2",
+            rusqlite::params![nuevo_tipo, id],
+        )
+    }
+
+    pub fn actualizar_aprobacion(conn: &Connection, id: i64, aprobado: bool) -> SqlResult<usize> {
+        conn.execute(
+            "UPDATE usuarios SET aprobado = ?1 WHERE id = ?2",
+            rusqlite::params![aprobado, id],
+        )
     }
 }
 
@@ -150,8 +179,63 @@ mod tests {
     #[test]
     fn test_buscar_usuario_inexistente_devuelve_none() {
         let conn = crear_db_test();
-        // el bicho siuuu no estudia en FIUBA
         let resultado = UsuarioRepository::buscar_por_email(&conn, "cr7@fi.uba.ar").unwrap();
         assert!(resultado.is_none());
+    }
+
+    #[test]
+    fn test_actualizar_rol() {
+        let conn = crear_db_test();
+        let nuevo_usuario = Usuario {
+            id: 0,
+            nombre: "Sergio".to_string(),
+            apellido: "Agüero".to_string(),
+            email: "kunaguero@fi.uba.ar".to_string(),
+            legajo: 191919,
+            tipo: "P".to_string(),
+            password_hash: "hash_kun".to_string(),
+            aprobado: true,
+            momento_creacion: String::new(),
+            avatar_blob: None,
+            avatar_mime: None,
+        };
+
+        let id_generado = UsuarioRepository::crear(&conn, &nuevo_usuario).unwrap();
+
+        let filas = UsuarioRepository::actualizar_rol(&conn, id_generado, "A").unwrap();
+        assert_eq!(filas, 1);
+
+        let usuario_db = UsuarioRepository::buscar_por_id(&conn, id_generado)
+            .unwrap()
+            .unwrap();
+        assert_eq!(usuario_db.tipo, "A");
+    }
+
+    #[test]
+    fn test_actualizar_aprobacion() {
+        let conn = crear_db_test();
+        let nuevo_usuario = Usuario {
+            id: 0,
+            nombre: "Gonzalo".to_string(),
+            apellido: "Higuain".to_string(),
+            email: "pipita@fi.uba.ar".to_string(),
+            legajo: 909090,
+            tipo: "P".to_string(),
+            password_hash: "hash_pipita".to_string(),
+            aprobado: false,
+            momento_creacion: String::new(),
+            avatar_blob: None,
+            avatar_mime: None,
+        };
+
+        let id_generado = UsuarioRepository::crear(&conn, &nuevo_usuario).unwrap();
+
+        let filas = UsuarioRepository::actualizar_aprobacion(&conn, id_generado, true).unwrap();
+        assert_eq!(filas, 1);
+
+        let usuario_db = UsuarioRepository::buscar_por_id(&conn, id_generado)
+            .unwrap()
+            .unwrap();
+        assert!(usuario_db.aprobado);
     }
 }
