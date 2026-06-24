@@ -50,7 +50,7 @@ impl AuthHandler {
         let token = match extraer_token_sesion(request) {
             Some(t) => t,
             None => {
-                return Response::redirect_302("/login");
+                return Response::redirect_302("/ingreso");
             }
         };
 
@@ -61,7 +61,7 @@ impl AuthHandler {
             ctx.insert("usuario_actual", &usuario);
             return templates::response_html(templates::render("home.html", &ctx));
         }
-        Response::redirect_302("/login")
+        Response::redirect_302("/ingreso")
     }
 
     pub fn procesar_registro(request: &Request, conn: &Connection) -> Response {
