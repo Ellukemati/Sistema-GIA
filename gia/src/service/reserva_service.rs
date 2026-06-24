@@ -54,6 +54,11 @@ impl ReservaService {
             }
         }
 
+        let ahora_string = Local::now()
+            .naive_local()
+            .format("%Y-%m-%d %H:%M:%S")
+            .to_string();
+
         let reserva = Reserva {
             id: 0,
             id_usuario,
@@ -61,7 +66,7 @@ impl ReservaService {
             fecha_fin,
             estado: "pendiente".to_string(),
             motivo,
-            momento_creacion: "".to_string(),
+            momento_creacion: ahora_string,
         };
 
         let reserva_id = ReservaRepository::crear(conn, &reserva).map_err(|e| e.to_string())?;
