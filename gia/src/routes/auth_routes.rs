@@ -50,8 +50,14 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
             AuthHandler::procesar_alta_registro_invitacion(request, &conn_guard)
         },
 
-        (GET) (/) => {
-            Response::text("Bienvenido a GIA. Ve a /registro para crear una cuenta.")
+        (GET) (/inicio) => {
+            let conn_guard = conn.lock().unwrap();
+            AuthHandler::mostrar_home(request, &conn_guard)
+        },
+
+        (GET) (/cerrar-sesion) => {
+            let conn_guard = conn.lock().unwrap();
+            AuthHandler::procesar_logout(request, &conn_guard)
         },
 
         _ => Response::empty_404()

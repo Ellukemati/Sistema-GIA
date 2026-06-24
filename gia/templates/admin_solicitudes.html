@@ -1,103 +1,189 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Administración - GIA</title>
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <style>
-        body { font-family: Arial, sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; }
-        
-        .dashboard-container { display: flex; flex-direction: column; gap: 20px; max-width: 1200px; margin: auto; }
-        
-        details.columna { 
-            background: white; 
-            border-radius: 8px; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
-            overflow: hidden;
-        }
-        
-        details > summary {
-            padding: 15px 20px;
-            font-size: 1.25em;
-            font-weight: bold;
-            background-color: #f8f9fa;
-            cursor: pointer;
-            list-style: none;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #e9ecef;
-            transition: background-color 0.2s;
-        }
+{% extends "base.html" %}
 
-        details > summary:hover {
-            background-color: #e2e6ea;
-        }
+{% block title %}Panel de Administración - GIA{% endblock %}
 
-        details > summary::after {
-            content: '▼';
-            font-size: 0.7em;
-            color: #6c757d;
-            transition: transform 0.3s ease;
-        }
-        
-        details[open] > summary::after {
-            transform: rotate(180deg);
-        }
-
-        .detalles-contenido {
-            padding: 20px;
-        }
-
-        table { width: 100%; border-collapse: collapse; margin-top: 5px; }
-        th, td { border-bottom: 1px solid #ddd; padding: 12px; text-align: left; }
-        th { background-color: #f8f9fa; }
-        .btn-aprobar { background-color: #28a745; color: white; border: none; padding: 8px 12px; cursor: pointer; border-radius: 4px; }
-        .btn-rechazar { background-color: #dc3545; color: white; border: none; padding: 8px 12px; cursor: pointer; border-radius: 4px; }
-        .btn-aprobar:hover { background-color: #218838; }
-        .btn-rechazar:hover { background-color: #c82333; }
-
-        .table-responsive {
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+{% block extra_head %}
+<style>
+    body { font-family: Arial, sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; }
+    
+    .dashboard-container { display: flex; flex-direction: column; gap: 20px; max-width: 1200px; margin: auto; }
+    
+    .tabs-header {
+        display: flex;
+        gap: 10px;
+        border-bottom: 2px solid #c5d9e8;
+        margin-bottom: 20px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
-    </style>
-</head>
-<body>
-    <div style="max-width: 1200px; margin: auto;">
-        <h1>⚙️ Panel de Control</h1>
-    </div>
 
-    <div id="tablas-container" hx-get="/admin/tablas/recargar" hx-trigger="every 10s">
-        {% include "partials/admin_tablas.html" %}
-    </div>
+    .tab-btn {
+        background: none;
+        border: none;
+        padding: 12px 20px;
+        font-size: 1.05em;
+        font-weight: 600;
+        color: #5a6a75;
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+    }
 
-    <script>
-        document.addEventListener('htmx:beforeSwap', function(event) {
-            if (event.detail.target.id === 'tablas-container') {
-                const details = document.querySelectorAll('#tablas-container details');
-                const states = Array.from(details).map(d => d.open);
-                sessionStorage.setItem('gia_admin_panels', JSON.stringify(states));
-            }
+    .tab-btn:hover {
+        color: #0091D5;
+        background-color: rgba(0, 145, 213, 0.05);
+        border-radius: 8px 8px 0 0;
+    }
+
+    .tab-btn.active {
+        color: #0091D5;
+        border-bottom-color: #0091D5;
+    }
+
+    .tab-content {
+        display: none;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 20px;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+    th, td { border-bottom: 1px solid #ddd; padding: 12px; text-align: left; vertical-align: middle; }
+    th { background-color: #f8f9fa; }
+    
+    .btn-aprobar { background-color: #28a745; color: white; border: none; padding: 8px 12px; cursor: pointer; border-radius: 4px; transition: 0.2s; }
+    .btn-rechazar { background-color: #dc3545; color: white; border: none; padding: 8px 12px; cursor: pointer; border-radius: 4px; transition: 0.2s; }
+    .btn-aprobar:hover { background-color: #218838; }
+    .btn-rechazar:hover { background-color: #c82333; }
+
+    .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    @media (max-width: 768px) {
+        body {
+            padding: 10px; 
+        }
+
+        .tabs-header {
+            gap: 0;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px 5px;
+            font-size: 0.9rem;
+            white-space: normal;
+            line-height: 1.3;
+            text-align: center;
+        }
+
+        .table-responsive table,
+        .table-responsive tbody,
+        .table-responsive tr,
+        .table-responsive td {
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .table-responsive thead {
+            display: none;
+        }
+
+        .table-responsive tr {
+            background-color: #fff;
+            border: 2px solid #c5d9e8;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            padding: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+        }
+
+        .table-responsive td {
+            border-bottom: 1px solid #f0f2f5;
+            text-align: right;
+            padding: 12px 10px 12px 45%;
+            position: relative;
+            min-height: 40px;
+            box-sizing: border-box;
+        }
+
+        .table-responsive td::before {
+            content: attr(data-label);
+            position: absolute;
+            left: 10px;
+            width: 40%;
+            text-align: left;
+            font-weight: bold;
+            color: #0091D5;
+        }
+
+        .table-responsive td ul {
+            text-align: right;
+            list-style-position: inside;
+        }
+
+        .table-responsive td.td-acciones {
+            border-bottom: none;
+            text-align: center;
+            padding: 15px 10px 5px 10px;
+        }
+
+        .table-responsive td.td-acciones::before {
+            display: none;
+        }
+        
+        .btn-aprobar, .btn-rechazar {
+            padding: 10px 20px;
+            margin: 0 5px;
+            font-size: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 1200px; margin: auto;">
+    <a href="/inicio" class="btn-volver">⬅ Volver al inicio</a>
+    <h1>⚙️ Panel de Control</h1>
+</div>
+
+<div id="tablas-container" class="dashboard-container" hx-get="/admin/tablas/recargar" hx-trigger="every 10s">
+    {% include "partials/admin_tablas.html" %}
+</div>
+
+<script>
+    function switchTab(index) {
+        document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+            btn.classList.toggle('active', i === index);
         });
-
-        document.addEventListener('htmx:afterSwap', function(event) {
-            if (event.detail.target.id === 'tablas-container') {
-                const savedStates = JSON.parse(sessionStorage.getItem('gia_admin_panels'));
-                if (savedStates) {
-                    const details = document.querySelectorAll('#tablas-container details');
-                    details.forEach((d, index) => {
-                        if (savedStates[index]) {
-                            d.setAttribute('open', '');
-                        } else {
-                            d.removeAttribute('open');
-                        }
-                    });
-                }
-            }
+        
+        document.querySelectorAll('.tab-content').forEach((content, i) => {
+            content.classList.toggle('active', i === index);
         });
-    </script>
-</body>
-</html>
+        
+        sessionStorage.setItem('gia_admin_tab', index);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const activeTab = sessionStorage.getItem('gia_admin_tab') || 0;
+        switchTab(parseInt(activeTab));
+    });
+
+    document.addEventListener('htmx:afterSwap', function(event) {
+        if (event.detail.target.id === 'tablas-container') {
+            const activeTab = sessionStorage.getItem('gia_admin_tab') || 0;
+            switchTab(parseInt(activeTab));
+        }
+    });
+</script>
+{% endblock %}
