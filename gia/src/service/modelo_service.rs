@@ -18,7 +18,7 @@ pub struct ModeloCardDTO {
     pub id: i64,
     pub nombre_modelo: String,
     pub categoria: Option<String>,
-    pub imagen: Option<String>
+    pub imagen: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -130,12 +130,9 @@ impl ModeloService {
 
         let mut cards = Vec::new();
         for modelo in modelos {
-            let ejemplares = EjemplarRepository::listar_por_modelo(conn, modelo.id)
-                .map_err(|e| {
-                    format!(
-                        "Error al listar ejemplares del modelo {}: {}",
-                        modelo.id, e
-                    )
+            let ejemplares =
+                EjemplarRepository::listar_por_modelo(conn, modelo.id).map_err(|e| {
+                    format!("Error al listar ejemplares del modelo {}: {}", modelo.id, e)
                 })?;
 
             let mut hay_disponible = false;

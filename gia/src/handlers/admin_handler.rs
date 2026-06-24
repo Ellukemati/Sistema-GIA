@@ -1,3 +1,4 @@
+use chrono::NaiveDate;
 use rouille::{Request, Response};
 use rusqlite::Connection;
 use serde::Serialize;
@@ -16,13 +17,32 @@ use crate::utils::extraer_token_sesion;
 pub struct AdminHandler;
 
 #[derive(Serialize)]
+pub struct EjemplarVista {
+    pub id: i64,
+    pub identificador: String,
+}
+
+#[derive(Serialize)]
+pub struct ModeloAgrupado {
+    pub modelo_id: i64,
+    pub marca_modelo: String,
+    pub ejemplares: Vec<EjemplarVista>,
+}
+
+#[derive(Serialize)]
+pub struct CategoriaAgrupada {
+    pub nombre_categoria: String,
+    pub modelos: Vec<ModeloAgrupado>,
+}
+
+#[derive(Serialize)]
 struct ReservaVista {
     pub id: i64,
     pub profe_nombre: String,
     pub fecha_inicio: String,
     pub fecha_fin: String,
     pub motivo: String,
-    pub equipos: Vec<String>,
+    pub categorias: Vec<CategoriaAgrupada>,
 }
 
 impl AdminHandler {
@@ -49,54 +69,90 @@ impl AdminHandler {
         let mut reservas_vista = Vec::new();
 
         for r in reservas_db {
-            // Buscar nombre del profesor
             let profe_nombre = match UsuarioRepository::buscar_por_id(conn, r.id_usuario) {
                 Ok(Some(u)) => format!("{} {}", u.nombre, u.apellido),
                 _ => "Usuario Desconocido".to_string(),
             };
 
-            // Buscar los instrumentos de esta reserva
-            let mut stmt = conn
-                .prepare(
-                    "SELECT m.nombre_modelo, e.patrimonio, e.numero_serie 
-                    FROM reserva_ejemplar re
-                    JOIN ejemplares e ON re.ejemplar_id = e.id
-                    JOIN modelos m ON e.modelo_id = m.id
-                    WHERE re.reserva_id = ?1",
-                )
-                .unwrap();
+            let inicio_fmt = NaiveDate::parse_from_str(&r.fecha_inicio, "%Y-%m-%d")
+                .map(|d| d.format("%d/%m").to_string())
+                .unwrap_or_else(|_| r.fecha_inicio.clone());
 
-            let equipos_iter = stmt
-                .query_map([r.id], |row| {
-                    let nombre: String = row.get(0)?;
-                    let patrimonio: Option<String> = row.get(1)?;
-                    let numero_serie: Option<String> = row.get(2)?;
+            let fin_fmt = NaiveDate::parse_from_str(&r.fecha_fin, "%Y-%m-%d")
+                .map(|d| d.format("%d/%m").to_string())
+                .unwrap_or_else(|_| r.fecha_fin.clone());
 
-                    let identificador_ejemplar = if let Some(pat) = patrimonio {
-                        format!("Patrimonio: {}", pat)
-                    } else if let Some(ns) = numero_serie {
-                        format!("N/S: {}", ns)
-                    } else {
-                        "Sin identificador".to_string()
-                    };
+            // 1. LLAMAMOS AL REPOSITORIO (El handler ya no sabe de SQL)
+            let equipos_raw =
+                ReservaRepository::obtener_equipos_por_reserva(conn, r.id).unwrap_or_default();
 
-                    Ok(format!("{} ({})", nombre, identificador_ejemplar))
-                })
-                .unwrap();
+            // 2. AGRUPAMOS LOS DATOS PARA LA VISTA (Esto se queda en el handler)
+            let mut categorias_agrupadas: Vec<CategoriaAgrupada> = Vec::new();
 
-            let mut equipos = Vec::new();
-            for texto in equipos_iter.flatten() {
-                equipos.push(texto);
+            for item in equipos_raw {
+                let cat_str = item
+                    .categoria
+                    .unwrap_or_else(|| "Instrumentos Varios".to_string());
+                let marca_mod = format!("{} {}", item.marca, item.nombre_modelo);
+
+                let identificador = if let Some(qr) = item.codigo_qr.filter(|s| !s.is_empty()) {
+                    format!("QR: {}", qr)
+                } else if let Some(ns) = item.numero_serie.filter(|s| !s.is_empty()) {
+                    format!("N/S: {}", ns)
+                } else if let Some(pat) = item.patrimonio.filter(|s| !s.is_empty()) {
+                    format!("Pat: {}", pat)
+                } else {
+                    format!("ID Interno: {}", item.ejemplar_id)
+                };
+
+                let ejemplar_vista = EjemplarVista {
+                    id: item.ejemplar_id,
+                    identificador,
+                };
+
+                // Lógica de agrupación en 3 niveles
+                let cat_agrupada = match categorias_agrupadas
+                    .iter_mut()
+                    .find(|c| c.nombre_categoria == cat_str)
+                {
+                    Some(c) => c,
+                    None => {
+                        categorias_agrupadas.push(CategoriaAgrupada {
+                            nombre_categoria: cat_str.clone(),
+                            modelos: Vec::new(),
+                        });
+                        categorias_agrupadas.last_mut().unwrap()
+                    }
+                };
+
+                let mod_agrupado = match cat_agrupada
+                    .modelos
+                    .iter_mut()
+                    .find(|m| m.modelo_id == item.modelo_id)
+                {
+                    Some(m) => m,
+                    None => {
+                        cat_agrupada.modelos.push(ModeloAgrupado {
+                            modelo_id: item.modelo_id,
+                            marca_modelo: marca_mod,
+                            ejemplares: Vec::new(),
+                        });
+                        cat_agrupada.modelos.last_mut().unwrap()
+                    }
+                };
+
+                mod_agrupado.ejemplares.push(ejemplar_vista);
             }
+
             reservas_vista.push(ReservaVista {
                 id: r.id,
                 profe_nombre,
-                fecha_inicio: r.fecha_inicio,
-                fecha_fin: r.fecha_fin,
+                fecha_inicio: inicio_fmt,
+                fecha_fin: fin_fmt,
                 motivo: r
                     .motivo
                     .unwrap_or_else(|| "Sin motivo especificado".to_string()),
-                equipos,
+                categorias: categorias_agrupadas,
             });
         }
         reservas_vista

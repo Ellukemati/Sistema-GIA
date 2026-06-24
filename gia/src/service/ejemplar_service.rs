@@ -1,5 +1,7 @@
 use crate::models::ejemplar::Ejemplar;
-use crate::repository::{ejemplar_repository::EjemplarRepository, reserva_repository::ReservaRepository};
+use crate::repository::{
+    ejemplar_repository::EjemplarRepository, reserva_repository::ReservaRepository,
+};
 use rusqlite::Connection;
 use serde::Serialize;
 
@@ -69,13 +71,14 @@ impl EjemplarService {
 
         let mut dtos = Vec::with_capacity(ejemplares.len());
         for ejemplar in ejemplares {
-            let disponible =
-                ReservaRepository::ejemplar_disponible(conn, ejemplar.id, inicio, fin)
-                    .map_err(|e| e.to_string())?;
+            let disponible = ReservaRepository::ejemplar_disponible(conn, ejemplar.id, inicio, fin)
+                .map_err(|e| e.to_string())?;
 
             dtos.push(EjemplarDTO {
                 id: ejemplar.id,
-                numero_serie: ejemplar.numero_serie.unwrap_or_else(|| "Sin serie".to_string()),
+                numero_serie: ejemplar
+                    .numero_serie
+                    .unwrap_or_else(|| "Sin serie".to_string()),
                 patrimonio: ejemplar
                     .patrimonio
                     .unwrap_or_else(|| "Sin patrimonio".to_string()),
@@ -104,7 +107,9 @@ impl EjemplarService {
             .into_iter()
             .map(|ejemplar| EjemplarDTO {
                 id: ejemplar.id,
-                numero_serie: ejemplar.numero_serie.unwrap_or_else(|| "Sin serie".to_string()),
+                numero_serie: ejemplar
+                    .numero_serie
+                    .unwrap_or_else(|| "Sin serie".to_string()),
                 patrimonio: ejemplar
                     .patrimonio
                     .unwrap_or_else(|| "Sin patrimonio".to_string()),

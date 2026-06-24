@@ -1,10 +1,11 @@
-<div class="dashboard-container">
-    
-    <!-- SECCIÓN: RESERVAS PENDIENTES -->
-    <details class="columna" open>
-        <summary>📋 Reservas Pendientes</summary>
-        <div class="detalles-contenido">
-            <div class="table-responsive">
+<div class="tabs-container">
+    <div class="tabs-header">
+        <button class="tab-btn active" onclick="switchTab(0)">📋 Reservas Pendientes</button>
+        <button class="tab-btn" onclick="switchTab(1)">👨‍🏫 Docentes en Espera</button>
+    </div>
+
+    <div class="tab-content active" id="tab-0">
+        <div class="table-responsive">
             <table>
                 <thead>
                     <tr>
@@ -18,22 +19,42 @@
                 <tbody>
                     {% for reserva in reservas %}
                     <tr>
-                        <td>
+                        <td data-label="Solicitante">
                             <strong>{{ reserva.profe_nombre }}</strong><br>
-                            <small>ID Reserva: {{ reserva.id }}</small>
+                            <small style="color: #666;">ID Reserva: {{ reserva.id }}</small>
                         </td>
-                        <td>{{ reserva.fecha_inicio }} <br>al<br> {{ reserva.fecha_fin }}</td>
-                        <td>
-                            <ul style="margin: 0; padding-left: 20px;">
-                                {% for equipo in reserva.equipos %}
-                                    <li>{{ equipo }}</li>
+                        <td data-label="Fechas">{{ reserva.fecha_inicio }} al {{ reserva.fecha_fin }}</td>
+                        <td data-label="Instrumental">
+                            <ul style="margin: 0; padding-left: 0; list-style: none;">
+                                {% for cat in reserva.categorias %}
+                                    <li style="margin-bottom: 12px;">
+                                        <span style="font-weight: bold; color: #333; text-decoration: underline;">{{ cat.nombre_categoria }}</span>
+                                        
+                                        <ul style="margin: 5px 0 0 0; padding-left: 15px; list-style: none;">
+                                            {% for modelo in cat.modelos %}
+                                                <li style="margin-bottom: 8px;">
+                                                    <a href="/modelo/{{ modelo.modelo_id }}" style="text-decoration: none; font-weight: 600; color: #0091D5; display: inline-block;">
+                                                        🔹 {{ modelo.marca_modelo }}
+                                                    </a>
+                                                    
+                                                    <ul style="margin: 3px 0 0 0; padding-left: 35px; list-style-type: disc; color: #5a6a75; font-size: 0.95em;">
+                                                        {% for ej in modelo.ejemplares %}
+                                                            <li>
+                                                                {{ ej.identificador }}
+                                                            </li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </li>
                                 {% endfor %}
                             </ul>
                         </td>
-                        <td>
+                        <td data-label="Motivo">
                             {{ reserva.motivo }}
                         </td>
-                        <td>
+                        <td data-label="Acciones" class="td-acciones">
                             <button class="btn-aprobar" hx-post="/admin/reservas/{{ reserva.id }}/aprobar" hx-target="closest tr" hx-swap="outerHTML">
                                 Aprobar
                             </button>
@@ -43,17 +64,15 @@
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="5">No hay reservas pendientes en este momento.</td></tr>
+                    <tr><td colspan="5" style="text-align: center; padding: 20px;">No hay reservas pendientes en este momento.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-    </details>
+    </div>
 
-    <!-- SECCIÓN: DOCENTES EN ESPERA -->
-    <details class="columna" open>
-        <summary>👨‍🏫 Docentes en Espera</summary>
-        <div class="detalles-contenido">
+    <div class="tab-content" id="tab-1">
+        <div class="table-responsive">
             <table>
                 <thead>
                     <tr>
@@ -65,9 +84,9 @@
                 <tbody>
                     {% for profe in profesores %}
                     <tr>
-                        <td>{{ profe.legajo }}</td>
-                        <td>{{ profe.nombre }} {{ profe.apellido }} <br><small>{{ profe.email }}</small></td>
-                        <td>
+                        <td data-label="Legajo">{{ profe.legajo }}</td>
+                        <td data-label="Nombre">{{ profe.nombre }} {{ profe.apellido }} <br><small style="color: #666;">{{ profe.email }}</small></td>
+                        <td data-label="Acciones" class="td-acciones">
                             <button class="btn-aprobar" hx-post="/admin/profesores/{{ profe.id }}/aprobar" hx-target="closest tr" hx-swap="outerHTML">
                                 Habilitar
                             </button>
@@ -77,11 +96,10 @@
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="3">No hay docentes en espera de aprobación.</td></tr>
+                    <tr><td colspan="3" style="text-align: center; padding: 20px;">No hay docentes en espera de aprobación.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-    </details>
-
+    </div>
 </div>

@@ -7,6 +7,16 @@ use chrono::NaiveDate;
 use rouille::{Request, Response};
 use rusqlite::{Connection, Result as SqlResult, params};
 
+pub struct EquipoRaw {
+    pub modelo_id: i64,
+    pub nombre_modelo: String,
+    pub marca: String,
+    pub categoria: Option<String>,
+    pub ejemplar_id: i64,
+    pub codigo_qr: Option<String>,
+    pub numero_serie: Option<String>,
+    pub patrimonio: Option<String>,
+}
 pub struct ReservaRepository;
 
 impl ReservaRepository {
@@ -55,6 +65,39 @@ impl ReservaRepository {
             reservas.push(reserva?);
         }
         Ok(reservas)
+    }
+
+    pub fn obtener_equipos_por_reserva(
+        conn: &rusqlite::Connection,
+        reserva_id: i64,
+    ) -> Result<Vec<EquipoRaw>, rusqlite::Error> {
+        let mut stmt = conn.prepare(
+            "SELECT m.id, m.nombre_modelo, m.marca, m.categoria, e.id, e.codigo_qr, e.numero_serie, e.patrimonio 
+             FROM reserva_ejemplar re
+             JOIN ejemplares e ON re.ejemplar_id = e.id
+             JOIN modelos m ON e.modelo_id = m.id
+             WHERE re.reserva_id = ?1"
+        )?;
+
+        let equipos_iter = stmt.query_map([reserva_id], |row| {
+            Ok(EquipoRaw {
+                modelo_id: row.get(0)?,
+                nombre_modelo: row.get(1)?,
+                marca: row.get(2)?,
+                categoria: row.get(3)?,
+                ejemplar_id: row.get(4)?,
+                codigo_qr: row.get(5)?,
+                numero_serie: row.get(6)?,
+                patrimonio: row.get(7)?,
+            })
+        })?;
+
+        let mut equipos = Vec::new();
+        for equipo in equipos_iter {
+            equipos.push(equipo?);
+        }
+
+        Ok(equipos)
     }
 
     pub fn cancelar_por_usuario(
