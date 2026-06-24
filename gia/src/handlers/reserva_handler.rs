@@ -1,3 +1,4 @@
+use crate::repository::reserva_instrumento_repository::ReservaInstrumentoRepository;
 use crate::templates;
 use crate::{
     repository::{
@@ -9,8 +10,7 @@ use crate::{
     service::reserva_service::ReservaService,
     utils::{Carrito, cookie_carrito, cookie_carrito_vacio, extraer_token_sesion, leer_carrito},
 };
-
-use chrono::{Duration, Local, NaiveDate};
+use chrono::{Duration, Local, NaiveDate, NaiveDateTime};
 use rouille::{Request, Response};
 use rusqlite::Connection;
 use std::collections::HashMap;
@@ -18,7 +18,7 @@ use std::io::Read;
 use tera::Context;
 
 pub struct ReservaHandler;
-
+use crate::models::reserva_view::ReservaView;
 impl ReservaHandler {
     pub fn mostrar_formulario_reserva(request: &Request, conn: &Connection) -> Response {
         if let Err(response) = Self::obtener_usuario_sesion(request, conn) {
@@ -412,5 +412,115 @@ impl ReservaHandler {
         };
 
         Ok(sesion.id_usuario)
+    }
+
+    pub fn mostrar_mis_reservas(request: &Request, conn: &Connection) -> Response {
+        let id_usuario = match Self::obtener_usuario_sesion(request, conn) {
+            Ok(id) => id,
+            Err(r) => return r,
+        };
+
+        let reservas = match ReservaService::obtener_reservas_usuario(conn, id_usuario) {
+            Ok(r) => r,
+            Err(e) => {
+                return Response::text(format!("Error cargando reservas: {}", e))
+                    .with_status_code(500);
+            }
+        };
+
+        let mut reservas_vista: Vec<ReservaView> = Vec::new();
+
+        for reserva in reservas {
+            let clase_estado = match reserva.estado.as_str() {
+                "activa" => "estado-aprobada",
+                "concluida" => "estado-concluida",
+                "pendiente" => "estado-pendiente",
+                "cancelada" => "estado-cancelada",
+                _ => "",
+            };
+
+            let texto_estado = match reserva.estado.as_str() {
+                "activa" => "Aceptada",
+                "concluida" => "Finalizada",
+                "pendiente" => "Pendiente",
+                "cancelada" => "Cancelada",
+                _ => &reserva.estado,
+            };
+
+            let equipos =
+                ReservaInstrumentoRepository::obtener_nombres_equipos_reserva(conn, reserva.id)
+                    .unwrap_or(vec![]);
+
+            let inicio = NaiveDate::parse_from_str(&reserva.fecha_inicio, "%Y-%m-%d").unwrap();
+            let fin = NaiveDate::parse_from_str(&reserva.fecha_fin, "%Y-%m-%d").unwrap();
+            let dias = (fin - inicio).num_days();
+
+            let creada =
+                NaiveDateTime::parse_from_str(&reserva.momento_creacion, "%Y-%m-%d %H:%M:%S")
+                    .unwrap();
+
+            let ahora = Local::now().naive_local();
+            let dias_desde = (ahora - creada).num_days();
+
+            let creada_txt = if dias_desde == 0 {
+                "Hoy".to_string()
+            } else {
+                format!("Hace {} días", dias_desde)
+            };
+
+            reservas_vista.push(ReservaView {
+                id: reserva.id,
+                fecha_inicio: reserva.fecha_inicio,
+                fecha_fin: reserva.fecha_fin,
+                estado: reserva.estado.clone(),
+                texto_estado: texto_estado.to_string(),
+                clase_estado: clase_estado.to_string(),
+                motivo: reserva.motivo.unwrap_or("Sin motivo".to_string()),
+                equipos,
+                dias,
+                creada: creada_txt,
+            });
+        }
+
+        let mut ctx = Context::new();
+        ctx.insert("reservas", &reservas_vista);
+
+        let html = match templates::render("mis_reservas.html", &ctx) {
+            Ok(html) => html,
+
+            Err(e) => {
+                eprintln!("ERROR TERA: {:?}", e);
+
+                return Response::text(format!("Error Tera: {:?}", e)).with_status_code(500);
+            }
+        };
+
+        templates::response_html(Ok(html))
+    }
+    pub fn cancelar_reserva(request: &Request, conn: &Connection, reserva_id: i64) -> Response {
+        let usuario_id = match Self::obtener_usuario_sesion(request, conn) {
+            Ok(id) => id,
+
+            Err(response) => {
+                return response;
+            }
+        };
+
+        match crate::repository::reserva_repository::ReservaRepository::cancelar_por_usuario(
+            conn, reserva_id, usuario_id,
+        ) {
+            Ok(filas) => {
+                if filas == 0 {
+                    return templates::response_mensaje_error(
+                        "Error cancelando reserva",
+                        "La reserva no existe o ya fue cancelada",
+                    );
+                }
+
+                Response::redirect_303("/mis-reservas")
+            }
+
+            Err(e) => templates::response_mensaje_error("Error cancelando reserva", &e.to_string()),
+        }
     }
 }

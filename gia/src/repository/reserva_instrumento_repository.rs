@@ -33,4 +33,45 @@ impl ReservaInstrumentoRepository {
 
         Ok(relaciones)
     }
+
+    pub fn obtener_nombres_equipos_reserva(
+        conn: &Connection,
+        reserva_id: i64,
+    ) -> Result<Vec<String>, rusqlite::Error> {
+        let mut stmt = conn.prepare(
+            "
+        SELECT
+            modelos.nombre_modelo,
+            ejemplares.numero_serie
+
+        FROM reserva_ejemplar
+
+        JOIN ejemplares
+            ON ejemplares.id =
+               reserva_ejemplar.ejemplar_id
+
+        JOIN modelos
+            ON modelos.id =
+               ejemplares.modelo_id
+
+        WHERE reserva_ejemplar.reserva_id = ?1
+        ",
+        )?;
+
+        let equipos = stmt
+            .query_map([reserva_id], |row| {
+                let modelo: String = row.get(0)?;
+
+                let serie: Option<String> = row.get(1)?;
+
+                Ok(format!(
+                    "{} ({})",
+                    modelo,
+                    serie.unwrap_or("Sin serie".to_string())
+                ))
+            })?
+            .collect::<Result<Vec<String>, _>>()?;
+
+        Ok(equipos)
+    }
 }
