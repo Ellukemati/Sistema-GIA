@@ -8,7 +8,7 @@ use crate::service::image_service::procesar_modelo;
 use crate::service::manual_service::validar_y_procesar_manual;
 use crate::service::modelo_service::{CrearModeloData, ModeloService};
 use crate::templates;
-use crate::utils::extraer_token_sesion;
+use crate::utils::{extraer_token_sesion, usuario_actual};
 
 use rouille::input::multipart;
 use rouille::{Request, Response};
@@ -19,7 +19,20 @@ use tera::Context;
 pub struct ModeloHandler;
 
 impl ModeloHandler {
-    pub fn mostrar_formulario_registro() -> Response {
+    pub fn mostrar_formulario_registro(request: &Request, conn: &Connection) -> Response {
+        let usuario = match usuario_actual(request, conn) {
+            Ok(u) => u,
+            Err(response) => return response,
+        };
+
+        if !usuario.es_admin() {
+            return templates::response_mensaje_error_con_status(
+                "Acceso denegado",
+                "Esta acción requiere permisos de administrador.",
+                403,
+            );
+        }
+
         let ctx = Context::new();
         templates::response_html(templates::render("modelo_registro.html", &ctx))
     }
