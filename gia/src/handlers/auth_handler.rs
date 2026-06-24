@@ -1,6 +1,9 @@
 use crate::service::auth_service::AuthService;
 use crate::templates;
 
+use crate::repository::sesion_repository::SesionRepository;
+use crate::repository::usuario_repository::UsuarioRepository;
+use crate::utils::extraer_token_sesion;
 use rouille::{Request, Response};
 use rusqlite::Connection;
 use std::collections::HashMap;
@@ -46,6 +49,24 @@ impl AuthHandler {
         let mut ctx = Context::new();
         ctx.insert("token", &token);
         templates::response_html(templates::render("usuario_restablecer_password.html", &ctx))
+    }
+
+    pub fn mostrar_home(request: &Request, conn: &Connection) -> Response {
+        let token = match extraer_token_sesion(request) {
+            Some(t) => t,
+            None => {
+                return Response::redirect_302("/ingreso");
+            }
+        };
+
+        if let Ok(Some(sesion)) = SesionRepository::buscar_por_token(conn, &token)
+            && let Ok(Some(usuario)) = UsuarioRepository::buscar_por_id(conn, sesion.id_usuario)
+        {
+            let mut ctx = Context::new();
+            ctx.insert("usuario_actual", &usuario);
+            return templates::response_html(templates::render("home.html", &ctx));
+        }
+        Response::redirect_302("/ingreso")
     }
 
     pub fn procesar_registro(request: &Request, conn: &Connection) -> Response {
@@ -120,6 +141,15 @@ impl AuthHandler {
                 401,
             ),
         }
+    }
+
+    pub fn procesar_logout(request: &Request, conn: &Connection) -> Response {
+        if let Some(token) = extraer_token_sesion(request) {
+            let _ = SesionRepository::eliminar_por_token(conn, &token);
+        }
+
+        Response::redirect_302("/")
+            .with_additional_header("Set-Cookie", "session_token=; HttpOnly; Path=/; Max-Age=0")
     }
 
     pub fn procesar_solicitud_restablecimiento_password(
