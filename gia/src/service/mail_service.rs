@@ -161,16 +161,16 @@ impl MailService {
         provider.enviar(email_destino, profe_nombre, asunto, &cuerpo)
     }
 
-    pub fn enviar_link_recuperacion(
+    pub fn enviar_link_restablecimiento_password(
         email_destino: &str,
         nombre_usuario: &str,
-        link_recuperacion: &str,
+        link_restablecimiento: &str,
     ) -> Result<(), String> {
         let provider = Self::obtener_provider();
         let asunto = "Restablecer Contraseña - Sistema GIA";
         let cuerpo = format!(
             "Hola {},\n\nSe ha solicitado un enlace para restablecer la contraseña de su cuenta en el sistema GIA.\n\nPara continuar, haga clic en el siguiente enlace (Válido por 15 minutos):\n{}\n\nSi usted no realizó esta solicitud, puede ignorar este correo de forma segura.\n\nAtentamente,\nDepartamento de Agrimensura - FIUBA",
-            nombre_usuario, link_recuperacion
+            nombre_usuario, link_restablecimiento
         );
 
         provider.enviar(email_destino, nombre_usuario, asunto, &cuerpo)

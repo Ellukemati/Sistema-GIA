@@ -125,9 +125,9 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
         [],
     )?;
 
-    // Crear tabla tokens para recuperación de contraseñas
+    // Crear tabla tokens para restablecimiento de contraseñas
     conn.execute(
-        "CREATE TABLE IF NOT EXISTS tokens_recuperacion (
+        "CREATE TABLE IF NOT EXISTS tokens_restablecimiento_contrasena (
             id_usuario INTEGER NOT NULL,
             token TEXT NOT NULL UNIQUE,
             expira_en INTEGER NOT NULL, -- Timestamp Unix Epoch en segundos

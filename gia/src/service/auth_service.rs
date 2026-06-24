@@ -3,7 +3,8 @@ use rusqlite::Connection;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::constants::{
-    BCRYPT_COST_FACTOR, EXPIRACION_INVITACION_SEGUNDOS, EXPIRACION_RECUPERACION_SEGUNDOS,
+    BCRYPT_COST_FACTOR, EXPIRACION_INVITACION_SEGUNDOS,
+    EXPIRACION_RESTABLECIMIENTO_PASSWORD_SEGUNDOS,
 };
 use crate::models::invitacion::Invitacion;
 use crate::models::usuario::Usuario;
@@ -98,7 +99,10 @@ impl AuthService {
         email.ends_with("@fi.uba.ar")
     }
 
-    pub fn solicitar_recuperacion(conn: &Connection, email: &str) -> Result<(), String> {
+    pub fn solicitar_restablecimiento_password(
+        conn: &Connection,
+        email: &str,
+    ) -> Result<(), String> {
         let usuario = match UsuarioRepository::buscar_por_email(conn, email)
             .map_err(|e| e.to_string())?
         {
@@ -119,7 +123,7 @@ impl AuthService {
             .unwrap()
             .as_secs() as i64;
 
-        let expira_en = ahora_segundos + EXPIRACION_RECUPERACION_SEGUNDOS;
+        let expira_en = ahora_segundos + EXPIRACION_RESTABLECIMIENTO_PASSWORD_SEGUNDOS;
 
         TokenRepository::guardar(conn, usuario.id, &token, expira_en)
             .map_err(|e| format!("Error en repositorio de tokens: {}", e))?;
@@ -130,7 +134,11 @@ impl AuthService {
         );
         let nombre_completo = format!("{} {}", usuario.nombre, usuario.apellido);
 
-        MailService::enviar_link_recuperacion(&usuario.email, &nombre_completo, &link)?;
+        MailService::enviar_link_restablecimiento_password(
+            &usuario.email,
+            &nombre_completo,
+            &link,
+        )?;
 
         Ok(())
     }
@@ -149,7 +157,9 @@ impl AuthService {
             .map_err(|e| e.to_string())?
         {
             Some(id) => id,
-            None => return Err("El enlace de recuperación es inválido o ha expirado.".to_string()),
+            None => {
+                return Err("El enlace de restablecimiento es inválido o ha expirado.".to_string());
+            }
         };
 
         let nuevo_hash = Self::hashear_password(nuevo_password);
@@ -301,7 +311,7 @@ mod tests {
         )
         .unwrap();
         conn.execute(
-            "CREATE TABLE tokens_recuperacion (
+            "CREATE TABLE tokens_restablecimiento_contrasena (
                 id_usuario INTEGER NOT NULL PRIMARY KEY,
                 token TEXT NOT NULL UNIQUE,
                 expira_en INTEGER NOT NULL
@@ -427,9 +437,10 @@ mod tests {
     }
 
     #[test]
-    fn test_solicitar_recuperacion_usuario_inexistente() {
+    fn test_solicitar_restablecimiento_password_usuario_inexistente() {
         let conn = crear_db_test();
-        let resultado = AuthService::solicitar_recuperacion(&conn, "incognito@fi.uba.ar");
+        let resultado =
+            AuthService::solicitar_restablecimiento_password(&conn, "incognito@fi.uba.ar");
 
         assert!(resultado.is_err());
         assert_eq!(
@@ -448,7 +459,7 @@ mod tests {
         assert!(resultado.is_err());
         assert_eq!(
             resultado.unwrap_err(),
-            "El enlace de recuperación es inválido o ha expirado."
+            "El enlace de restablecimiento es inválido o ha expirado."
         );
     }
 
@@ -456,7 +467,7 @@ mod tests {
     // pero se puede ejecutar manualmente para verificar el flujo completo. MOCK_MAILS = true para no enviar mails a Mailtrap.
     #[test]
     #[ignore]
-    fn test_circuito_completo_recuperacion() {
+    fn test_circuito_completo_restablecimiento_password() {
         // LOCK INTERNO: Frena otros hilos de envío de mail hasta terminar la ejecución
         let _guard = LOCK_MAILTRAP.lock().unwrap();
 
@@ -473,13 +484,14 @@ mod tests {
         )
         .unwrap();
 
-        let resultado_solicitud = AuthService::solicitar_recuperacion(&conn, "vgogh@fi.uba.ar");
+        let resultado_solicitud =
+            AuthService::solicitar_restablecimiento_password(&conn, "vgogh@fi.uba.ar");
         esperar_cuota_mailtrap();
         assert!(resultado_solicitud.is_ok());
 
         let token_guardado: String = conn
             .query_row(
-                "SELECT token FROM tokens_recuperacion WHERE id_usuario = 1",
+                "SELECT token FROM tokens_restablecimiento_contrasena WHERE id_usuario = 1",
                 [],
                 |row| row.get(0),
             )
@@ -491,7 +503,7 @@ mod tests {
 
         let token_existe: i32 = conn
             .query_row(
-                "SELECT COUNT(*) FROM tokens_recuperacion WHERE token = ?",
+                "SELECT COUNT(*) FROM tokens_restablecimiento_contrasena WHERE token = ?",
                 [token_guardado],
                 |row| row.get(0),
             )
@@ -526,19 +538,19 @@ mod tests {
         )
         .unwrap();
 
-        AuthService::solicitar_recuperacion(&conn, "lmessi@fi.uba.ar").unwrap();
+        AuthService::solicitar_restablecimiento_password(&conn, "lmessi@fi.uba.ar").unwrap();
         esperar_cuota_mailtrap();
 
         let token_guardado: String = conn
             .query_row(
-                "SELECT token FROM tokens_recuperacion WHERE id_usuario = ?",
+                "SELECT token FROM tokens_restablecimiento_contrasena WHERE id_usuario = ?",
                 [usuario.id],
                 |row| row.get(0),
             )
             .unwrap();
 
         conn.execute(
-            "UPDATE tokens_recuperacion SET expira_en = 0 WHERE token = ?",
+            "UPDATE tokens_restablecimiento_contrasena SET expira_en = 0 WHERE token = ?",
             [&token_guardado],
         )
         .unwrap();
@@ -549,7 +561,7 @@ mod tests {
         assert!(resultado.is_err());
         assert_eq!(
             resultado.unwrap_err(),
-            "El enlace de recuperación es inválido o ha expirado."
+            "El enlace de restablecimiento es inválido o ha expirado."
         );
     }
 

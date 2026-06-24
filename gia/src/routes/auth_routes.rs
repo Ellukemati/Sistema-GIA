@@ -23,13 +23,13 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
             AuthHandler::procesar_login(request, &conn_guard)
         },
 
-        (GET) (/recuperar-contrasena) => {
+        (GET) (/restablecer) => {
             AuthHandler::mostrar_formulario_solicitud()
         },
 
-        (POST) (/recuperar-contrasena) => {
+        (POST) (/restablecer) => {
             let conn_guard = conn.lock().unwrap();
-            AuthHandler::procesar_solicitud_recuperacion_password(request, &conn_guard)
+            AuthHandler::procesar_solicitud_restablecimiento_password(request, &conn_guard)
         },
 
         (GET) (/restablecer-contrasena) => {
