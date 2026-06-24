@@ -52,6 +52,8 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
 
         (GET) (/) => {
             AuthHandler::mostrar_bienvenida()
+        },
+        
         (GET) (/inicio) => {
             let conn_guard = conn.lock().unwrap();
             AuthHandler::mostrar_home(request, &conn_guard)
