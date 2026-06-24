@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}GIA - Recuperar contraseña{% endblock %}
+{% block title %}GIA - Restablecer contraseña{% endblock %}
 
 {% block extra_head %}
     {% include "estilos/auth.html" %}
@@ -11,15 +11,15 @@
     <section class="auth-card">
         <header class="auth-header">
             <p class="auth-brand">GIA</p>
-            <h1>Recuperar contraseña</h1>
+            <h1>Restablecer contraseña</h1>
             <p class="auth-subtitle">Acceso institucional FIUBA</p>
         </header>
 
         <p style="font-size: 0.9rem; color: var(--color-muted); margin-bottom: var(--spacing-lg); text-align: center;">
-            Ingresá tu email FIUBA y te enviaremos un enlace seguro para restablecer tu cuenta.
+            Ingresá tu email FIUBA y te enviaremos un enlace seguro para restablecer tu contraseña.
         </p>
 
-        <form class="auth-form" hx-post="/recuperar-contrasena" hx-target="#resultado">
+        <form class="auth-form" hx-post="/restablecer" hx-target="#resultado">
             <div class="field">
                 <label for="email">Email</label>
                 <input id="email" type="email" name="email" placeholder="usuario@fi.uba.ar" autocomplete="email" required>

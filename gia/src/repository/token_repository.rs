@@ -12,7 +12,7 @@ impl TokenRepository {
         expira_en: i64,
     ) -> SqliteResult<()> {
         conn.execute(
-            "INSERT OR REPLACE INTO tokens_recuperacion (id_usuario, token, expira_en) 
+            "INSERT OR REPLACE INTO tokens_restablecimiento_contrasena (id_usuario, token, expira_en) 
              VALUES (?, ?, ?)",
             params![id_usuario, token, expira_en],
         )?;
@@ -26,7 +26,7 @@ impl TokenRepository {
         ahora_segundos: i64,
     ) -> SqliteResult<Option<i64>> {
         let mut stmt = conn.prepare(
-            "SELECT id_usuario FROM tokens_recuperacion 
+            "SELECT id_usuario FROM tokens_restablecimiento_contrasena
              WHERE token = ? AND expira_en > ?",
         )?;
 
@@ -43,7 +43,7 @@ impl TokenRepository {
     /// Elimina el token de la base de datos una vez que ya cumplió su función
     pub fn eliminar(conn: &Connection, id_usuario: i64) -> SqliteResult<()> {
         conn.execute(
-            "DELETE FROM tokens_recuperacion WHERE id_usuario = ?",
+            "DELETE FROM tokens_restablecimiento_contrasena WHERE id_usuario = ?",
             params![id_usuario],
         )?;
         Ok(())

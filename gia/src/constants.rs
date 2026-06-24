@@ -17,7 +17,7 @@ pub const TIPO_ADMIN: &str = "A";
 pub const TIPO_PROFESOR: &str = "P";
 
 /// Seguridad y Tiempos de Expiración (Tokens de acceso y restablecimiento)
-pub const EXPIRACION_RECUPERACION_SEGUNDOS: i64 = 900; // 15 minutos
+pub const EXPIRACION_RESTABLECIMIENTO_PASSWORD_SEGUNDOS: i64 = 900; // 15 minutos
 pub const EXPIRACION_INVITACION_SEGUNDOS: i64 = 86400; // 24 horas
 pub const BCRYPT_COST_FACTOR: u32 = 4;
 

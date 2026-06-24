@@ -28,7 +28,7 @@ impl AuthHandler {
     pub fn mostrar_formulario_solicitud() -> Response {
         let ctx = Context::new();
         templates::response_html(templates::render(
-            "usuario_solicitar_recuperacion.html",
+            "usuario_solicitar_restablecimiento_contrasena.html",
             &ctx,
         ))
     }
@@ -39,7 +39,7 @@ impl AuthHandler {
         if token.is_empty() {
             return templates::response_mensaje_error(
                 "Enlace inválido",
-                "El token de recuperación de contraseña no se encuentra en la URL.",
+                "El token de solicitud de cambio de contraseña no se encuentra en la URL.",
             );
         }
 
@@ -122,7 +122,7 @@ impl AuthHandler {
         }
     }
 
-    pub fn procesar_solicitud_recuperacion_password(
+    pub fn procesar_solicitud_restablecimiento_password(
         request: &Request,
         conn: &Connection,
     ) -> Response {
@@ -142,14 +142,14 @@ impl AuthHandler {
         }
 
         // Por seguridad siempre devolvemos un mensaje de éxito aunque el email no exista en la base de datos
-        match AuthService::solicitar_recuperacion(conn, &email) {
+        match AuthService::solicitar_restablecimiento_password(conn, &email) {
             Ok(_) => templates::response_mensaje_exito(
                 "Proceso iniciado",
-                "Si el email ingresado corresponde a una cuenta válida, recibirá un correo con el enlace de recuperación.",
+                "Si el email ingresado corresponde a una cuenta válida, recibirá un correo con el enlace de restablecimiento.",
             ),
             Err(_) => templates::response_mensaje_exito(
                 "Proceso iniciado",
-                "Si el email ingresado corresponde a una cuenta válida, recibirá un correo con el enlace de recuperación.",
+                "Si el email ingresado corresponde a una cuenta válida, recibirá un correo con el enlace de restablecimiento.",
             ),
         }
     }
