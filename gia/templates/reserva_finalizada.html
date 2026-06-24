@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}GIA - Reserva finalizada{% endblock %}
+
+{% block extra_head %}
+    {% include "estilos/auth.html" %}
+    {% include "estilos/mensajes.html" %}
+    <style>
+        .reserva-finalizada-mensaje {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .reserva-finalizada-actions {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+        }
+
+        .reserva-finalizada-actions a {
+            display: block;
+            text-align: center;
+            box-sizing: border-box;
+            text-decoration: none;
+            line-height: 1.2;
+        }
+
+        .reserva-finalizada-actions .btn-primary {
+            margin-top: 0;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<main class="auth-page">
+    <section class="auth-card">
+        <header class="auth-header">
+            <p class="auth-brand">GIA</p>
+            <h1>{% if exito %}Reserva enviada{% else %}No se pudo finalizar{% endif %}</h1>
+            <p class="auth-subtitle">Resultado de la solicitud de reserva</p>
+        </header>
+
+        <div class="reserva-finalizada-mensaje">
+            {% if exito %}
+            <div class="mensaje mensaje--exito">
+                <strong>{{ titulo }}</strong>
+                <p>{{ mensaje }}</p>
+            </div>
+            {% else %}
+            <div class="mensaje mensaje--error">
+                <strong>{{ titulo }}</strong>
+                <p>{{ mensaje }}</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="reserva-finalizada-actions">
+            <a href="/reservas" class="btn-primary">Volver a reservas</a>
+            <a href="/mis-reservas" class="btn-secondary">Mis reservas</a>
+        </div>
+    </section>
+</main>
+{% endblock %}

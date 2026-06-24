@@ -320,7 +320,8 @@ impl ReservaHandler {
             match (carrito.fecha_inicio.clone(), carrito.fecha_fin.clone()) {
                 (Some(i), Some(f)) => (i, f),
                 _ => {
-                    return templates::response_mensaje_error(
+                    return Self::render_reserva_finalizada(
+                        false,
                         "Sin fechas",
                         "Elegí las fechas antes de finalizar la reserva.",
                     );
@@ -342,14 +343,27 @@ impl ReservaHandler {
             motivo,
             carrito.ejemplares.clone(),
         ) {
-            Ok(_) => templates::response_mensaje_exito(
+            Ok(_) => Self::render_reserva_finalizada(
+                true,
                 "Reserva creada",
                 "La reserva fue registrada correctamente.",
             )
             .with_additional_header("Set-Cookie", cookie_carrito_vacio()),
 
-            Err(e) => templates::response_mensaje_error("No se pudo crear la reserva", &e),
+            Err(e) => Self::render_reserva_finalizada(
+                false,
+                "No se pudo crear la reserva",
+                &e,
+            ),
         }
+    }
+
+    fn render_reserva_finalizada(exito: bool, titulo: &str, mensaje: &str) -> Response {
+        let mut ctx = Context::new();
+        ctx.insert("exito", &exito);
+        ctx.insert("titulo", titulo);
+        ctx.insert("mensaje", mensaje);
+        templates::response_html(templates::render("reserva_finalizada.html", &ctx))
     }
 
     fn obtener_ejemplares(body: &str) -> Vec<i64> {
