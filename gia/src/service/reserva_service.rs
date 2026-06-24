@@ -128,7 +128,7 @@ impl ReservaService {
 
     fn validar_motivo(motivo: &Option<String>) -> Result<(), String> {
         match motivo {
-            Some(m) if m.trim().len() >= 1 => Ok(()),
+            Some(m) if !m.trim().is_empty() => Ok(()),
             Some(_) => Err("El motivo debe tener al menos 1 caracter".to_string()),
             None => Err("El motivo de la reserva es obligatorio".to_string()),
         }

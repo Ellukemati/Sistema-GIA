@@ -178,12 +178,16 @@ impl AdminHandler {
             return resp;
         }
 
-        let mut ctx = Context::new();
         let reservas = Self::obtener_reservas_detalladas(conn);
         let profes = UsuarioRepository::listar_profesores_pendientes(conn).unwrap_or_default();
+        let tab_activo = request
+            .get_param("tab_activo")
+            .unwrap_or_else(|| "0".to_string());
 
+        let mut ctx = Context::new();
         ctx.insert("reservas", &reservas);
         ctx.insert("profesores", &profes);
+        ctx.insert("tab_activo", &tab_activo);
         templates::response_html(templates::render("partials/admin_tablas.html", &ctx))
     }
 
