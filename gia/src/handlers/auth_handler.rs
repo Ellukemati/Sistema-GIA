@@ -14,6 +14,11 @@ impl AuthHandler {
         templates::response_html(templates::render("usuario_registro.html", &ctx))
     }
 
+    pub fn mostrar_bienvenida() -> Response {
+        let ctx = Context::new();
+        templates::response_html(templates::render("bienvenida.html", &ctx))
+    }
+
     pub fn mostrar_formulario_login() -> Response {
         let ctx = Context::new();
 

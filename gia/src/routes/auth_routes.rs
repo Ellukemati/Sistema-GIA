@@ -51,7 +51,7 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
         },
 
         (GET) (/) => {
-            Response::text("Bienvenido a GIA. Ve a /registro para crear una cuenta.")
+            AuthHandler::mostrar_bienvenida()
         },
 
         _ => Response::empty_404()
