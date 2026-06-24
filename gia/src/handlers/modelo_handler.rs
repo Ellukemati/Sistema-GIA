@@ -361,6 +361,8 @@ impl ModeloHandler {
         })
     }
 
+    // Esta funcion se usa para almacenar el manual y las imagenes de un modelo, tanto para la creacion como para la edicion.
+    // Tiene una flag para reemplazar las imagenes, que se usa para la edicion. En la creacion, no se reemplazan las imagenes.
     fn guardar_assets_modelo(
         conn: &Connection,
         modelo_id: i64,
