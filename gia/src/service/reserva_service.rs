@@ -36,6 +36,7 @@ impl ReservaService {
     ) -> Result<(), String> {
         Self::validar_ejemplares(&ejemplares)?;
         Self::validar_fechas(&fecha_inicio, &fecha_fin)?;
+        Self::validar_motivo(&motivo)?;
 
         for ejemplar_id in &ejemplares {
             let disponible = ReservaRepository::ejemplar_disponible(
@@ -123,6 +124,14 @@ impl ReservaService {
         }
 
         Ok(())
+    }
+
+    fn validar_motivo(motivo: &Option<String>) -> Result<(), String> {
+        match motivo {
+            Some(m) if m.trim().len() >= 1 => Ok(()),
+            Some(_) => Err("El motivo debe tener al menos 1 caracter".to_string()),
+            None => Err("El motivo de la reserva es obligatorio".to_string()),
+        }
     }
 
     fn validar_fechas(fecha_inicio: &str, fecha_fin: &str) -> Result<(), String> {
@@ -321,6 +330,24 @@ mod tests {
 
         let resultado = ReservaService::validar_fechas(&inicio, &fin);
 
+        assert!(resultado.is_ok());
+    }
+
+    #[test]
+    fn validar_motivo_vacio_es_error() {
+        let resultado = ReservaService::validar_motivo(&None);
+        assert!(resultado.is_err());
+    }
+
+    #[test]
+    fn validar_motivo_solo_espacios_es_error() {
+        let resultado = ReservaService::validar_motivo(&Some("   ".into()));
+        assert!(resultado.is_err());
+    }
+
+    #[test]
+    fn validar_motivo_valido() {
+        let resultado = ReservaService::validar_motivo(&Some("Práctica de campo".into()));
         assert!(resultado.is_ok());
     }
 

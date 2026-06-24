@@ -44,13 +44,35 @@
         gap: var(--spacing-sm);
     }
 
+    .carrito-motivo-field {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-xs);
+        flex: 1 1 12rem;
+        min-width: 0;
+    }
+
+    .carrito-motivo-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--color-text);
+    }
+
+    .carrito-motivo-label::after {
+        content: " *";
+        color: var(--color-error, #b91c1c);
+    }
+
     .carrito-motivo {
+        width: 100%;
+        box-sizing: border-box;
         padding: 0.55rem 0.75rem;
-        font-size: 0.9rem;
+        font-size: 1rem;
         color: var(--color-text);
         background-color: var(--color-bg);
         border: 1.5px solid var(--color-border);
         border-radius: var(--radius-sm);
+        min-height: 44px;
     }
 
     .carrito-motivo:focus-visible {

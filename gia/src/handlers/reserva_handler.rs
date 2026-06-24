@@ -332,10 +332,7 @@ impl ReservaHandler {
             let _ = reader.read_to_string(&mut body);
         }
         let datos = Self::parsear_formulario(&body);
-        let motivo = datos
-            .get("motivo")
-            .cloned()
-            .filter(|m| !m.trim().is_empty());
+        let motivo = datos.get("motivo").cloned();
 
         match ReservaService::crear_reserva(
             conn,
