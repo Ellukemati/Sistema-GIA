@@ -1,5 +1,6 @@
 use crate::repository::modelo_repository::ModeloRepository;
 use crate::service::ejemplar_service::{CrearEjemplarData, EjemplarService};
+use crate::utils::{usuario_actual};
 use crate::templates;
 
 use rouille::{Request, Response};
@@ -18,7 +19,20 @@ struct ModeloOption {
 pub struct EjemplarHandler;
 
 impl EjemplarHandler {
-    pub fn mostrar_formulario_registro() -> Response {
+    pub fn mostrar_formulario_registro(request: &Request, conn: &Connection) -> Response {
+        let usuario = match usuario_actual(request, conn) {
+            Ok(u) => u,
+            Err(response) => return response,
+        };
+
+        if !usuario.es_admin() {
+            return templates::response_mensaje_error_con_status(
+                "Acceso denegado",
+                "Esta acción requiere permisos de administrador.",
+                403,
+            );
+        }
+
         let ctx = Context::new();
         templates::response_html(templates::render("ejemplar_registro.html", &ctx))
     }

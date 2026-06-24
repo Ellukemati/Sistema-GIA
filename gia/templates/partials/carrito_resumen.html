@@ -4,7 +4,19 @@
         <span class="carrito-resumen-texto">ejemplar(es) en esta reserva</span>
     </div>
     <form method="POST" action="/reservas/finalizar" class="carrito-resumen-form">
-        <input type="text" name="motivo" class="carrito-motivo" placeholder="Motivo (opcional)">
+        <div class="carrito-motivo-field">
+            <label for="carrito-motivo-input" class="carrito-motivo-label">Motivo</label>
+            <input
+                type="text"
+                id="carrito-motivo-input"
+                name="motivo"
+                class="carrito-motivo"
+                placeholder="Ej.: práctica de campo"
+                required
+                minlength="1"
+                maxlength="500"
+            >
+        </div>
         <a class="btn-ver-detalle" href="/reservas/carrito">Ver detalle</a>
         <button type="submit" class="btn-finalizar"{% if carrito_cantidad == 0 %} disabled{% endif %}>
             Finalizar reserva

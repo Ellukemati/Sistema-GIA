@@ -50,6 +50,10 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
             AuthHandler::procesar_alta_registro_invitacion(request, &conn_guard)
         },
 
+        (GET) (/) => {
+            AuthHandler::mostrar_bienvenida()
+        },
+        
         (GET) (/inicio) => {
             let conn_guard = conn.lock().unwrap();
             AuthHandler::mostrar_home(request, &conn_guard)

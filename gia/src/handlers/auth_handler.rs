@@ -17,6 +17,11 @@ impl AuthHandler {
         templates::response_html(templates::render("usuario_registro.html", &ctx))
     }
 
+    pub fn mostrar_bienvenida() -> Response {
+        let ctx = Context::new();
+        templates::response_html(templates::render("bienvenida.html", &ctx))
+    }
+
     pub fn mostrar_formulario_login() -> Response {
         let ctx = Context::new();
 
@@ -120,14 +125,12 @@ impl AuthHandler {
         let password = datos_parseados.get("password").cloned().unwrap_or_default();
 
         match AuthService::login(conn, &email, &password) {
-            Ok((usuario, token)) => {
+            Ok((_usuario, token)) => {
                 let cookie_str =
                     format!("session_token={}; HttpOnly; Path=/; Max-Age=86400", token);
-                templates::response_mensaje_exito(
-                    "¡Inicio de sesión exitoso!",
-                    &format!("Bienvenido/a {}.", usuario.nombre_completo()),
-                )
-                .with_additional_header("Set-Cookie", cookie_str)
+                Response::empty_204()
+                    .with_additional_header("Set-Cookie", cookie_str)
+                    .with_additional_header("HX-Redirect", "/inicio")
             }
 
             Err(e) => templates::response_mensaje_error_con_status(

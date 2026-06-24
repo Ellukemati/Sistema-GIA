@@ -11,7 +11,8 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
         },
 
         (GET) (/modelo/registro) => {
-            ModeloHandler::mostrar_formulario_registro()
+            let conn_guard = conn.lock().unwrap();
+            ModeloHandler::mostrar_formulario_registro(request, &conn_guard)
         },
 
         (POST) (/modelo/registro) => {

@@ -11,7 +11,7 @@
     <section class="auth-card">
         <header class="auth-header">
             <p class="auth-brand">GIA</p>
-            <h1>Registro de usuario</h1>
+            <h1>Registro de docentes</h1>
             <p class="auth-subtitle">Acceso institucional FIUBA</p>
         </header>
 
@@ -29,7 +29,7 @@
 
             <div class="field">
                 <label for="email">Email</label>
-                <input id="email" type="email" name="email" placeholder="usuario@fi.uba.ar" autocomplete="email" required>
+                <input id="email" type="email" name="email" placeholder="docente@fi.uba.ar" autocomplete="email" required>
                 <small class="field-hint">Usá tu correo institucional @fi.uba.ar</small>
             </div>
 
@@ -38,17 +38,8 @@
                 <input id="legajo" type="number" name="legajo" placeholder="12345678" required>
             </div>
 
-            <div class="field">
-                <label for="tipo">Tipo de usuario</label>
-                <select id="tipo" name="tipo" required>
-                    <option value="P">Profesor</option>
-                </select>
-            </div>
-
-            <div class="field">
-                <label for="password">Contraseña</label>
-                <input id="password" type="password" name="password" autocomplete="new-password" required>
-            </div>
+            {% include "partials/campo_password.html" %}
+            {% include "partials/campo_password_confirm.html" %}
 
             <button type="submit" class="btn-primary">Crear cuenta</button>
         </form>
@@ -60,4 +51,5 @@
         {% include "partials/resultado.html" %}
     </section>
 </main>
+{% include "partials/script_validacion_password.html" %}
 {% endblock %}

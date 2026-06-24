@@ -21,14 +21,9 @@
                 <input id="email" type="email" name="email" placeholder="usuario@fi.uba.ar" autocomplete="email" required>
             </div>
 
-            <div class="field">
-                <label for="password">Contraseña</label>
-                <input id="password" type="password" name="password" autocomplete="current-password" required>
-                
-                <p class="field-hint" style="text-align: right; margin-top: var(--spacing-xs);">
-                    <a href="/restablecer">Me olvidé mi contraseña</a>
-                </p>
-            </div>
+            {% set password_autocomplete = "current-password" %}
+            {% set mostrar_recuperar = true %}
+            {% include "partials/campo_password.html" %}
 
             <button type="submit" class="btn-primary">Ingresar</button>
         </form>
@@ -40,4 +35,5 @@
         {% include "partials/resultado.html" %}
     </section>
 </main>
+{% include "partials/script_toggle_password.html" %}
 {% endblock %}

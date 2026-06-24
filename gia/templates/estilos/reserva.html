@@ -21,13 +21,46 @@
         gap: var(--spacing-md);
     }
 
+    .reserva-fechas-grid .field {
+        min-width: 0;
+    }
+
+    .reserva-fechas-grid input[type="date"] {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        min-height: 44px;
+        font-size: 1rem;
+        -webkit-appearance: none;
+        appearance: none;
+    }
+
+    .reserva-fechas-grid input[type="date"]::-webkit-date-and-time-value {
+        text-align: left;
+    }
+
     .reserva-fechas-hint {
         margin: var(--spacing-md) 0 0;
         font-size: 0.8rem;
         color: var(--color-muted);
+        line-height: 1.45;
     }
 
-    @media (min-width: 480px) {
+    @media (max-width: 479px) {
+        .reserva-fechas {
+            padding: var(--spacing-md);
+        }
+
+        .reserva-fechas-titulo {
+            font-size: 0.95rem;
+        }
+
+        .reserva-fechas-hint {
+            font-size: 0.75rem;
+        }
+    }
+
+    @media (min-width: 640px) {
         .reserva-fechas-grid {
             grid-template-columns: 1fr 1fr;
         }

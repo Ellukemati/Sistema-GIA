@@ -6,7 +6,8 @@ use std::sync::{Arc, Mutex};
 pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
     router!(request,
         (GET) (/ejemplar/registro) => {
-            EjemplarHandler::mostrar_formulario_registro()
+            let conn_guard = conn.lock().unwrap();
+            EjemplarHandler::mostrar_formulario_registro(request, &conn_guard)
         },
         (GET) (/ejemplar/modelos/opciones) => {
             let conn_guard = conn.lock().unwrap();
