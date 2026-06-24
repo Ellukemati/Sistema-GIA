@@ -4,22 +4,37 @@
 <ul class="ejemplares-lista">
     {% for e in ejemplares %}
     <li class="ejemplar-item{% if con_fechas and not e.disponible %} ejemplar-item--no-disponible{% endif %}">
-        <label class="ejemplar-label">
-            {% if con_fechas %}
-            <input type="checkbox" name="ejemplar_id" value="{{ e.id }}"
-                   {% if e.en_carrito %}checked{% endif %}
-                   {% if not e.disponible %}disabled{% endif %}>
-            {% endif %}
-            <span class="ejemplar-datos">
-                <span class="ejemplar-dato"><b>Serie:</b> {{ e.numero_serie }}</span>
-                <span class="ejemplar-dato"><b>Patrimonio:</b> {{ e.patrimonio }}</span>
-                <span class="ejemplar-dato"><b>Ubicación:</b> {{ e.ubicacion }}</span>
-                <span class="ejemplar-dato"><b>QR:</b> {{ e.codigo_qr }}</span>
-                {% if con_fechas and not e.disponible %}
-                <span class="ejemplar-estado">No disponible para estas fechas</span>
+        <div class="ejemplar-label">
+            <label class="ejemplar-datos-wrapper">
+                {% if con_fechas %}
+                <input type="checkbox" name="ejemplar_id" value="{{ e.id }}"
+                       {% if e.en_carrito %}checked{% endif %}
+                       {% if not e.disponible %}disabled{% endif %}>
                 {% endif %}
-            </span>
-        </label>
+                <span class="ejemplar-datos">
+                    <span class="ejemplar-dato"><b>Serie:</b> {{ e.numero_serie }}</span>
+                    <span class="ejemplar-dato"><b>Patrimonio:</b> {{ e.patrimonio }}</span>
+                    <span class="ejemplar-dato"><b>Ubicación:</b> {{ e.ubicacion }}</span>
+                    <span class="ejemplar-dato"><b>QR:</b> {{ e.codigo_qr }}</span>
+                    {% if con_fechas and not e.disponible %}
+                    <span class="ejemplar-estado">No disponible para estas fechas</span>
+                    {% endif %}
+                    {% if es_admin and mostrar_edicion and e.tiene_reserva_bloqueante %}
+                    <span class="ejemplar-estado">No editable: reserva activa o pendiente</span>
+                    {% endif %}
+                </span>
+            </label>
+            {% if es_admin and mostrar_edicion %}
+            <div class="ejemplar-acciones">
+                {% if e.tiene_reserva_bloqueante %}
+                <span class="btn-manual btn-manual--disabled" aria-disabled="true"
+                      title="No editable: reserva activa o pendiente">Editar</span>
+                {% else %}
+                <a class="btn-manual" href="/ejemplar/{{ e.id }}/editar">Editar</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
     </li>
     {% endfor %}
 </ul>

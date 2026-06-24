@@ -49,13 +49,26 @@
     .ejemplar-label {
         display: flex;
         align-items: flex-start;
+        justify-content: space-between;
         gap: var(--spacing-md);
         padding: var(--spacing-md);
+    }
+
+    .ejemplar-datos-wrapper {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--spacing-md);
+        flex: 1;
         cursor: pointer;
     }
 
-    .ejemplar-item--no-disponible .ejemplar-label {
+    .ejemplar-item--no-disponible .ejemplar-datos-wrapper {
         cursor: not-allowed;
+    }
+
+    .ejemplar-acciones {
+        flex-shrink: 0;
+        align-self: center;
     }
 
     .ejemplar-datos {
