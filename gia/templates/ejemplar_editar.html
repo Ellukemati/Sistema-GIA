@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}GIA - Editar ejemplar{% endblock %}
+
+{% block extra_head %}
+    {% include "estilos/auth.html" %}
+{% endblock %}
+
+{% block content %}
+<main class="auth-page">
+    <section class="auth-card">
+        <header class="auth-header">
+            <p class="auth-brand">GIA</p>
+            <h1>Editar ejemplar</h1>
+            <p class="auth-subtitle">Modificación de instrumento en inventario</p>
+        </header>
+
+        {% if bloqueado %}
+        <div class="field" style="margin-bottom: 1.5rem; padding: 1rem; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); background-color: #fff8e6;">
+            <p style="margin: 0; color: var(--color-text); font-weight: 600;">{{ mensaje_bloqueo }}</p>
+        </div>
+        {% endif %}
+
+        <form class="auth-form"
+              hx-post="/ejemplar/{{ ejemplar.id }}/editar"
+              hx-target="#resultado">
+            <div class="field">
+                <label for="modelo_id">Modelo</label>
+                <select id="modelo_id" name="modelo_id" required {% if bloqueado %}disabled{% endif %}>
+                    {% for modelo in modelos %}
+                    <option value="{{ modelo.id }}"
+                            {% if modelo.id == ejemplar.modelo_id %}selected{% endif %}>
+                        {{ modelo.nombre_modelo }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="field-row">
+                <div class="field">
+                    <label for="numero_serie">Número de serie</label>
+                    <input id="numero_serie" type="text" name="numero_serie"
+                           value="{{ ejemplar.numero_serie | default(value='') }}"
+                           placeholder="Ej: SN-001234" {% if bloqueado %}disabled{% endif %}>
+                </div>
+                <div class="field">
+                    <label for="codigo_qr">Código QR</label>
+                    <input id="codigo_qr" type="text" name="codigo_qr"
+                           value="{{ ejemplar.codigo_qr | default(value='') }}"
+                           placeholder="Ej: QR-987654" {% if bloqueado %}disabled{% endif %}>
+                </div>
+            </div>
+
+            <div class="field-row">
+                <div class="field">
+                    <label for="patrimonio">Patrimonio</label>
+                    <input id="patrimonio" type="text" name="patrimonio"
+                           value="{{ ejemplar.patrimonio | default(value='') }}"
+                           placeholder="Ej: PAT-2024-001" {% if bloqueado %}disabled{% endif %}>
+                </div>
+                <div class="field">
+                    <label for="ubicacion">Ubicación</label>
+                    <input id="ubicacion" type="text" name="ubicacion"
+                           value="{{ ejemplar.ubicacion | default(value='') }}"
+                           placeholder="Ej: Laboratorio 3" {% if bloqueado %}disabled{% endif %}>
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="observaciones">Observaciones</label>
+                <input id="observaciones" type="text" name="observaciones"
+                       value="{{ ejemplar.observaciones | default(value='') }}"
+                       placeholder="Notas adicionales sobre el ejemplar" {% if bloqueado %}disabled{% endif %}>
+            </div>
+
+            <div class="field accesorios-group">
+                <span class="field-label">Accesorios</span>
+                <input type="radio" name="tiene_accesorios" value="no" id="accesorios_no"
+                       class="accesorios-radio"
+                       {% if not ejemplar.accesorios %}checked{% endif %}
+                       {% if bloqueado %}disabled{% endif %}>
+                <input type="radio" name="tiene_accesorios" value="si" id="accesorios_si"
+                       class="accesorios-radio"
+                       {% if ejemplar.accesorios %}checked{% endif %}
+                       {% if bloqueado %}disabled{% endif %}>
+                <div class="radio-group">
+                    <label for="accesorios_no" class="radio-label">No</label>
+                    <label for="accesorios_si" class="radio-label">Sí</label>
+                </div>
+                <div class="accesorios-detalle">
+                    <label for="accesorios">Detalle de accesorios</label>
+                    <textarea id="accesorios" name="accesorios" rows="3"
+                              placeholder="Ej: cable de alimentación, estuche, trípode"
+                              {% if bloqueado %}disabled{% endif %}>{{ ejemplar.accesorios | default(value='') }}</textarea>
+                    <small class="field-hint">Un ítem por línea o separados por coma.</small>
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="esta_disponible">Disponibilidad</label>
+                <select id="esta_disponible" name="esta_disponible" {% if bloqueado %}disabled{% endif %}>
+                    <option value="true" {% if ejemplar.esta_disponible %}selected{% endif %}>Disponible</option>
+                    <option value="false" {% if not ejemplar.esta_disponible %}selected{% endif %}>No disponible</option>
+                </select>
+            </div>
+
+            {% if not bloqueado %}
+            <button type="submit" class="btn-primary">Guardar cambios</button>
+            {% endif %}
+        </form>
+
+        <footer class="auth-footer">
+            <p><a href="/modelo/{{ ejemplar.modelo_id }}">&larr; Volver al detalle</a></p>
+        </footer>
+
+        {% include "partials/resultado.html" %}
+    </section>
+</main>
+{% endblock %}

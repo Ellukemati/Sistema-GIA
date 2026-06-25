@@ -3,6 +3,14 @@ use rusqlite::{Connection, OptionalExtension, Result as SqlResult, params};
 pub struct ImageRepository;
 
 impl ImageRepository {
+    pub fn eliminar_por_modelo(conn: &Connection, modelo_id: i64) -> SqlResult<()> {
+        conn.execute(
+            "DELETE FROM modelo_imagen WHERE modelo_id = ?1",
+            params![modelo_id],
+        )?;
+        Ok(())
+    }
+
     pub fn guardar_modelo(
         conn: &Connection,
         modelo_id: i64,

@@ -34,6 +34,23 @@ impl ModeloRepository {
         Ok(modelos)
     }
 
+    pub fn actualizar(
+        conn: &Connection,
+        id: i64,
+        marca: &str,
+        nombre_modelo: &str,
+        categoria: Option<&str>,
+        descripcion: Option<&str>,
+    ) -> SqlResult<()> {
+        conn.execute(
+            "UPDATE modelos
+             SET marca = ?1, nombre_modelo = ?2, categoria = ?3, descripcion = ?4
+             WHERE id = ?5",
+            params![marca, nombre_modelo, categoria, descripcion, id],
+        )?;
+        Ok(())
+    }
+
     pub fn buscar_por_id(conn: &Connection, id: i64) -> SqlResult<Option<Modelo>> {
         let mut stmt = conn.prepare(
             "SELECT id, marca, nombre_modelo, categoria, descripcion 
