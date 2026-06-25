@@ -28,6 +28,42 @@ pub struct GrupoCategoriaDTO {
 }
 
 impl ModeloService {
+    pub fn actualizar_modelo(
+        conn: &Connection,
+        id: i64,
+        data: CrearModeloData,
+    ) -> Result<Modelo, String> {
+        if data.nombre_modelo.trim().is_empty() {
+            return Err("El nombre del modelo no puede estar vacio.".to_string());
+        }
+
+        match ModeloRepository::buscar_por_id(conn, id) {
+            Ok(None) => return Err("Modelo no encontrado.".to_string()),
+            Ok(Some(_)) => {}
+            Err(e) => {
+                return Err(format!("Error al buscar el modelo: {}", e));
+            }
+        }
+
+        match ModeloRepository::actualizar(
+            conn,
+            id,
+            &data.marca,
+            &data.nombre_modelo,
+            data.categoria.as_deref(),
+            data.descripcion.as_deref(),
+        ) {
+            Ok(()) => Ok(Modelo {
+                id,
+                marca: data.marca,
+                nombre_modelo: data.nombre_modelo,
+                categoria: data.categoria,
+                descripcion: data.descripcion,
+            }),
+            Err(e) => Err(format!("Error en la base de datos al actualizar modelo: {}", e)),
+        }
+    }
+
     pub fn crear_modelo(conn: &Connection, data: CrearModeloData) -> Result<Modelo, String> {
         if data.nombre_modelo.trim().is_empty() {
             return Err("El nombre del modelo no puede estar vacio.".to_string());
