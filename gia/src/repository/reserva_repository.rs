@@ -5,7 +5,7 @@ use crate::service::reserva_service::ReservaService;
 use crate::templates;
 use chrono::NaiveDate;
 use rouille::{Request, Response};
-use rusqlite::{Connection, Result as SqlResult, params};
+use rusqlite::{Connection, OptionalExtension, Result as SqlResult, params};
 
 pub struct EquipoRaw {
     pub modelo_id: i64,
@@ -155,18 +155,25 @@ impl ReservaRepository {
         fecha_inicio: &str,
         fecha_fin: &str,
     ) -> SqlResult<bool> {
-        let cantidad: i64 = conn.query_row(
-            "SELECT COUNT(*)
-             FROM reservas r
-             INNER JOIN reserva_ejemplar re ON r.id = re.reserva_id
-             WHERE re.ejemplar_id = ?1
-               AND r.estado != 'cancelada'
-               AND (r.fecha_inicio <= ?2 AND r.fecha_fin >= ?3)",
-            params![ejemplar_id, fecha_fin, fecha_inicio],
-            |row| row.get(0),
-        )?;
+        let disponible: Option<bool> = conn
+            .query_row(
+                "SELECT e.esta_disponible != 0
+                    AND NOT EXISTS (
+                        SELECT 1
+                        FROM reservas r
+                        INNER JOIN reserva_ejemplar re ON r.id = re.reserva_id
+                        WHERE re.ejemplar_id = e.id
+                          AND r.estado != 'cancelada'
+                          AND (r.fecha_inicio <= ?2 AND r.fecha_fin >= ?3)
+                    )
+                 FROM ejemplares e
+                 WHERE e.id = ?1",
+                params![ejemplar_id, fecha_fin, fecha_inicio],
+                |row| row.get(0),
+            )
+            .optional()?;
 
-        Ok(cantidad == 0)
+        Ok(disponible.unwrap_or(false))
     }
 
     pub fn listar_por_estado(conn: &Connection, estado: &str) -> SqlResult<Vec<Reserva>> {
@@ -291,6 +298,21 @@ mod tests {
     fn crear_db_test() -> Connection {
         let conn = Connection::open_in_memory().unwrap();
         conn.execute(
+            "CREATE TABLE ejemplares (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                modelo_id INTEGER NOT NULL,
+                numero_serie TEXT,
+                codigo_qr TEXT,
+                patrimonio TEXT,
+                observaciones TEXT,
+                accesorios TEXT,
+                esta_disponible BOOLEAN DEFAULT TRUE,
+                ubicacion TEXT
+            )",
+            [],
+        )
+        .unwrap();
+        conn.execute(
             "CREATE TABLE reserva_ejemplar (
             reserva_id INTEGER NOT NULL,
             ejemplar_id INTEGER NOT NULL,
@@ -315,6 +337,15 @@ mod tests {
         .unwrap();
 
         conn
+    }
+
+    fn insertar_ejemplar(conn: &Connection, id: i64, esta_disponible: bool) {
+        conn.execute(
+            "INSERT INTO ejemplares (id, modelo_id, esta_disponible)
+             VALUES (?1, 1, ?2)",
+            params![id, esta_disponible],
+        )
+        .unwrap();
     }
 
     fn reserva_test() -> Reserva {
@@ -342,6 +373,7 @@ mod tests {
     #[test]
     fn ejemplar_disponible_si_no_tiene_reservas() {
         let conn = crear_db_test();
+        insertar_ejemplar(&conn, 1, true);
 
         let disponible =
             ReservaRepository::ejemplar_disponible(&conn, 1, "2026-07-01", "2026-07-05").unwrap();
@@ -350,8 +382,20 @@ mod tests {
     }
 
     #[test]
+    fn ejemplar_no_disponible_si_esta_disponible_es_false() {
+        let conn = crear_db_test();
+        insertar_ejemplar(&conn, 1, false);
+
+        let disponible =
+            ReservaRepository::ejemplar_disponible(&conn, 1, "2026-07-01", "2026-07-05").unwrap();
+
+        assert!(!disponible);
+    }
+
+    #[test]
     fn ejemplar_no_disponible_si_ya_esta_reservado() {
         let conn = crear_db_test();
+        insertar_ejemplar(&conn, 1, true);
 
         ReservaRepository::crear(&conn, &reserva_test()).unwrap();
 
@@ -372,6 +416,7 @@ mod tests {
     #[test]
     fn ejemplar_disponible_si_fechas_no_se_superponen() {
         let conn = crear_db_test();
+        insertar_ejemplar(&conn, 1, true);
 
         ReservaRepository::crear(&conn, &reserva_test()).unwrap();
 
