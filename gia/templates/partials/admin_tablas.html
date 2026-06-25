@@ -2,15 +2,10 @@
 
 <div class="tabs-container">
     <div class="tabs-header">
-<<<<<<< HEAD
         <button class="tab-btn active" onclick="switchTab(0)">📋 Reservas Pendientes</button>
         <button class="tab-btn" onclick="switchTab(1)">👨‍🏫 Docentes en Espera</button>
         <button class="tab-btn" onclick="switchTab(2)">👑 Hacer Admin</button>
         <button class="tab-btn" onclick="switchTab(3)">🔒 Quitar Admin</button>
-=======
-        <button class="tab-btn {% if current_tab == '0' %}active{% endif %}" onclick="switchTab(0)">⚙️ Reservas Pendientes</button>
-        <button class="tab-btn {% if current_tab == '1' %}active{% endif %}" onclick="switchTab(1)">👥 Docentes en Espera</button>
->>>>>>> origin/main
     </div>
 
     <div class="tab-content {% if current_tab == '0' %}active{% endif %}" id="tab-0">
