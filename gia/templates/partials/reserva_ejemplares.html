@@ -11,6 +11,18 @@
                        {% if e.en_carrito %}checked{% endif %}
                        {% if not e.disponible %}disabled{% endif %}>
                 {% endif %}
+                <div class="ejemplar-media">
+                    {% if e.imagen %}
+                    <button type="button" class="ejemplar-img-btn"
+                            data-imagen="{{ e.imagen }}"
+                            data-alt="Ejemplar {{ e.numero_serie }}"
+                            aria-label="Ver imagen ampliada del ejemplar {{ e.numero_serie }}">
+                        <img class="ejemplar-img" src="{{ e.imagen }}" alt="Ejemplar {{ e.numero_serie }}" loading="lazy">
+                    </button>
+                    {% else %}
+                    <div class="ejemplar-sin-imagen">Sin imagen</div>
+                    {% endif %}
+                </div>
                 <span class="ejemplar-datos">
                     <span class="ejemplar-dato"><b>Serie:</b> {{ e.numero_serie }}</span>
                     <span class="ejemplar-dato"><b>Patrimonio:</b> {{ e.patrimonio }}</span>
@@ -47,4 +59,48 @@
     </li>
     {% endfor %}
 </ul>
+
+<dialog id="ejemplar-imagen-lightbox" class="ejemplar-imagen-lightbox">
+    <button type="button" class="ejemplar-imagen-lightbox-cerrar" aria-label="Cerrar">&times;</button>
+    <img class="ejemplar-imagen-lightbox-img" src="" alt="">
+</dialog>
+
+<script>
+    (function () {
+        if (window.ejemplarImagenLightboxInit) return;
+        window.ejemplarImagenLightboxInit = true;
+
+        document.addEventListener('click', function (event) {
+            const btn = event.target.closest('.ejemplar-img-btn');
+            if (!btn) return;
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            const dialog = document.getElementById('ejemplar-imagen-lightbox');
+            if (!dialog) return;
+
+            const img = dialog.querySelector('.ejemplar-imagen-lightbox-img');
+            img.src = btn.dataset.imagen;
+            img.alt = btn.dataset.alt || '';
+            dialog.showModal();
+        });
+
+        const dialog = document.getElementById('ejemplar-imagen-lightbox');
+        if (!dialog) return;
+
+        dialog.addEventListener('click', function (event) {
+            if (event.target === dialog) {
+                dialog.close();
+            }
+        });
+
+        const cerrar = dialog.querySelector('.ejemplar-imagen-lightbox-cerrar');
+        if (cerrar) {
+            cerrar.addEventListener('click', function () {
+                dialog.close();
+            });
+        }
+    })();
+</script>
 {% endif %}

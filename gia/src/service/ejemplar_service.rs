@@ -1,7 +1,7 @@
 use crate::models::ejemplar::Ejemplar;
 use crate::repository::{
-    ejemplar_repository::EjemplarRepository, modelo_repository::ModeloRepository,
-    reserva_repository::ReservaRepository,
+    ejemplar_repository::EjemplarRepository, image_repository::ImageRepository,
+    modelo_repository::ModeloRepository, reserva_repository::ReservaRepository,
 };
 use rusqlite::Connection;
 use serde::Serialize;
@@ -23,6 +23,7 @@ pub struct EjemplarDTO {
     pub observaciones: Option<String>,
     pub accesorios: Option<String>,
     pub tiene_reserva_bloqueante: bool,
+    pub imagen: Option<String>,
 }
 
 pub struct CrearEjemplarData {
@@ -147,6 +148,7 @@ impl EjemplarService {
                 observaciones: Self::texto_opcional(ejemplar.observaciones),
                 accesorios: Self::texto_opcional(ejemplar.accesorios),
                 tiene_reserva_bloqueante: false,
+                imagen: Self::url_imagen_principal(conn, ejemplar.id),
             });
         }
 
@@ -206,10 +208,18 @@ impl EjemplarService {
                 observaciones: Self::texto_opcional(ejemplar.observaciones),
                 accesorios: Self::texto_opcional(ejemplar.accesorios),
                 tiene_reserva_bloqueante,
+                imagen: Self::url_imagen_principal(conn, ejemplar.id),
             });
         }
 
         Ok(dtos)
+    }
+
+    fn url_imagen_principal(conn: &Connection, ejemplar_id: i64) -> Option<String> {
+        match ImageRepository::existe_imagen_principal_ejemplar(conn, ejemplar_id) {
+            Ok(true) => Some(format!("/imagenes/ejemplares/{}/0", ejemplar_id)),
+            _ => None,
+        }
     }
 
     fn texto_opcional(valor: Option<String>) -> Option<String> {
