@@ -58,6 +58,19 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
             let conn_guard = conn.lock().unwrap();
             AuthHandler::mostrar_home(request, &conn_guard)
         },
+        (GET) (/perfil) => {
+            let conn_guard = conn.lock().unwrap();
+            AuthHandler::mostrar_perfil(request, &conn_guard)
+        },
+
+        (POST) (/perfil) => {
+            let conn_guard = conn.lock().unwrap();
+
+            AuthHandler::actualizar_perfil(
+                request,
+                &conn_guard,
+            )
+        },
 
         (GET) (/cerrar-sesion) => {
             let conn_guard = conn.lock().unwrap();

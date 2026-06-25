@@ -63,6 +63,21 @@ impl ImageHandler {
         }
     }
 
+    pub fn guardar_imagen_ejemplar_bytes(
+        conn: &Connection,
+        ejemplar_id: i64,
+        orden: i32,
+        bytes: &[u8],
+    ) -> Result<(), String> {
+        let (blob_final, mime) = procesar_ejemplar(bytes).map_err(|err| match err {
+            ImageStorageError::InvalidImage(msg) => msg,
+            other => other.to_string(),
+        })?;
+
+        ImageRepository::guardar_ejemplar(conn, ejemplar_id, orden, &blob_final, &mime)
+            .map_err(|e| e.to_string())
+    }
+
     pub fn subir_ejemplar(
         request: &Request,
         ejemplar_id: i64,
@@ -74,24 +89,16 @@ impl ImageHandler {
             Err(m) => return Response::text(m).with_status_code(400),
         };
 
-        match procesar_ejemplar(&bytes) {
-            Ok((blob_final, mime)) => match conn.lock() {
-                Ok(guard) => match ImageRepository::guardar_ejemplar(
-                    &guard,
-                    ejemplar_id,
-                    orden,
-                    &blob_final,
-                    &mime,
-                ) {
+        match conn.lock() {
+            Ok(guard) => {
+                match Self::guardar_imagen_ejemplar_bytes(&guard, ejemplar_id, orden, &bytes) {
                     Ok(_) => {
                         Response::text(format!("/imagenes/ejemplares/{}/{}", ejemplar_id, orden))
                     }
-                    Err(e) => Response::text(e.to_string()).with_status_code(500),
-                },
-                Err(_) => Response::text("Mutex envenenado").with_status_code(500),
-            },
-            Err(ImageStorageError::InvalidImage(msg)) => Response::text(msg).with_status_code(400),
-            Err(err) => Response::text(err.to_string()).with_status_code(500),
+                    Err(msg) => Response::text(msg).with_status_code(400),
+                }
+            }
+            Err(_) => Response::text("Mutex envenenado").with_status_code(500),
         }
     }
 

@@ -168,8 +168,15 @@ impl AdminHandler {
         let reservas = Self::obtener_reservas_detalladas(conn);
         let profes = UsuarioRepository::listar_profesores_pendientes(conn).unwrap_or_default();
 
+        let docentes_aprobados =
+            UsuarioRepository::listar_docentes_aprobados(conn).unwrap_or_default();
+
+        let administradores = UsuarioRepository::listar_administradores(conn).unwrap_or_default();
+
         ctx.insert("reservas", &reservas);
         ctx.insert("profesores", &profes);
+        ctx.insert("docentes_aprobados", &docentes_aprobados);
+        ctx.insert("administradores", &administradores);
         templates::response_html(templates::render("admin_solicitudes.html", &ctx))
     }
 
@@ -178,12 +185,23 @@ impl AdminHandler {
             return resp;
         }
 
-        let mut ctx = Context::new();
         let reservas = Self::obtener_reservas_detalladas(conn);
         let profes = UsuarioRepository::listar_profesores_pendientes(conn).unwrap_or_default();
+        let tab_activo = request
+            .get_param("tab_activo")
+            .unwrap_or_else(|| "0".to_string());
 
+        let docentes_aprobados =
+            UsuarioRepository::listar_docentes_aprobados(conn).unwrap_or_default();
+
+        let administradores = UsuarioRepository::listar_administradores(conn).unwrap_or_default();
+
+        let mut ctx = Context::new();
         ctx.insert("reservas", &reservas);
         ctx.insert("profesores", &profes);
+        ctx.insert("docentes_aprobados", &docentes_aprobados);
+        ctx.insert("administradores", &administradores);
+        ctx.insert("tab_activo", &tab_activo);
         templates::response_html(templates::render("partials/admin_tablas.html", &ctx))
     }
 
@@ -256,6 +274,25 @@ impl AdminHandler {
 
             let _ = UsuarioRepository::eliminar(conn, id);
         }
+
+        Response::html("")
+    }
+    pub fn hacer_admin(request: &Request, conn: &Connection, id: i64) -> Response {
+        if let Err(resp) = Self::verificar_admin(request, conn) {
+            return resp;
+        }
+
+        let _ = UsuarioRepository::hacer_admin(conn, id);
+
+        Response::html("")
+    }
+
+    pub fn quitar_admin(request: &Request, conn: &Connection, id: i64) -> Response {
+        if let Err(resp) = Self::verificar_admin(request, conn) {
+            return resp;
+        }
+
+        let _ = UsuarioRepository::quitar_admin(conn, id);
 
         Response::html("")
     }

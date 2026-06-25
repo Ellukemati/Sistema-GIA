@@ -1,12 +1,16 @@
+use crate::handlers::image_handler::ImageHandler;
+use crate::repository::ejemplar_repository::EjemplarRepository;
+use crate::repository::image_repository::ImageRepository;
 use crate::repository::modelo_repository::ModeloRepository;
+use crate::repository::reserva_repository::ReservaRepository;
 use crate::service::ejemplar_service::{CrearEjemplarData, EjemplarService};
 use crate::templates;
 use crate::utils::usuario_actual;
 
+use rouille::input::multipart;
 use rouille::{Request, Response};
 use rusqlite::Connection;
 use serde::Serialize;
-use std::collections::HashMap;
 use std::io::Read;
 use tera::Context;
 
@@ -14,6 +18,18 @@ use tera::Context;
 struct ModeloOption {
     id: i64,
     nombre_modelo: String,
+}
+
+struct DatosFormularioEjemplar {
+    modelo_id: i64,
+    numero_serie: Option<String>,
+    codigo_qr: Option<String>,
+    patrimonio: Option<String>,
+    observaciones: Option<String>,
+    accesorios: Option<String>,
+    esta_disponible: bool,
+    ubicacion: Option<String>,
+    lista_imagenes_bytes: Vec<Vec<u8>>,
 }
 
 pub struct EjemplarHandler;
@@ -35,6 +51,68 @@ impl EjemplarHandler {
 
         let ctx = Context::new();
         templates::response_html(templates::render("ejemplar_registro.html", &ctx))
+    }
+
+    pub fn mostrar_formulario_edicion(request: &Request, conn: &Connection, id: i64) -> Response {
+        let usuario = match usuario_actual(request, conn) {
+            Ok(u) => u,
+            Err(response) => return response,
+        };
+
+        if !usuario.es_admin() {
+            return templates::response_mensaje_error_con_status(
+                "Acceso denegado",
+                "Esta acción requiere permisos de administrador.",
+                403,
+            );
+        }
+
+        let ejemplar = match EjemplarRepository::buscar_por_id(conn, id) {
+            Ok(Some(e)) => e,
+            Ok(None) => {
+                return templates::response_mensaje_error_con_status(
+                    "Ejemplar no encontrado",
+                    "El ejemplar solicitado no existe.",
+                    404,
+                );
+            }
+            Err(e) => {
+                return templates::response_mensaje_error_con_status(
+                    "Error interno",
+                    &format!("No se pudo cargar el ejemplar: {}", e),
+                    500,
+                );
+            }
+        };
+
+        let bloqueado =
+            ReservaRepository::tiene_reserva_activa_o_pendiente(conn, id).unwrap_or(false);
+
+        let modelos = match Self::cargar_opciones_modelos(conn) {
+            Ok(opciones) => opciones,
+            Err(mensaje) => {
+                return templates::response_mensaje_error(
+                    "No se pudieron cargar los modelos",
+                    &mensaje,
+                );
+            }
+        };
+
+        let imagen = match ImageRepository::existe_imagen_principal_ejemplar(conn, id) {
+            Ok(true) => Some(format!("/imagenes/ejemplares/{}/0", id)),
+            _ => None,
+        };
+
+        let mut ctx = Context::new();
+        ctx.insert("ejemplar", &ejemplar);
+        ctx.insert("modelos", &modelos);
+        ctx.insert("bloqueado", &bloqueado);
+        ctx.insert("imagen", &imagen);
+        ctx.insert(
+            "mensaje_bloqueo",
+            "Este ejemplar tiene una reserva pendiente o activa y no puede modificarse.",
+        );
+        templates::response_html(templates::render("ejemplar_editar.html", &ctx))
     }
 
     pub fn listar_opciones_modelos(conn: &Connection) -> Response {
@@ -72,117 +150,315 @@ impl EjemplarHandler {
     }
 
     pub fn procesar_registro(request: &Request, conn: &Connection) -> Response {
-        /*
-        let email = match request.header("X-Usuario-Email") {
-            Some(e) => e,
-            None => {
-                return Response::text("Falta el header X-Usuario-Email").with_status_code(400)
-            }
+        if let Err(response) = Self::verificar_admin(request, conn) {
+            return response;
+        }
+
+        let datos = match Self::parsear_formulario_ejemplar(request) {
+            Ok(d) => d,
+            Err(response) => return response,
         };
 
-        let usuario: Usuario = match UsuarioRepository::buscar_por_email(conn, email) {
-            Ok(Some(u)) => u,
-            Ok(None) => return Response::text("Usuario no encontrado").with_status_code(401),
+        let data = match Self::crear_ejemplar_data_desde_formulario(&datos) {
+            Ok(d) => d,
+            Err(response) => return response,
+        };
+
+        let ejemplar = match EjemplarService::crear_ejemplar(conn, data) {
+            Ok(e) => e,
+            Err(e) => return templates::response_mensaje_error("No se pudo crear el ejemplar", &e),
+        };
+
+        let (error_reemplazo, errores_imagenes) =
+            Self::guardar_imagenes_ejemplar(conn, ejemplar.id, &datos.lista_imagenes_bytes, false);
+
+        if let Some((titulo, mensaje)) = error_reemplazo {
+            return templates::response_mensaje_error(&titulo, &mensaje);
+        }
+
+        if errores_imagenes > 0 {
+            templates::response_mensaje_exito(
+                "Ejemplar creado",
+                &format!(
+                    "El ejemplar fue registrado, pero {} imágenes fallaron al procesarse.",
+                    errores_imagenes
+                ),
+            )
+        } else if datos.lista_imagenes_bytes.is_empty() {
+            templates::response_mensaje_exito(
+                "Ejemplar creado",
+                "El ejemplar fue registrado correctamente.",
+            )
+        } else {
+            templates::response_mensaje_exito(
+                "Ejemplar creado con éxito",
+                &format!(
+                    "El ejemplar y sus {} imágenes se subieron correctamente.",
+                    datos.lista_imagenes_bytes.len()
+                ),
+            )
+        }
+    }
+
+    pub fn procesar_edicion(request: &Request, conn: &Connection, id: i64) -> Response {
+        if let Err(response) = Self::verificar_admin(request, conn) {
+            return response;
+        }
+
+        let datos = match Self::parsear_formulario_ejemplar(request) {
+            Ok(d) => d,
+            Err(response) => return response,
+        };
+
+        let data = match Self::crear_ejemplar_data_desde_formulario(&datos) {
+            Ok(d) => d,
+            Err(response) => return response,
+        };
+
+        let ejemplar = match EjemplarService::actualizar_ejemplar(conn, id, data) {
+            Ok(e) => e,
             Err(e) => {
-                return Response::text(format!("Error consultando usuarios: {}", e))
-                    .with_status_code(500)
+                return templates::response_mensaje_error("No se pudo actualizar el ejemplar", &e);
             }
         };
 
+        let reemplazar_imagenes = !datos.lista_imagenes_bytes.is_empty();
+        let (error_reemplazo, errores_imagenes) = Self::guardar_imagenes_ejemplar(
+            conn,
+            ejemplar.id,
+            &datos.lista_imagenes_bytes,
+            reemplazar_imagenes,
+        );
+
+        if let Some((titulo, mensaje)) = error_reemplazo {
+            return templates::response_mensaje_error(&titulo, &mensaje);
+        }
+
+        if errores_imagenes > 0 {
+            templates::response_mensaje_exito(
+                "Ejemplar actualizado con advertencias",
+                &format!(
+                    "El ejemplar fue actualizado, pero {} imágenes fallaron al procesarse.",
+                    errores_imagenes
+                ),
+            )
+        } else {
+            templates::response_mensaje_exito(
+                "Ejemplar actualizado",
+                "El ejemplar fue actualizado correctamente.",
+            )
+        }
+    }
+
+    fn verificar_admin(request: &Request, conn: &Connection) -> Result<(), Response> {
+        let usuario = usuario_actual(request, conn)?;
         if !usuario.es_admin() {
-            return Response::text("El usuario no tiene permisos de administrador")
-                .with_status_code(403);
+            return Err(templates::response_mensaje_error_con_status(
+                "Acceso denegado",
+                "Esta acción requiere permisos de administrador.",
+                403,
+            ));
         }
-        */
+        Ok(())
+    }
 
-        let mut body = String::new();
-        if let Some(mut reader) = request.data() {
-            let _ = reader.read_to_string(&mut body);
+    fn parsear_formulario_ejemplar(request: &Request) -> Result<DatosFormularioEjemplar, Response> {
+        let mut multipart = match multipart::get_multipart_input(request) {
+            Ok(m) => m,
+            Err(_) => {
+                return Err(templates::response_mensaje_error_con_status(
+                    "Error de solicitud",
+                    "El formulario no tiene el formato multipart correcto.",
+                    400,
+                ));
+            }
+        };
+
+        let mut modelo_id_raw = String::new();
+        let mut numero_serie: Option<String> = None;
+        let mut codigo_qr: Option<String> = None;
+        let mut patrimonio: Option<String> = None;
+        let mut observaciones: Option<String> = None;
+        let mut tiene_accesorios = String::new();
+        let mut accesorios: Option<String> = None;
+        let mut esta_disponible = String::from("true");
+        let mut ubicacion: Option<String> = None;
+        let mut lista_imagenes_bytes: Vec<Vec<u8>> = Vec::new();
+
+        while let Some(mut field) = multipart.next() {
+            let name = field.headers.name.to_string();
+
+            match name.as_str() {
+                "modelo_id" => {
+                    if field.is_text() {
+                        let _ = field.data.read_to_string(&mut modelo_id_raw);
+                    }
+                }
+                "numero_serie" => {
+                    if field.is_text() {
+                        let mut valor = String::new();
+                        let _ = field.data.read_to_string(&mut valor);
+                        numero_serie = Self::campo_opcional_texto(valor);
+                    }
+                }
+                "codigo_qr" => {
+                    if field.is_text() {
+                        let mut valor = String::new();
+                        let _ = field.data.read_to_string(&mut valor);
+                        codigo_qr = Self::campo_opcional_texto(valor);
+                    }
+                }
+                "patrimonio" => {
+                    if field.is_text() {
+                        let mut valor = String::new();
+                        let _ = field.data.read_to_string(&mut valor);
+                        patrimonio = Self::campo_opcional_texto(valor);
+                    }
+                }
+                "observaciones" => {
+                    if field.is_text() {
+                        let mut valor = String::new();
+                        let _ = field.data.read_to_string(&mut valor);
+                        observaciones = Self::campo_opcional_texto(valor);
+                    }
+                }
+                "tiene_accesorios" => {
+                    if field.is_text() {
+                        let _ = field.data.read_to_string(&mut tiene_accesorios);
+                    }
+                }
+                "accesorios" => {
+                    if field.is_text() {
+                        let mut valor = String::new();
+                        let _ = field.data.read_to_string(&mut valor);
+                        accesorios = Self::campo_opcional_texto(valor);
+                    }
+                }
+                "esta_disponible" => {
+                    if field.is_text() {
+                        let _ = field.data.read_to_string(&mut esta_disponible);
+                    }
+                }
+                "ubicacion" => {
+                    if field.is_text() {
+                        let mut valor = String::new();
+                        let _ = field.data.read_to_string(&mut valor);
+                        ubicacion = Self::campo_opcional_texto(valor);
+                    }
+                }
+                "imagenes[]" if field.headers.filename.is_some() => {
+                    let mut foto_bytes = Vec::new();
+                    if field.data.read_to_end(&mut foto_bytes).is_ok() && !foto_bytes.is_empty() {
+                        lista_imagenes_bytes.push(foto_bytes);
+                    }
+                }
+                _ => {}
+            }
         }
 
-        let datos_parseados = Self::parsear_formulario(&body);
-
-        let modelo_id = match datos_parseados
-            .get("modelo_id")
-            .and_then(|v| v.parse::<i64>().ok())
-        {
-            Some(id) => id,
-            None => {
-                return templates::response_mensaje_error_con_status(
+        let modelo_id = match modelo_id_raw.parse::<i64>() {
+            Ok(id) => id,
+            Err(_) => {
+                return Err(templates::response_mensaje_error_con_status(
                     "Datos inválidos",
                     "Debe seleccionar un modelo válido.",
                     400,
-                );
+                ));
             }
         };
 
-        let numero_serie = Self::campo_opcional(&datos_parseados, "numero_serie");
-        let codigo_qr = Self::campo_opcional(&datos_parseados, "codigo_qr");
-        let patrimonio = Self::campo_opcional(&datos_parseados, "patrimonio");
-        let observaciones = Self::campo_opcional(&datos_parseados, "observaciones");
-        let accesorios = match datos_parseados.get("tiene_accesorios").map(|v| v.as_str()) {
-            Some("si") => match Self::campo_opcional(&datos_parseados, "accesorios") {
+        let accesorios = match tiene_accesorios.as_str() {
+            "si" => match accesorios {
                 Some(valor) => Some(valor),
                 None => {
-                    return templates::response_mensaje_error(
+                    return Err(templates::response_mensaje_error(
                         "Datos inválidos",
                         "Indique los accesorios o seleccione No.",
-                    );
+                    ));
                 }
             },
             _ => None,
         };
-        let ubicacion = Self::campo_opcional(&datos_parseados, "ubicacion");
-        let esta_disponible = datos_parseados
-            .get("esta_disponible")
-            .map(|v| v == "true")
-            .unwrap_or(true);
 
-        let data = CrearEjemplarData {
+        Ok(DatosFormularioEjemplar {
             modelo_id,
             numero_serie,
             codigo_qr,
             patrimonio,
             observaciones,
             accesorios,
-            esta_disponible,
+            esta_disponible: esta_disponible == "true",
             ubicacion,
-        };
-
-        match EjemplarService::crear_ejemplar(conn, data) {
-            Ok(ejemplar) => templates::response_mensaje_exito(
-                "Ejemplar creado",
-                &format!(
-                    "El ejemplar fue registrado correctamente (modelo ID: {}).",
-                    ejemplar.modelo_id
-                ),
-            ),
-            Err(e) => templates::response_mensaje_error("No se pudo crear el ejemplar", &e),
-        }
+            lista_imagenes_bytes,
+        })
     }
 
-    /// Devuelve None si el campo no fue enviado o llego vacio, para preservar los NULL
-    /// y no romper las restricciones UNIQUE de la tabla ejemplares.
-    fn campo_opcional(datos: &HashMap<String, String>, clave: &str) -> Option<String> {
-        match datos.get(clave) {
-            Some(valor) if !valor.trim().is_empty() => Some(valor.clone()),
-            _ => None,
-        }
+    fn crear_ejemplar_data_desde_formulario(
+        datos: &DatosFormularioEjemplar,
+    ) -> Result<CrearEjemplarData, Response> {
+        Ok(CrearEjemplarData {
+            modelo_id: datos.modelo_id,
+            numero_serie: datos.numero_serie.clone(),
+            codigo_qr: datos.codigo_qr.clone(),
+            patrimonio: datos.patrimonio.clone(),
+            observaciones: datos.observaciones.clone(),
+            accesorios: datos.accesorios.clone(),
+            esta_disponible: datos.esta_disponible,
+            ubicacion: datos.ubicacion.clone(),
+        })
     }
 
-    fn parsear_formulario(body: &str) -> HashMap<String, String> {
-        let mut mapa = HashMap::new();
-        for par in body.split('&') {
-            let mut partes = par.split('=');
-            if let (Some(clave), Some(valor)) = (partes.next(), partes.next()) {
-                let valor_decodificado = valor
-                    .replace("%40", "@")
-                    .replace("+", " ")
-                    .replace("%20", " ")
-                    .replace("%0A", "\n");
-                mapa.insert(clave.to_string(), valor_decodificado);
+    fn guardar_imagenes_ejemplar(
+        conn: &Connection,
+        ejemplar_id: i64,
+        lista_imagenes_bytes: &[Vec<u8>],
+        reemplazar_imagenes: bool,
+    ) -> (Option<(String, String)>, usize) {
+        let mut errores_imagenes = 0;
+
+        if lista_imagenes_bytes.is_empty() {
+            return (None, errores_imagenes);
+        }
+
+        if reemplazar_imagenes
+            && let Err(e) = ImageRepository::eliminar_por_ejemplar(conn, ejemplar_id)
+        {
+            return (
+                Some((
+                    "Error al reemplazar imágenes".to_string(),
+                    format!(
+                        "Los datos del ejemplar se guardaron pero no se pudieron eliminar las imágenes previas: {}",
+                        e
+                    ),
+                )),
+                errores_imagenes,
+            );
+        }
+
+        for (index, foto_bytes) in lista_imagenes_bytes.iter().enumerate() {
+            let orden_imagen = index as i32;
+            if ImageHandler::guardar_imagen_ejemplar_bytes(
+                conn,
+                ejemplar_id,
+                orden_imagen,
+                foto_bytes,
+            )
+            .is_err()
+            {
+                errores_imagenes += 1;
             }
         }
-        mapa
+
+        (None, errores_imagenes)
+    }
+
+    /// Devuelve None si el campo llegó vacío, para preservar los NULL
+    /// y no romper las restricciones UNIQUE de la tabla ejemplares.
+    fn campo_opcional_texto(valor: String) -> Option<String> {
+        if valor.trim().is_empty() {
+            None
+        } else {
+            Some(valor)
+        }
     }
 }

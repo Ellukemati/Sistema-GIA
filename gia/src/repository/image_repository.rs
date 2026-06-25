@@ -3,6 +3,14 @@ use rusqlite::{Connection, OptionalExtension, Result as SqlResult, params};
 pub struct ImageRepository;
 
 impl ImageRepository {
+    pub fn eliminar_por_modelo(conn: &Connection, modelo_id: i64) -> SqlResult<()> {
+        conn.execute(
+            "DELETE FROM modelo_imagen WHERE modelo_id = ?1",
+            params![modelo_id],
+        )?;
+        Ok(())
+    }
+
     pub fn guardar_modelo(
         conn: &Connection,
         modelo_id: i64,
@@ -29,6 +37,14 @@ impl ImageRepository {
             |row| Ok((row.get(0)?, row.get(1)?)),
         )
         .optional()
+    }
+
+    pub fn eliminar_por_ejemplar(conn: &Connection, ejemplar_id: i64) -> SqlResult<()> {
+        conn.execute(
+            "DELETE FROM ejemplar_imagen WHERE ejemplar_id = ?1",
+            params![ejemplar_id],
+        )?;
+        Ok(())
     }
 
     pub fn guardar_ejemplar(
@@ -85,6 +101,19 @@ impl ImageRepository {
         conn.query_row(
             "SELECT 1 FROM modelo_imagen WHERE modelo_id = ?1 AND orden = 0",
             params![modelo_id],
+            |_| Ok(()),
+        )
+        .optional()
+        .map(|o| o.is_some())
+    }
+
+    pub fn existe_imagen_principal_ejemplar(
+        conn: &Connection,
+        ejemplar_id: i64,
+    ) -> SqlResult<bool> {
+        conn.query_row(
+            "SELECT 1 FROM ejemplar_imagen WHERE ejemplar_id = ?1 AND orden = 0",
+            params![ejemplar_id],
             |_| Ok(()),
         )
         .optional()
