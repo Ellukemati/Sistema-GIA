@@ -1,6 +1,8 @@
+use crate::repository::image_repository::ImageRepository;
 use crate::repository::sesion_repository::SesionRepository;
 use crate::repository::usuario_repository::UsuarioRepository;
 use crate::service::auth_service::AuthService;
+use crate::service::image_service::procesar_avatar;
 use crate::templates;
 use crate::utils::extraer_token_sesion;
 use crate::utils::usuario_actual;
@@ -267,14 +269,9 @@ impl AuthHandler {
         }
 
         if let Some(bytes) = avatar_bytes
-            && let Ok((blob, mime)) = crate::service::image_service::procesar_avatar(&bytes)
+            && let Ok((blob, mime)) = procesar_avatar(&bytes)
         {
-            let _ = crate::repository::image_repository::ImageRepository::guardar_avatar(
-                conn,
-                usuario.legajo as i64,
-                &blob,
-                &mime,
-            );
+            let _ = ImageRepository::guardar_avatar(conn, usuario.legajo as i64, &blob, &mime);
         }
 
         Response::redirect_302("/perfil")
