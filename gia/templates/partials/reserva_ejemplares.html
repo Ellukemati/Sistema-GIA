@@ -16,6 +16,15 @@
                     <span class="ejemplar-dato"><b>Patrimonio:</b> {{ e.patrimonio }}</span>
                     <span class="ejemplar-dato"><b>Ubicación:</b> {{ e.ubicacion }}</span>
                     <span class="ejemplar-dato"><b>QR:</b> {{ e.codigo_qr }}</span>
+                    <span class="ejemplar-dato"><b>Disponibilidad:</b>
+                        {% if e.esta_disponible %}Sí{% else %}No{% endif %}
+                    </span>
+                    {% if e.observaciones %}
+                    <span class="ejemplar-dato"><b>Observaciones:</b> {{ e.observaciones }}</span>
+                    {% endif %}
+                    {% if e.accesorios %}
+                    <span class="ejemplar-dato ejemplar-dato--multilinea"><b>Accesorios:</b> {{ e.accesorios }}</span>
+                    {% endif %}
                     {% if con_fechas and not e.disponible %}
                     <span class="ejemplar-estado">No disponible para estas fechas</span>
                     {% endif %}

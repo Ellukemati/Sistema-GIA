@@ -17,8 +17,11 @@ pub struct EjemplarDTO {
     pub patrimonio: String,
     pub ubicacion: String,
     pub disponible: bool,
+    pub esta_disponible: bool, // hace referencia al estado en el inventario, no a la fecha de reserva
     pub en_carrito: bool,
     pub codigo_qr: String,
+    pub observaciones: Option<String>,
+    pub accesorios: Option<String>,
     pub tiene_reserva_bloqueante: bool,
 }
 
@@ -139,7 +142,10 @@ impl EjemplarService {
                     .unwrap_or_else(|| "Sin ubicación".to_string()),
                 en_carrito: ids_carrito.contains(&ejemplar.id),
                 disponible,
+                esta_disponible: ejemplar.esta_disponible,
                 codigo_qr: ejemplar.codigo_qr.unwrap_or_else(|| "Sin QR".to_string()),
+                observaciones: Self::texto_opcional(ejemplar.observaciones),
+                accesorios: Self::texto_opcional(ejemplar.accesorios),
                 tiene_reserva_bloqueante: false,
             });
         }
@@ -194,13 +200,20 @@ impl EjemplarService {
                     .ubicacion
                     .unwrap_or_else(|| "Sin ubicación".to_string()),
                 disponible: true,
+                esta_disponible: ejemplar.esta_disponible,
                 en_carrito: false,
                 codigo_qr: ejemplar.codigo_qr.unwrap_or_else(|| "Sin QR".to_string()),
+                observaciones: Self::texto_opcional(ejemplar.observaciones),
+                accesorios: Self::texto_opcional(ejemplar.accesorios),
                 tiene_reserva_bloqueante,
             });
         }
 
         Ok(dtos)
+    }
+
+    fn texto_opcional(valor: Option<String>) -> Option<String> {
+        valor.filter(|s| !s.trim().is_empty())
     }
 }
 
@@ -343,6 +356,7 @@ mod tests {
         assert_eq!(dtos[0].ubicacion, "Depósito");
         assert_eq!(dtos[0].codigo_qr, "QR-001");
         assert!(dtos[0].disponible);
+        assert!(dtos[0].esta_disponible);
         assert!(!dtos[0].en_carrito);
     }
 
