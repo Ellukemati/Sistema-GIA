@@ -142,6 +142,25 @@ impl AuthService {
 
         Ok(())
     }
+    pub fn cambiar_password_usuario(
+        conn: &Connection,
+        id_usuario: i64,
+        nuevo_password: &str,
+    ) -> Result<(), String> {
+        let nuevo_hash = Self::hashear_password(nuevo_password);
+
+        conn.execute(
+            "
+            UPDATE usuarios
+            SET password_hash = ?
+            WHERE id = ?
+            ",
+            rusqlite::params![nuevo_hash, id_usuario,],
+        )
+        .map_err(|e| e.to_string())?;
+
+        Ok(())
+    }
 
     pub fn restablecer_password(
         conn: &Connection,
