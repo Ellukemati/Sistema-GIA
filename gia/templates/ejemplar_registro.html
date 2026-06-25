@@ -16,7 +16,7 @@
             <p class="auth-subtitle">Alta de instrumento en inventario</p>
         </header>
 
-        <form class="auth-form" hx-post="/ejemplar/registro" hx-target="#resultado">
+        <form class="auth-form" hx-post="/ejemplar/registro" hx-target="#resultado" hx-encoding="multipart/form-data">
             <div class="field">
                 <label for="modelo_id">Modelo</label>
                 <div id="modelo-select-container">
@@ -79,6 +79,11 @@
                     <option value="true" selected>Disponible</option>
                     <option value="false">No disponible</option>
                 </select>
+            </div>
+
+            <div class="field">
+                <label for="imagenes_ejemplar">Imágenes del ejemplar (opcional; la primera será la principal)</label>
+                <input id="imagenes_ejemplar" type="file" name="imagenes[]" accept="image/png, image/jpeg" multiple>
             </div>
 
             <button type="submit" class="btn-primary">Registrar ejemplar</button>

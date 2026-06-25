@@ -4,6 +4,7 @@
 
 {% block extra_head %}
     {% include "estilos/auth.html" %}
+    {% include "estilos/detalle.html" %}
 {% endblock %}
 
 {% block content %}
@@ -19,11 +20,20 @@
         <div class="field" style="margin-bottom: 1.5rem; padding: 1rem; border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); background-color: #fff8e6;">
             <p style="margin: 0; color: var(--color-text); font-weight: 600;">{{ mensaje_bloqueo }}</p>
         </div>
+        {% else %}
+        <div class="field" style="margin-bottom: 1.5rem;">
+            {% if imagen %}
+            <img class="detalle-img" src="{{ imagen }}" alt="Ejemplar {{ ejemplar.id }}" style="max-width: 100%; margin-top: 0.75rem;">
+            {% else %}
+            <p>Sin imagen</p>
+            {% endif %}
+        </div>
         {% endif %}
 
         <form class="auth-form"
               hx-post="/ejemplar/{{ ejemplar.id }}/editar"
-              hx-target="#resultado">
+              hx-target="#resultado"
+              hx-encoding="multipart/form-data">
             <div class="field">
                 <label for="modelo_id">Modelo</label>
                 <select id="modelo_id" name="modelo_id" required {% if bloqueado %}disabled{% endif %}>
@@ -105,6 +115,10 @@
             </div>
 
             {% if not bloqueado %}
+            <div class="field">
+                <label for="imagenes_ejemplar">Reemplazar imágenes</label>
+                <input id="imagenes_ejemplar" type="file" name="imagenes[]" accept="image/png, image/jpeg" multiple>
+            </div>
             <button type="submit" class="btn-primary">Guardar cambios</button>
             {% endif %}
         </form>
