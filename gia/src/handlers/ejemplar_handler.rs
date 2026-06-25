@@ -2,8 +2,8 @@ use crate::repository::ejemplar_repository::EjemplarRepository;
 use crate::repository::modelo_repository::ModeloRepository;
 use crate::repository::reserva_repository::ReservaRepository;
 use crate::service::ejemplar_service::{CrearEjemplarData, EjemplarService};
-use crate::utils::usuario_actual;
 use crate::templates;
+use crate::utils::usuario_actual;
 
 use rouille::{Request, Response};
 use rusqlite::Connection;
@@ -71,8 +71,8 @@ impl EjemplarHandler {
             }
         };
 
-        let bloqueado = ReservaRepository::tiene_reserva_activa_o_pendiente(conn, id)
-            .unwrap_or(false);
+        let bloqueado =
+            ReservaRepository::tiene_reserva_activa_o_pendiente(conn, id).unwrap_or(false);
 
         let modelos = match Self::cargar_opciones_modelos(conn) {
             Ok(opciones) => opciones,

@@ -157,7 +157,10 @@
     <h1>⚙️ Panel de Control</h1>
 </div>
 
-<div id="tablas-container" class="dashboard-container" hx-get="/admin/tablas/recargar" hx-trigger="every 10s">
+<div id="tablas-container" class="dashboard-container" 
+     hx-get="/admin/tablas/recargar" 
+     hx-trigger="every 10s"
+     hx-vals='js:{tab_activo: sessionStorage.getItem("gia_admin_tab") || "0"}'>
     {% include "partials/admin_tablas.html" %}
 </div>
 

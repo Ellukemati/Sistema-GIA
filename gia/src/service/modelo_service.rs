@@ -60,7 +60,10 @@ impl ModeloService {
                 categoria: data.categoria,
                 descripcion: data.descripcion,
             }),
-            Err(e) => Err(format!("Error en la base de datos al actualizar modelo: {}", e)),
+            Err(e) => Err(format!(
+                "Error en la base de datos al actualizar modelo: {}",
+                e
+            )),
         }
     }
 

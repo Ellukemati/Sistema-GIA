@@ -181,7 +181,9 @@ impl ModeloHandler {
 
         let modelo = match ModeloService::actualizar_modelo(conn, id, data) {
             Ok(m) => m,
-            Err(e) => return templates::response_mensaje_error("No se pudo actualizar el modelo", &e),
+            Err(e) => {
+                return templates::response_mensaje_error("No se pudo actualizar el modelo", &e);
+            }
         };
 
         let reemplazar_imagenes = !datos.lista_imagenes_bytes.is_empty();
@@ -387,7 +389,10 @@ impl ModeloHandler {
                         return (
                             Some((
                                 "Error al guardar el manual".to_string(),
-                                format!("Los datos del modelo se guardaron pero falló el manual: {}", e),
+                                format!(
+                                    "Los datos del modelo se guardaron pero falló el manual: {}",
+                                    e
+                                ),
                             )),
                             errores_imagenes,
                         );
@@ -418,19 +423,19 @@ impl ModeloHandler {
         }
 
         if !lista_imagenes_bytes.is_empty() {
-            if reemplazar_imagenes {
-                if let Err(e) = ImageRepository::eliminar_por_modelo(conn, modelo_id) {
-                    return (
-                        Some((
-                            "Error al reemplazar imágenes".to_string(),
-                            format!(
-                                "Los datos del modelo se guardaron pero no se pudieron eliminar las imágenes previas: {}",
-                                e
-                            ),
-                        )),
-                        errores_imagenes,
-                    );
-                }
+            if reemplazar_imagenes
+                && let Err(e) = ImageRepository::eliminar_por_modelo(conn, modelo_id)
+            {
+                return (
+                    Some((
+                        "Error al reemplazar imágenes".to_string(),
+                        format!(
+                            "Los datos del modelo se guardaron pero no se pudieron eliminar las imágenes previas: {}",
+                            e
+                        ),
+                    )),
+                    errores_imagenes,
+                );
             }
 
             for (index, foto_bytes) in lista_imagenes_bytes.iter().enumerate() {
