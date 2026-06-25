@@ -281,7 +281,7 @@ impl EjemplarHandler {
         let mut observaciones: Option<String> = None;
         let mut tiene_accesorios = String::new();
         let mut accesorios: Option<String> = None;
-        let mut esta_disponible = String::from("true");
+        let mut esta_disponible = String::new();
         let mut ubicacion: Option<String> = None;
         let mut lista_imagenes_bytes: Vec<Vec<u8>> = Vec::new();
 
@@ -336,6 +336,7 @@ impl EjemplarHandler {
                 }
                 "esta_disponible" => {
                     if field.is_text() {
+                        esta_disponible.clear();
                         let _ = field.data.read_to_string(&mut esta_disponible);
                     }
                 }
@@ -387,7 +388,7 @@ impl EjemplarHandler {
             patrimonio,
             observaciones,
             accesorios,
-            esta_disponible: esta_disponible == "true",
+            esta_disponible: parsear_esta_disponible(&esta_disponible),
             ubicacion,
             lista_imagenes_bytes,
         })
@@ -460,5 +461,33 @@ impl EjemplarHandler {
         } else {
             Some(valor)
         }
+    }
+}
+
+fn parsear_esta_disponible(valor: &str) -> bool {
+    match valor.trim() {
+        "" | "true" => true,
+        "false" => false,
+        _ => false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parsear_esta_disponible;
+
+    #[test]
+    fn disponibilidad_true_cuando_el_formulario_envia_true() {
+        assert!(parsear_esta_disponible("true"));
+    }
+
+    #[test]
+    fn disponibilidad_true_por_defecto_si_el_campo_viene_vacio() {
+        assert!(parsear_esta_disponible(""));
+    }
+
+    #[test]
+    fn disponibilidad_false_cuando_el_formulario_envia_false() {
+        assert!(!parsear_esta_disponible("false"));
     }
 }
