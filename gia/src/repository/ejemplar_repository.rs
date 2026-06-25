@@ -55,6 +55,27 @@ impl EjemplarRepository {
         }
     }
 
+    pub fn actualizar(conn: &Connection, ejemplar: &Ejemplar) -> SqlResult<()> {
+        conn.execute(
+            "UPDATE ejemplares
+             SET modelo_id = ?1, numero_serie = ?2, codigo_qr = ?3, patrimonio = ?4,
+                 observaciones = ?5, accesorios = ?6, esta_disponible = ?7, ubicacion = ?8
+             WHERE id = ?9",
+            rusqlite::params![
+                ejemplar.modelo_id,
+                ejemplar.numero_serie,
+                ejemplar.codigo_qr,
+                ejemplar.patrimonio,
+                ejemplar.observaciones,
+                ejemplar.accesorios,
+                ejemplar.esta_disponible,
+                ejemplar.ubicacion,
+                ejemplar.id,
+            ],
+        )?;
+        Ok(())
+    }
+
     pub fn listar_por_modelo(conn: &Connection, modelo_id: i64) -> SqlResult<Vec<Ejemplar>> {
         let mut stmt = conn.prepare(
             "SELECT id, modelo_id, numero_serie, codigo_qr, patrimonio, observaciones, accesorios, esta_disponible, ubicacion

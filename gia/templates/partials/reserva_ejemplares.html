@@ -4,23 +4,103 @@
 <ul class="ejemplares-lista">
     {% for e in ejemplares %}
     <li class="ejemplar-item{% if con_fechas and not e.disponible %} ejemplar-item--no-disponible{% endif %}">
-        <label class="ejemplar-label">
-            {% if con_fechas %}
-            <input type="checkbox" name="ejemplar_id" value="{{ e.id }}"
-                   {% if e.en_carrito %}checked{% endif %}
-                   {% if not e.disponible %}disabled{% endif %}>
-            {% endif %}
-            <span class="ejemplar-datos">
-                <span class="ejemplar-dato"><b>Serie:</b> {{ e.numero_serie }}</span>
-                <span class="ejemplar-dato"><b>Patrimonio:</b> {{ e.patrimonio }}</span>
-                <span class="ejemplar-dato"><b>Ubicación:</b> {{ e.ubicacion }}</span>
-                <span class="ejemplar-dato"><b>QR:</b> {{ e.codigo_qr }}</span>
-                {% if con_fechas and not e.disponible %}
-                <span class="ejemplar-estado">No disponible para estas fechas</span>
+        <div class="ejemplar-label">
+            <label class="ejemplar-datos-wrapper">
+                {% if con_fechas %}
+                <input type="checkbox" name="ejemplar_id" value="{{ e.id }}"
+                       {% if e.en_carrito %}checked{% endif %}
+                       {% if not e.disponible %}disabled{% endif %}>
                 {% endif %}
-            </span>
-        </label>
+                <div class="ejemplar-media">
+                    {% if e.imagen %}
+                    <button type="button" class="ejemplar-img-btn"
+                            data-imagen="{{ e.imagen }}"
+                            data-alt="Ejemplar {{ e.numero_serie }}"
+                            aria-label="Ver imagen ampliada del ejemplar {{ e.numero_serie }}">
+                        <img class="ejemplar-img" src="{{ e.imagen }}" alt="Ejemplar {{ e.numero_serie }}" loading="lazy">
+                    </button>
+                    {% else %}
+                    <div class="ejemplar-sin-imagen">Sin imagen</div>
+                    {% endif %}
+                </div>
+                <span class="ejemplar-datos">
+                    <span class="ejemplar-dato"><b>Serie:</b> {{ e.numero_serie }}</span>
+                    <span class="ejemplar-dato"><b>Patrimonio:</b> {{ e.patrimonio }}</span>
+                    <span class="ejemplar-dato"><b>Ubicación:</b> {{ e.ubicacion }}</span>
+                    <span class="ejemplar-dato"><b>QR:</b> {{ e.codigo_qr }}</span>
+                    <span class="ejemplar-dato"><b>Disponibilidad:</b>
+                        {% if e.esta_disponible %}Sí{% else %}No{% endif %}
+                    </span>
+                    {% if e.observaciones %}
+                    <span class="ejemplar-dato"><b>Observaciones:</b> {{ e.observaciones }}</span>
+                    {% endif %}
+                    {% if e.accesorios %}
+                    <span class="ejemplar-dato ejemplar-dato--multilinea"><b>Accesorios:</b> {{ e.accesorios }}</span>
+                    {% endif %}
+                    {% if con_fechas and not e.disponible %}
+                    <span class="ejemplar-estado">No disponible para estas fechas</span>
+                    {% endif %}
+                    {% if es_admin and mostrar_edicion and e.tiene_reserva_bloqueante %}
+                    <span class="ejemplar-estado">No editable: reserva activa o pendiente</span>
+                    {% endif %}
+                </span>
+            </label>
+            {% if es_admin and mostrar_edicion %}
+            <div class="ejemplar-acciones">
+                {% if e.tiene_reserva_bloqueante %}
+                <span class="btn-manual btn-manual--disabled" aria-disabled="true"
+                      title="No editable: reserva activa o pendiente">Editar</span>
+                {% else %}
+                <a class="btn-manual" href="/ejemplar/{{ e.id }}/editar">Editar</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
     </li>
     {% endfor %}
 </ul>
+
+<dialog id="ejemplar-imagen-lightbox" class="ejemplar-imagen-lightbox">
+    <button type="button" class="ejemplar-imagen-lightbox-cerrar" aria-label="Cerrar">&times;</button>
+    <img class="ejemplar-imagen-lightbox-img" src="" alt="">
+</dialog>
+
+<script>
+    (function () {
+        if (window.ejemplarImagenLightboxInit) return;
+        window.ejemplarImagenLightboxInit = true;
+
+        document.addEventListener('click', function (event) {
+            const btn = event.target.closest('.ejemplar-img-btn');
+            if (!btn) return;
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            const dialog = document.getElementById('ejemplar-imagen-lightbox');
+            if (!dialog) return;
+
+            const img = dialog.querySelector('.ejemplar-imagen-lightbox-img');
+            img.src = btn.dataset.imagen;
+            img.alt = btn.dataset.alt || '';
+            dialog.showModal();
+        });
+
+        const dialog = document.getElementById('ejemplar-imagen-lightbox');
+        if (!dialog) return;
+
+        dialog.addEventListener('click', function (event) {
+            if (event.target === dialog) {
+                dialog.close();
+            }
+        });
+
+        const cerrar = dialog.querySelector('.ejemplar-imagen-lightbox-cerrar');
+        if (cerrar) {
+            cerrar.addEventListener('click', function () {
+                dialog.close();
+            });
+        }
+    })();
+</script>
 {% endif %}

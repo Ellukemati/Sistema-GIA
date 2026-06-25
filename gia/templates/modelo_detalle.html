@@ -39,6 +39,9 @@
             {% endif %}
 
             <div class="detalle-acciones">
+                {% if es_admin %}
+                <a class="btn-manual" href="/modelo/{{ modelo.id }}/editar">Editar</a>
+                {% endif %}
                 {% if tiene_manual %}
                 <a class="btn-manual" href="/manuales/{{ modelo.id }}">Manual</a>
                 {% else %}

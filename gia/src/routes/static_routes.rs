@@ -21,7 +21,13 @@ pub fn router(request: &Request) -> Response {
         return match fs::read(&disk_path) {
             Ok(bytes) => {
                 let mime = from_path(&disk_path).first_or_octet_stream().to_string();
-                Response::from_data(mime, bytes)
+                let mut response = Response::from_data(mime, bytes);
+
+                if path == "sw.js" {
+                    response = response.with_additional_header("Service-Worker-Allowed", "/");
+                }
+
+                response
             }
             Err(_) => Response::empty_404(),
         };
