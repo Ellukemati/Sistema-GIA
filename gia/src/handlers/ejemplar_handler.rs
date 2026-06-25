@@ -169,12 +169,8 @@ impl EjemplarHandler {
             Err(e) => return templates::response_mensaje_error("No se pudo crear el ejemplar", &e),
         };
 
-        let (error_reemplazo, errores_imagenes) = Self::guardar_imagenes_ejemplar(
-            conn,
-            ejemplar.id,
-            &datos.lista_imagenes_bytes,
-            false,
-        );
+        let (error_reemplazo, errores_imagenes) =
+            Self::guardar_imagenes_ejemplar(conn, ejemplar.id, &datos.lista_imagenes_bytes, false);
 
         if let Some((titulo, mensaje)) = error_reemplazo {
             return templates::response_mensaje_error(&titulo, &mensaje);
@@ -191,9 +187,7 @@ impl EjemplarHandler {
         } else if datos.lista_imagenes_bytes.is_empty() {
             templates::response_mensaje_exito(
                 "Ejemplar creado",
-                &format!(
-                    "El ejemplar fue registrado correctamente."
-                ),
+                "El ejemplar fue registrado correctamente.",
             )
         } else {
             templates::response_mensaje_exito(
@@ -251,9 +245,7 @@ impl EjemplarHandler {
         } else {
             templates::response_mensaje_exito(
                 "Ejemplar actualizado",
-                &format!(
-                    "El ejemplar fue actualizado correctamente."
-                ),
+                "El ejemplar fue actualizado correctamente.",
             )
         }
     }
@@ -428,19 +420,19 @@ impl EjemplarHandler {
             return (None, errores_imagenes);
         }
 
-        if reemplazar_imagenes {
-            if let Err(e) = ImageRepository::eliminar_por_ejemplar(conn, ejemplar_id) {
-                return (
-                    Some((
-                        "Error al reemplazar imágenes".to_string(),
-                        format!(
-                            "Los datos del ejemplar se guardaron pero no se pudieron eliminar las imágenes previas: {}",
-                            e
-                        ),
-                    )),
-                    errores_imagenes,
-                );
-            }
+        if reemplazar_imagenes
+            && let Err(e) = ImageRepository::eliminar_por_ejemplar(conn, ejemplar_id)
+        {
+            return (
+                Some((
+                    "Error al reemplazar imágenes".to_string(),
+                    format!(
+                        "Los datos del ejemplar se guardaron pero no se pudieron eliminar las imágenes previas: {}",
+                        e
+                    ),
+                )),
+                errores_imagenes,
+            );
         }
 
         for (index, foto_bytes) in lista_imagenes_bytes.iter().enumerate() {

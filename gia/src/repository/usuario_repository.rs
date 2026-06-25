@@ -18,7 +18,63 @@ impl UsuarioRepository {
             Ok(None)
         }
     }
+    pub fn listar_administradores(conn: &Connection) -> SqlResult<Vec<Usuario>> {
+        let mut stmt = conn.prepare(
+            "SELECT id, nombre, apellido, email, legajo, tipo,
+                    password_hash, aprobado, momento_creacion,
+                    avatar_blob, avatar_mime
+            FROM usuarios
+            WHERE tipo = 'A'
+            ORDER BY apellido, nombre",
+        )?;
 
+        let filas = stmt.query_map([], Usuario::from_row)?;
+
+        let mut usuarios = Vec::new();
+
+        for usuario in filas {
+            usuarios.push(usuario?);
+        }
+
+        Ok(usuarios)
+    }
+    pub fn listar_docentes_aprobados(conn: &Connection) -> SqlResult<Vec<Usuario>> {
+        let mut stmt = conn.prepare(
+            "SELECT id, nombre, apellido, email, legajo, tipo,
+                    password_hash, aprobado, momento_creacion,
+                    avatar_blob, avatar_mime
+            FROM usuarios
+            WHERE tipo = 'P'
+            AND aprobado = 1
+            ORDER BY apellido, nombre",
+        )?;
+
+        let filas = stmt.query_map([], Usuario::from_row)?;
+
+        let mut usuarios = Vec::new();
+
+        for usuario in filas {
+            usuarios.push(usuario?);
+        }
+
+        Ok(usuarios)
+    }
+    pub fn hacer_admin(conn: &Connection, id: i64) -> SqlResult<usize> {
+        conn.execute(
+            "UPDATE usuarios
+            SET tipo = 'A'
+            WHERE id = ?1",
+            [id],
+        )
+    }
+    pub fn quitar_admin(conn: &Connection, id: i64) -> SqlResult<usize> {
+        conn.execute(
+            "UPDATE usuarios
+            SET tipo = 'P'
+            WHERE id = ?1",
+            [id],
+        )
+    }
     pub fn buscar_por_id(conn: &Connection, id: i64) -> SqlResult<Option<Usuario>> {
         let mut stmt = conn.prepare(
             "SELECT id, nombre, apellido, email, legajo, tipo, password_hash, aprobado, momento_creacion, avatar_blob, avatar_mime 

@@ -102,10 +102,7 @@ impl AuthHandler {
         {
             Ok(usuario) => templates::response_mensaje_exito(
                 "¡Cuenta creada!",
-                &format!(
-                    "Bienvenido/a {}.",
-                    usuario.nombre_completo()
-                ),
+                &format!("Bienvenido/a {}.", usuario.nombre_completo()),
             ),
 
             Err(e) => templates::response_mensaje_error(

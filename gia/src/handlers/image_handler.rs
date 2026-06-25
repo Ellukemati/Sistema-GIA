@@ -90,13 +90,14 @@ impl ImageHandler {
         };
 
         match conn.lock() {
-            Ok(guard) => match Self::guardar_imagen_ejemplar_bytes(&guard, ejemplar_id, orden, &bytes)
-            {
-                Ok(_) => {
-                    Response::text(format!("/imagenes/ejemplares/{}/{}", ejemplar_id, orden))
+            Ok(guard) => {
+                match Self::guardar_imagen_ejemplar_bytes(&guard, ejemplar_id, orden, &bytes) {
+                    Ok(_) => {
+                        Response::text(format!("/imagenes/ejemplares/{}/{}", ejemplar_id, orden))
+                    }
+                    Err(msg) => Response::text(msg).with_status_code(400),
                 }
-                Err(msg) => Response::text(msg).with_status_code(400),
-            },
+            }
             Err(_) => Response::text("Mutex envenenado").with_status_code(500),
         }
     }
