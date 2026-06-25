@@ -184,24 +184,22 @@ impl EjemplarHandler {
             templates::response_mensaje_exito(
                 "Ejemplar creado",
                 &format!(
-                    "El ejemplar fue registrado (modelo ID: {}), pero {} imágenes fallaron al procesarse.",
-                    ejemplar.modelo_id, errores_imagenes
+                    "El ejemplar fue registrado, pero {} imágenes fallaron al procesarse.",
+                    errores_imagenes
                 ),
             )
         } else if datos.lista_imagenes_bytes.is_empty() {
             templates::response_mensaje_exito(
                 "Ejemplar creado",
                 &format!(
-                    "El ejemplar fue registrado correctamente (modelo ID: {}).",
-                    ejemplar.modelo_id
+                    "El ejemplar fue registrado correctamente."
                 ),
             )
         } else {
             templates::response_mensaje_exito(
                 "Ejemplar creado con éxito",
                 &format!(
-                    "El ejemplar (modelo ID: {}) y sus {} imágenes se subieron correctamente.",
-                    ejemplar.modelo_id,
+                    "El ejemplar y sus {} imágenes se subieron correctamente.",
                     datos.lista_imagenes_bytes.len()
                 ),
             )
@@ -246,16 +244,15 @@ impl EjemplarHandler {
             templates::response_mensaje_exito(
                 "Ejemplar actualizado con advertencias",
                 &format!(
-                    "El ejemplar (modelo ID: {}) fue actualizado, pero {} imágenes fallaron al procesarse.",
-                    ejemplar.modelo_id, errores_imagenes
+                    "El ejemplar fue actualizado, pero {} imágenes fallaron al procesarse.",
+                    errores_imagenes
                 ),
             )
         } else {
             templates::response_mensaje_exito(
                 "Ejemplar actualizado",
                 &format!(
-                    "El ejemplar fue actualizado correctamente (modelo ID: {}).",
-                    ejemplar.modelo_id
+                    "El ejemplar fue actualizado correctamente."
                 ),
             )
         }
