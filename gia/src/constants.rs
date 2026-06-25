@@ -45,4 +45,4 @@ pub const MAILTRAP_PASSWORD: &str = "c56ae035ae868b";
 // y se simula que todos los envíos fueron exitosos. Para desarrollar sin agotar la cuota de Mailtrap.
 pub const MOCK_MAILS: bool = true;
 // Si PDF_TESTING es true, se generan los PDFs y se guardan en disco.
-pub const PDF_TESTING: bool = true;
+pub const PDF_TESTING: bool = false;
