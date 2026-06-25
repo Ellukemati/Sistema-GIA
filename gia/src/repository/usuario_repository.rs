@@ -110,6 +110,22 @@ impl UsuarioRepository {
             rusqlite::params![nuevo_tipo, id],
         )
     }
+    pub fn actualizar_perfil(
+        conn: &Connection,
+        usuario_id: i64,
+        nombre: &str,
+        apellido: &str,
+    ) -> SqlResult<usize> {
+        conn.execute(
+            "
+            UPDATE usuarios
+            SET nombre = ?1,
+                apellido = ?2
+            WHERE id = ?3
+            ",
+            rusqlite::params![nombre, apellido, usuario_id,],
+        )
+    }
 
     pub fn actualizar_aprobacion(conn: &Connection, id: i64, aprobado: bool) -> SqlResult<usize> {
         conn.execute(

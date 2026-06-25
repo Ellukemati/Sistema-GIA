@@ -1,9 +1,9 @@
-use crate::service::auth_service::AuthService;
-use crate::templates;
-
 use crate::repository::sesion_repository::SesionRepository;
 use crate::repository::usuario_repository::UsuarioRepository;
+use crate::service::auth_service::AuthService;
+use crate::templates;
 use crate::utils::extraer_token_sesion;
+use crate::utils::usuario_actual;
 use rouille::{Request, Response};
 use rusqlite::Connection;
 use std::collections::HashMap;
@@ -143,7 +143,7 @@ impl AuthHandler {
             let _ = SesionRepository::eliminar_por_token(conn, &token);
         }
 
-        Response::redirect_302("/")
+        Response::redirect_302("/ingreso")
             .with_additional_header("Set-Cookie", "session_token=; HttpOnly; Path=/; Max-Age=0")
     }
 
@@ -177,6 +177,107 @@ impl AuthHandler {
                 "Si el email ingresado corresponde a una cuenta válida, recibirá un correo con el enlace de restablecimiento.",
             ),
         }
+    }
+    pub fn mostrar_perfil(request: &Request, conn: &Connection) -> Response {
+        let usuario = match usuario_actual(request, conn) {
+            Ok(u) => u,
+            Err(r) => return r,
+        };
+
+        let mut ctx = Context::new();
+
+        ctx.insert("usuario_actual", &usuario);
+
+        templates::response_html(templates::render("perfil.html", &ctx))
+    }
+    pub fn actualizar_perfil(request: &Request, conn: &Connection) -> Response {
+        let usuario = match usuario_actual(request, conn) {
+            Ok(u) => u,
+
+            Err(r) => return r,
+        };
+
+        let mut data = match rouille::input::multipart::get_multipart_input(request) {
+            Ok(d) => d,
+
+            Err(_) => {
+                return templates::response_mensaje_error("Error", "Formulario inválido");
+            }
+        };
+
+        let mut nombre = usuario.nombre.clone();
+        let mut apellido = usuario.apellido.clone();
+        let mut password = String::new();
+        let mut password_repetida = String::new();
+        let mut avatar_bytes: Option<Vec<u8>> = None;
+
+        use std::io::Read;
+
+        while let Some(mut entry) = data.next() {
+            let headers = entry.headers.clone();
+            let name = headers.name.clone();
+
+            if headers.filename.is_some() {
+                if &*name == "avatar" {
+                    let mut bytes = Vec::new();
+
+                    if entry.data.read_to_end(&mut bytes).is_ok() && !bytes.is_empty() {
+                        avatar_bytes = Some(bytes);
+                    }
+                }
+            } else {
+                let mut text = String::new();
+
+                if entry.data.read_to_string(&mut text).is_ok() {
+                    match &*name {
+                        "nombre" => {
+                            nombre = text;
+                        }
+
+                        "apellido" => {
+                            apellido = text;
+                        }
+                        "password" => {
+                            password = text;
+                        }
+
+                        "password_repetida" => {
+                            password_repetida = text;
+                        }
+
+                        _ => {}
+                    }
+                }
+            }
+        }
+        if !password.is_empty() && password != password_repetida {
+            return templates::response_mensaje_error("Error", "Las contraseñas no coinciden");
+        }
+        if let Err(e) = UsuarioRepository::actualizar_perfil(conn, usuario.id, &nombre, &apellido) {
+            return templates::response_mensaje_error("Error actualizando perfil", &e.to_string());
+        }
+        if !password.is_empty() {
+            if password != password_repetida {
+                return templates::response_mensaje_error("Error", "Las contraseñas no coinciden");
+            }
+
+            if let Err(e) = AuthService::cambiar_password_usuario(conn, usuario.id, &password) {
+                return templates::response_mensaje_error("Error", &e);
+            }
+        }
+
+        if let Some(bytes) = avatar_bytes
+            && let Ok((blob, mime)) = crate::service::image_service::procesar_avatar(&bytes)
+        {
+            let _ = crate::repository::image_repository::ImageRepository::guardar_avatar(
+                conn,
+                usuario.legajo as i64,
+                &blob,
+                &mime,
+            );
+        }
+
+        Response::redirect_302("/perfil")
     }
 
     pub fn procesar_cambio_password(request: &Request, conn: &Connection) -> Response {
@@ -276,5 +377,20 @@ impl AuthHandler {
             }
         }
         mapa
+    }
+    pub fn obtener_avatar(conn: &Connection, usuario_id: i64) -> Response {
+        let usuario = match UsuarioRepository::buscar_por_id(conn, usuario_id) {
+            Ok(Some(u)) => u,
+
+            _ => {
+                return Response::empty_404();
+            }
+        };
+
+        match (usuario.avatar_blob, usuario.avatar_mime) {
+            (Some(blob), Some(mime)) => Response::from_data(mime, blob),
+
+            _ => Response::redirect_302("../static/img/avatardefault.avif"),
+        }
     }
 }
