@@ -2,10 +2,10 @@
 
 <div class="tabs-container">
     <div class="tabs-header">
-        <button class="tab-btn active" onclick="switchTab(0)">📋 Reservas Pendientes</button>
-        <button class="tab-btn" onclick="switchTab(1)">👨‍🏫 Docentes en Espera</button>
-        <button class="tab-btn" onclick="switchTab(2)">👑 Hacer Admin</button>
-        <button class="tab-btn" onclick="switchTab(3)">🔒 Quitar Admin</button>
+        <button class="tab-btn {% if current_tab == '0' %}active{% endif %}" onclick="switchTab(0)">📋 Reservas Pendientes</button>
+        <button class="tab-btn {% if current_tab == '1' %}active{% endif %}" onclick="switchTab(1)">👨‍🏫 Docentes en Espera</button>
+        <button class="tab-btn {% if current_tab == '2' %}active{% endif %}" onclick="switchTab(2)">👑 Hacer Admin</button>
+        <button class="tab-btn {% if current_tab == '3' %}active{% endif %}" onclick="switchTab(3)">🔒 Quitar Admin</button>
     </div>
 
     <div class="tab-content {% if current_tab == '0' %}active{% endif %}" id="tab-0">
@@ -102,11 +102,12 @@
                     {% else %}
                     <tr><td colspan="3" style="text-align: center; padding: 20px;">No hay docentes en espera de aprobación.</td></tr>
                     {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                </tbody>
+            </table>
         </div>
-        <div class="tab-content" id="tab-2">
+    </div>
+
+    <div class="tab-content {% if current_tab == '2' %}active{% endif %}" id="tab-2">
         <div class="table-responsive">
             <table>
                 <thead>
@@ -153,51 +154,52 @@
             </table>
         </div>
     </div>
-    <div class="tab-content" id="tab-3">
-    <div class="table-responsive">
-        <table>
-            <thead>
-                <tr>
-                    <th>Legajo</th>
-                    <th>Nombre</th>
-                    <th>Acción</th>
-                </tr>
-            </thead>
 
-            <tbody>
-                {% for admin in administradores %}
-                <tr>
-                    <td data-label="Legajo">
-                        {{ admin.legajo }}
-                    </td>
+    <div class="tab-content {% if current_tab == '3' %}active{% endif %}" id="tab-3">
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Legajo</th>
+                        <th>Nombre</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
 
-                    <td data-label="Nombre">
-                        {{ admin.nombre }} {{ admin.apellido }}
-                        <br>
-                        <small>{{ admin.email }}</small>
-                    </td>
+                <tbody>
+                    {% for admin in administradores %}
+                    <tr>
+                        <td data-label="Legajo">
+                            {{ admin.legajo }}
+                        </td>
 
-                    <td data-label="Acción" class="td-acciones">
-                        <button
-                            class="btn-rechazar"
-                            hx-post="/admin/usuarios/{{ admin.id }}/quitar-admin"
-                            hx-target="closest tr"
-                            hx-swap="outerHTML"
-                        >
-                            Quitar Admin
-                        </button>
-                    </td>
-                </tr>
+                        <td data-label="Nombre">
+                            {{ admin.nombre }} {{ admin.apellido }}
+                            <br>
+                            <small>{{ admin.email }}</small>
+                        </td>
 
-                {% else %}
-                <tr>
-                    <td colspan="3" style="text-align:center; padding:20px;">
-                        No hay administradores.
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                        <td data-label="Acción" class="td-acciones">
+                            <button
+                                class="btn-rechazar"
+                                hx-post="/admin/usuarios/{{ admin.id }}/quitar-admin"
+                                hx-target="closest tr"
+                                hx-swap="outerHTML"
+                            >
+                                Quitar Admin
+                            </button>
+                        </td>
+                    </tr>
+
+                    {% else %}
+                    <tr>
+                        <td colspan="3" style="text-align:center; padding:20px;">
+                            No hay administradores.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
-</div>
 </div>
