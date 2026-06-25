@@ -96,8 +96,11 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
             fecha_fin TEXT NOT NULL,
             estado TEXT NOT NULL CHECK (estado IN ('pendiente', 'activa', 'concluida', 'cancelada')),
             motivo TEXT,
-            momento_creacion TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (id_usuario) REFERENCES usuarios(id)
+            momento_creacion TEXT DEFAULT CURRENT_TIMESTAMP, -- Timestamp exacto del momento de la creación de la solicitud de reserva (Auditoría inmutable)
+            momento_confirmacion TEXT,  -- Timestamp exacto de la confirmación (Auditoría inmutable)
+            id_admin_aprobador INTEGER, -- ID del administrador que confirme la reserva
+            FOREIGN KEY (id_usuario) REFERENCES usuarios(id),
+            FOREIGN KEY (id_admin_aprobador) REFERENCES usuarios(id)
         )",
         [],
     )?;

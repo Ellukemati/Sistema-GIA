@@ -36,19 +36,25 @@
     </td>
 
     <td>
-        {% if r.estado == "pendiente" %}
-        <button 
-            hx-post="/mis-reservas/cancelar/{{ r.id }}" 
-            hx-target="body" 
-            hx-swap="innerHTML"
-            class="btn-cancelar">
-            Cancelar
-        </button>
-        {% else %}
-            <span class="{{ r.clase_estado }}">
-                {{ r.texto_estado }}
-            </span>
-        {% endif %}
+        <div style="display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap;">
+            {% if r.estado == "pendiente" %}
+                <button 
+                    hx-post="/mis-reservas/cancelar/{{ r.id }}" 
+                    hx-target="body" 
+                    hx-swap="innerHTML"
+                    class="btn-cancelar">
+                    Cancelar
+                </button>
+            {% elif r.estado == "activa" or r.estado == "concluida" %}
+                <a href="/mis-reservas/comprobante/{{ r.id }}" target="_blank" class="btn-pdf">
+                    📄 Descargar Comprobante
+                </a>
+            {% else %}
+                <span class="{{ r.clase_estado }}">
+                    {{ r.texto_estado }}
+                </span>
+            {% endif %}
+        </div>
     </td>
 
 </tr>

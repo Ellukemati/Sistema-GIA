@@ -8,12 +8,16 @@ use gia::service::mail_service::MailService;
 #[ignore]
 fn test_circuito_de_notificaciones() {
     // CASO 1: Notificación de Reserva Confirmada
-    let resultado_reserva_aprobada = MailService::enviar_notificacion_reserva_aprobada(
-        "docentest@fi.uba.ar",
-        "Juan Pérez",
-        "42",
-        "Uso de Estación Total para testeo.",
-    );
+    let resultado_reserva_aprobada =
+        MailService::enviar_notificacion_reserva_aprobada_con_comprobante(
+            "docentest@fi.uba.ar",
+            "Juan Pérez",
+            "42",
+            "Uso de Estación Total para testeo.",
+            "desde el 18 de agosto hasta el 2 de octubre",
+            &[], // bytes del PDF simulados
+        );
+
     assert!(
         resultado_reserva_aprobada.is_ok(),
         "Falló la notificación de reserva aprobada"

@@ -1,21 +1,26 @@
-use crate::repository::reserva_instrumento_repository::ReservaInstrumentoRepository;
-use crate::templates;
-use crate::{
-    repository::{
-        ejemplar_repository::EjemplarRepository, image_repository::ImageRepository,
-        modelo_repository::ModeloRepository, sesion_repository::SesionRepository,
-    },
-    service::ejemplar_service::EjemplarService,
-    service::modelo_service::ModeloService,
-    service::reserva_service::ReservaService,
-    utils::{Carrito, cookie_carrito, cookie_carrito_vacio, extraer_token_sesion, leer_carrito},
-};
 use chrono::{Duration, Local, NaiveDate, NaiveDateTime};
 use rouille::{Request, Response};
 use rusqlite::Connection;
 use std::collections::HashMap;
 use std::io::Read;
 use tera::Context;
+
+use crate::templates;
+use crate::{
+    repository::{
+        ejemplar_repository::EjemplarRepository, image_repository::ImageRepository,
+        modelo_repository::ModeloRepository,
+        reserva_instrumento_repository::ReservaInstrumentoRepository,
+        reserva_repository::ReservaRepository, sesion_repository::SesionRepository,
+    },
+    service::comprobante_service::{
+        ComprobanteData, ComprobanteService, DetalleEjemplarComprobante,
+    },
+    service::ejemplar_service::EjemplarService,
+    service::modelo_service::ModeloService,
+    service::reserva_service::ReservaService,
+    utils::{Carrito, cookie_carrito, cookie_carrito_vacio, extraer_token_sesion, leer_carrito},
+};
 
 pub struct ReservaHandler;
 use crate::models::reserva_view::ReservaView;
@@ -362,6 +367,78 @@ impl ReservaHandler {
         templates::response_html(templates::render("reserva_finalizada.html", &ctx))
     }
 
+    pub fn descargar_comprobante_pdf(
+        _request: &Request,
+        conn: &Connection,
+        reserva_id: i64,
+    ) -> Response {
+        let datos_notificacion =
+            match ReservaRepository::obtener_datos_notificacion(conn, reserva_id) {
+                Ok(datos) => datos,
+                Err(rusqlite::Error::QueryReturnedNoRows) => {
+                    return Response::text("Reserva no encontrada").with_status_code(404);
+                }
+                Err(e) => return Response::text(format!("Error: {}", e)).with_status_code(500),
+            };
+
+        let (_, docente_nombre, motivo, fecha_inicio, momento_confirmacion, admin_nombre) =
+            datos_notificacion;
+
+        let reserva_base = match ReservaRepository::buscar_por_id(conn, reserva_id) {
+            Ok(Some(r)) => r,
+            _ => return Response::text("Error al validar consistencia").with_status_code(500),
+        };
+
+        if reserva_base.estado != "activa" && reserva_base.estado != "concluida" {
+            return Response::text(
+                "El comprobante firmado solo está disponible para reservas confirmadas.",
+            )
+            .with_status_code(403);
+        }
+
+        let equipos_raw = match ReservaRepository::obtener_equipos_por_reserva(conn, reserva_id) {
+            Ok(lista) => lista,
+            Err(e) => return Response::text(format!("Error: {}", e)).with_status_code(500),
+        };
+
+        let items: Vec<DetalleEjemplarComprobante> = equipos_raw
+            .into_iter()
+            .map(|eq| DetalleEjemplarComprobante {
+                id_interno: eq.ejemplar_id,
+                marca: eq.marca,
+                nombre_modelo: eq.nombre_modelo,
+                categoria: eq.categoria.unwrap_or_else(|| "Sin categoría".to_string()),
+                numero_serie: eq.numero_serie,
+                codigo_qr: eq.codigo_qr,
+                patrimonio: eq.patrimonio,
+                observaciones: eq.observaciones,
+                accesorios: eq.accesorios,
+                imagenes_bytes: vec![],
+            })
+            .collect();
+
+        let data_comprobante = ComprobanteData {
+            docente: docente_nombre,
+            fecha_hora_actual: chrono::Local::now().format("%d/%m/%Y %H:%M").to_string(),
+            motivo,
+            fecha_inicio,
+            fecha_fin: String::new(),
+            admin_nombre,
+            admin_id: 1,
+            momento_confirmacion,
+            items,
+        };
+
+        match ComprobanteService::generar_pdf_en_memoria(data_comprobante) {
+            Ok(pdf_bytes) => Response::from_data("application/pdf", pdf_bytes)
+                .with_additional_header(
+                    "Content-Disposition",
+                    format!("inline; filename=comprobante_{}.pdf", reserva_id),
+                ),
+            Err(e) => Response::text(format!("Error al generar PDF: {}", e)).with_status_code(500),
+        }
+    }
+
     fn obtener_ejemplares(body: &str) -> Vec<i64> {
         let mut ids = Vec::new();
         for par in body.split('&') {
@@ -391,6 +468,7 @@ impl ReservaHandler {
 
         mapa
     }
+
     fn obtener_usuario_sesion(request: &Request, conn: &Connection) -> Result<i64, Response> {
         let token = match extraer_token_sesion(request) {
             Some(t) => t,

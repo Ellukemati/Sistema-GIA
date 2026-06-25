@@ -13,3 +13,5 @@ tera = "1"
 serde = { version = "1", features = ["derive"] }
 bcrypt = "0.15"
 lettre = { version = "0.11", features = ["smtp-transport", "builder"] }
+wkhtmltopdf = "0.4"
+base64 = "0.22"

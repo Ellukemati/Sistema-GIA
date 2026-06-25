@@ -210,24 +210,17 @@ impl AdminHandler {
             return resp;
         }
 
-        if let Ok(Some(reserva)) = ReservaRepository::buscar_por_id(conn, id)
-            && let Ok(Some(u)) = UsuarioRepository::buscar_por_id(conn, reserva.id_usuario)
-        {
-            let _ = ReservaRepository::cambiar_estado(conn, id, "activa");
+        let admin = match crate::utils::usuario_actual(request, conn) {
+            Ok(u) => u,
+            Err(resp) => return resp,
+        };
 
-            let nombre_completo = format!("{} {}", u.nombre, u.apellido);
-            let motivo = reserva
-                .motivo
-                .unwrap_or_else(|| "Uso de instrumental".to_string());
-            let _ = MailService::enviar_notificacion_reserva_aprobada(
-                &u.email,
-                &nombre_completo,
-                &id.to_string(),
-                &motivo,
-            );
+        let admin_id = admin.id;
+
+        match crate::service::reserva_service::ReservaService::aprobar_reserva(conn, id, admin_id) {
+            Ok(_) => Response::html(""),
+            Err(ref e) => templates::response_mensaje_error("No se pudo aprobar la reserva", e),
         }
-
-        Response::html("")
     }
 
     pub fn rechazar_reserva(request: &Request, conn: &Connection, id: i64) -> Response {
