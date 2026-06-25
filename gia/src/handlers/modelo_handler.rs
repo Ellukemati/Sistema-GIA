@@ -261,7 +261,16 @@ impl ModeloHandler {
         };
 
         let tiene_manual = ModeloRepository::tiene_manual(conn, id).unwrap_or(false);
-        let ejemplares = EjemplarService::listar_ejemplares_basico(conn, id);
+
+        let es_admin = usuario_actual(request, conn)
+            .map(|u| u.es_admin())
+            .unwrap_or(false);
+
+        let ejemplares = if es_admin {
+            EjemplarService::listar_ejemplares_para_detalle(conn, id)
+        } else {
+            EjemplarService::listar_ejemplares_basico(conn, id)
+        };
 
         let ejemplares = match ejemplares {
             Ok(e) => e,
@@ -273,10 +282,6 @@ impl ModeloHandler {
             }
         };
 
-        let es_admin = usuario_actual(request, conn)
-            .map(|u| u.es_admin())
-            .unwrap_or(false);
-
         let mut ctx = Context::new();
         ctx.insert("modelo", &modelo);
         ctx.insert("imagen", &imagen);
@@ -284,6 +289,7 @@ impl ModeloHandler {
         ctx.insert("ejemplares", &ejemplares);
         ctx.insert("con_fechas", &false);
         ctx.insert("es_admin", &es_admin);
+        ctx.insert("mostrar_edicion", &es_admin);
         templates::response_html(templates::render("modelo_detalle.html", &ctx))
     }
 

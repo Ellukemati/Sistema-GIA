@@ -132,6 +132,23 @@ impl ReservaRepository {
         Ok(reservas)
     }
 
+    pub fn tiene_reserva_activa_o_pendiente(
+        conn: &Connection,
+        ejemplar_id: i64,
+    ) -> SqlResult<bool> {
+        let cantidad: i64 = conn.query_row(
+            "SELECT COUNT(*)
+             FROM reservas r
+             INNER JOIN reserva_ejemplar re ON r.id = re.reserva_id
+             WHERE re.ejemplar_id = ?1
+               AND r.estado IN ('pendiente', 'activa')",
+            params![ejemplar_id],
+            |row| row.get(0),
+        )?;
+
+        Ok(cantidad > 0)
+    }
+
     pub fn ejemplar_disponible(
         conn: &Connection,
         ejemplar_id: i64,
@@ -443,5 +460,73 @@ mod tests {
         let reservas = ReservaRepository::listar_todas(&conn).unwrap();
 
         assert_eq!(reservas.len(), 2);
+    }
+
+    // fn utilizada para testing
+    fn vincular_ejemplar(conn: &Connection, reserva_id: i64, ejemplar_id: i64) {
+        conn.execute(
+            "INSERT INTO reserva_ejemplar (reserva_id, ejemplar_id) VALUES (?1, ?2)",
+            params![reserva_id, ejemplar_id],
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn tiene_reserva_activa_o_pendiente_sin_reservas() {
+        let conn = crear_db_test();
+
+        let bloqueado = ReservaRepository::tiene_reserva_activa_o_pendiente(&conn, 1).unwrap();
+
+        assert!(!bloqueado);
+    }
+
+    #[test]
+    fn tiene_reserva_activa_o_pendiente_con_pendiente() {
+        let conn = crear_db_test();
+        ReservaRepository::crear(&conn, &reserva_test()).unwrap();
+        vincular_ejemplar(&conn, 1, 1);
+
+        let bloqueado = ReservaRepository::tiene_reserva_activa_o_pendiente(&conn, 1).unwrap();
+
+        assert!(bloqueado);
+    }
+
+    #[test]
+    fn tiene_reserva_activa_o_pendiente_con_activa() {
+        let conn = crear_db_test();
+        let mut reserva = reserva_test();
+        reserva.estado = "activa".to_string();
+        ReservaRepository::crear(&conn, &reserva).unwrap();
+        vincular_ejemplar(&conn, 1, 1);
+
+        let bloqueado = ReservaRepository::tiene_reserva_activa_o_pendiente(&conn, 1).unwrap();
+
+        assert!(bloqueado);
+    }
+
+    #[test]
+    fn tiene_reserva_activa_o_pendiente_ignora_concluida() {
+        let conn = crear_db_test();
+        let mut reserva = reserva_test();
+        reserva.estado = "concluida".to_string();
+        ReservaRepository::crear(&conn, &reserva).unwrap();
+        vincular_ejemplar(&conn, 1, 1);
+
+        let bloqueado = ReservaRepository::tiene_reserva_activa_o_pendiente(&conn, 1).unwrap();
+
+        assert!(!bloqueado);
+    }
+
+    #[test]
+    fn tiene_reserva_activa_o_pendiente_ignora_cancelada() {
+        let conn = crear_db_test();
+        let mut reserva = reserva_test();
+        reserva.estado = "cancelada".to_string();
+        ReservaRepository::crear(&conn, &reserva).unwrap();
+        vincular_ejemplar(&conn, 1, 1);
+
+        let bloqueado = ReservaRepository::tiene_reserva_activa_o_pendiente(&conn, 1).unwrap();
+
+        assert!(!bloqueado);
     }
 }
