@@ -48,6 +48,15 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
             let conn_guard = conn.lock().unwrap();
             AdminHandler::rechazar_profesor(request, &conn_guard, id)
         },
+        (POST) (/admin/usuarios/{id: i64}/hacer-admin) => {
+            let conn_guard = conn.lock().unwrap();
+            AdminHandler::hacer_admin(request, &conn_guard, id)
+        },
+
+        (POST) (/admin/usuarios/{id: i64}/quitar-admin) => {
+            let conn_guard = conn.lock().unwrap();
+            AdminHandler::quitar_admin(request, &conn_guard, id)
+        },
 
         (POST) (/admin/invitar) => {
             let conn_guard = conn.lock().unwrap();

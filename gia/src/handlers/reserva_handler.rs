@@ -350,11 +350,7 @@ impl ReservaHandler {
             )
             .with_additional_header("Set-Cookie", cookie_carrito_vacio()),
 
-            Err(e) => Self::render_reserva_finalizada(
-                false,
-                "No se pudo crear la reserva",
-                &e,
-            ),
+            Err(e) => Self::render_reserva_finalizada(false, "No se pudo crear la reserva", &e),
         }
     }
 

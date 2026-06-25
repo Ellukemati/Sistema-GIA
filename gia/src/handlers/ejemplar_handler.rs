@@ -1,7 +1,7 @@
 use crate::repository::modelo_repository::ModeloRepository;
 use crate::service::ejemplar_service::{CrearEjemplarData, EjemplarService};
-use crate::utils::{usuario_actual};
 use crate::templates;
+use crate::utils::usuario_actual;
 
 use rouille::{Request, Response};
 use rusqlite::Connection;
