@@ -1,12 +1,23 @@
+use lettre::message::{Attachment, MultiPart, SinglePart};
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
 
 use crate::constants::{MAILTRAP_PASSWORD, MAILTRAP_USER, MOCK_MAILS};
 
-// Abstracción para cambiar de servicio envío de correos electrónicos
-// permitiendo cambiar entre proveedores reales (Inversión de dependencia) y simulados (mocking) sin afectar el resto del código
 pub trait MailProvider {
     fn enviar(&self, email: &str, nombre: &str, asunto: &str, cuerpo: &str) -> Result<(), String>;
+
+    fn enviar_con_pdf_adjunto(
+        &self,
+        email: &str,
+        nombre: &str,
+        asunto: &str,
+        cuerpo: &str,
+        _pdf_bytes: &[u8],
+    ) -> Result<(), String> {
+        // Por defecto ignora los adjuntos y manda solo texto, pero se puede sobreescribir en implementaciones específicas.
+        self.enviar(email, nombre, asunto, cuerpo)
+    }
 }
 
 // MAILTRAP (SMTP)
@@ -42,6 +53,39 @@ impl MailProvider for MailtrapProvider {
             .map_err(|e| format!("Error SMTP: {}", e))?;
         Ok(())
     }
+
+    fn enviar_con_pdf_adjunto(
+        &self,
+        email: &str,
+        _nombre: &str,
+        asunto: &str,
+        cuerpo: &str,
+        pdf_bytes: &[u8],
+    ) -> Result<(), String> {
+        let transport = Self::autenticar_smtp()?;
+
+        let texto_part = SinglePart::plain(cuerpo.to_string());
+        let adjunto_part = Attachment::new("comprobante_reserva.pdf".to_string())
+            .body(pdf_bytes.to_vec(), "application/pdf".parse().unwrap());
+
+        let email_body = MultiPart::mixed()
+            .singlepart(texto_part)
+            .singlepart(adjunto_part);
+
+        let email_msg = Message::builder()
+            .from("No-Responder <no-responder@gia.fi.uba.ar>".parse().unwrap())
+            .to(email
+                .parse()
+                .map_err(|_| format!("Email inválido: {}", email))?)
+            .subject(asunto)
+            .multipart(email_body)
+            .map_err(|e| format!("Error construyendo email con adjunto: {}", e))?;
+
+        transport
+            .send(&email_msg)
+            .map_err(|e| format!("Error SMTP: {}", e))?;
+        Ok(())
+    }
 }
 
 // SIMULACIÓN EN CONSOLA (MOCKING)
@@ -56,13 +100,29 @@ impl MailProvider for ConsolaProvider {
         println!("---------------------------\n");
         Ok(())
     }
+
+    fn enviar_con_pdf_adjunto(
+        &self,
+        email: &str,
+        nombre: &str,
+        asunto: &str,
+        cuerpo: &str,
+        pdf_bytes: &[u8],
+    ) -> Result<(), String> {
+        self.enviar(email, nombre, asunto, cuerpo)?;
+        println!(
+            "[MOCK ATTACHMENT]: Adjunto comprobante binario de {} bytes.",
+            pdf_bytes.len()
+        );
+        println!("---------------------------\n");
+        Ok(())
+    }
 }
 
 // SERVICE
 pub struct MailService;
 
 impl MailService {
-    /// Inyección basada en tus constantes globales y entorno
     fn obtener_provider() -> Box<dyn MailProvider> {
         if MOCK_MAILS {
             Box::new(ConsolaProvider)
@@ -91,7 +151,6 @@ impl MailService {
                 Err(e) => println!("Falló el envío para {}: {}", email, e),
             }
 
-            // Solo espera los 10.5 segundos si estamos pegándole a la API de Mailtrap
             if !MOCK_MAILS && (indice + 1 < total) {
                 println!("Esperando 10.5 segundos para respetar el límite gratuito de Mailtrap...");
                 std::thread::sleep(std::time::Duration::from_millis(10500));
@@ -101,20 +160,32 @@ impl MailService {
         Ok(enviados_con_exito)
     }
 
-    pub fn enviar_notificacion_reserva_aprobada(
-        email_destino: &str,
-        profe_nombre: &str,
+    pub fn enviar_notificacion_reserva_aprobada_con_comprobante(
+        email: &str,
+        docente: &str,
         id_reserva: &str,
         motivo: &str,
+        rango_fechas: &str,
+        pdf_bytes: &[u8],
     ) -> Result<(), String> {
         let provider = Self::obtener_provider();
-        let asunto = "Reserva de Instrumental Aprobada - Sistema GIA";
+
+        let asunto = "Reserva de Instrumental Aprobada - Sistema GIA".to_string();
+
         let cuerpo = format!(
-            "Hola {},\n\nSu solicitud de reserva con ID: '{}' y con el motivo '{}' ha sido APROBADA.\nPuede pasar a retirar el instrumental en el momento correspondiente.\n\nAtentamente,\nDepartamento de Agrimensura - FIUBA\n\n---\nEste es un mensaje automático enviado por el sistema GIA. Por favor, no responda a este correo.",
-            profe_nombre, id_reserva, motivo
+            "Hola {},\n\n
+            Su solicitud de reserva con ID #{} y con el motivo '{}' fue APROBADA {}.\n\n
+            Se adjunta el comprobante oficial original de retiro para el control del Departamento de Agrimensura.\n\n
+            Atentamente,\n
+            Departamento de Agrimensura - FIUBA\n\n
+            ---\n
+            Este es un mensaje automático enviado por el sistema GIA. Por favor, no responda a este correo.",
+            docente, id_reserva, motivo, rango_fechas
         );
 
-        provider.enviar(email_destino, profe_nombre, asunto, &cuerpo)
+        provider
+            .enviar_con_pdf_adjunto(email, docente, &asunto, &cuerpo, pdf_bytes)
+            .map_err(|e| format!("Error en el proveedor de correo al enviar adjunto: {}", e))
     }
 
     pub fn enviar_notificacion_reserva_rechazada(
@@ -124,13 +195,19 @@ impl MailService {
         motivo: &str,
     ) -> Result<(), String> {
         let provider = Self::obtener_provider();
-        let asunto = "Reserva de Instrumental Rechazada - Sistema GIA";
+        let asunto = "Reserva de Instrumental Rechazada - Sistema GIA".to_string();
         let cuerpo = format!(
-            "Hola {},\n\nSu solicitud de reserva con ID: '{}' y con el motivo '{}' fue RECHAZADA.\n\nPor favor, póngase en contacto con el departamento por cualquier consulta.\n\nAtentamente,\nDepartamento de Agrimensura - FIUBA\n\n---\nEste es un mensaje automático enviado por el sistema GIA. Por favor, no responda a este correo.",
+            "Hola {},\n\n
+            Su solicitud de reserva con ID #{} y con el motivo '{}' fue RECHAZADA.\n\n
+            Por favor, póngase en contacto con el departamento por cualquier consulta.\n\n
+            Atentamente,\n
+            Departamento de Agrimensura - FIUBA\n\n
+            ---\n
+            Este es un mensaje automático enviado por el sistema GIA. Por favor, no responda a este correo.",
             profe_nombre, id_reserva, motivo
         );
 
-        provider.enviar(email_destino, profe_nombre, asunto, &cuerpo)
+        provider.enviar(email_destino, profe_nombre, &asunto, &cuerpo)
     }
 
     pub fn enviar_notificacion_profesor_aprobado(
@@ -140,7 +217,13 @@ impl MailService {
         let provider = Self::obtener_provider();
         let asunto = "Cuenta Habilitada - Sistema GIA";
         let cuerpo = format!(
-            "Bienvenido/a {},\n\nSu solicitud de alta como Docente en el sistema GIA ha sido APROBADA por la administración.\nA partir de este momento puede ingresar al sistema y realizar solicitudes de reserva de instrumental.\n\nAtentamente,\nDepartamento de Agrimensura - FIUBA\n\n---\nEste es un mensaje automático enviado por el sistema GIA. Por favor, no responda a este correo.",
+            "Bienvenido/a {},\n\n
+            Su solicitud de alta como Docente en el sistema GIA ha sido APROBADA por la administración.\n
+            A partir de este momento puede ingresar al sistema y realizar solicitudes de reserva de instrumental.\n\n
+            Atentamente,\n
+            Departamento de Agrimensura - FIUBA\n\n
+            ---\n
+            Este es un mensaje automático enviado por el sistema GIA. Por favor, no responda a este correo.",
             profe_nombre
         );
 
@@ -154,7 +237,13 @@ impl MailService {
         let provider = Self::obtener_provider();
         let asunto = "Solicitud de Registro Rechazada - Sistema GIA";
         let cuerpo = format!(
-            "Hola {},\n\nLe informamos que su solicitud de alta como Docente en el sistema GIA ha sido RECHAZADA por la administración.\n\nSi considera que esto se debe a un error, por favor póngase en contacto con el Departamento.\n\nAtentamente,\nDepartamento de Agrimensura - FIUBA\n\n---\nEste es un mensaje automático enviado por el sistema GIA. Por favor, no responda a este correo.",
+            "Hola {},\n\n
+            Le informamos que su solicitud de alta como Docente en el sistema GIA ha sido RECHAZADA por la administración.\n\n
+            Si considera que esto se debe a un error, por favor póngase en contacto con el Departamento.\n\n
+            Atentamente,\n
+            Departamento de Agrimensura - FIUBA\n\n
+            ---\n
+            Este es un mensaje automático enviado por el sistema GIA. Por favor, no responda a este correo.",
             profe_nombre
         );
 
@@ -169,7 +258,15 @@ impl MailService {
         let provider = Self::obtener_provider();
         let asunto = "Restablecer Contraseña - Sistema GIA";
         let cuerpo = format!(
-            "Hola {},\n\nSe ha solicitado un enlace para restablecer la contraseña de su cuenta en el sistema GIA.\n\nPara continuar, haga clic en el siguiente enlace (Válido por 15 minutos):\n{}\n\nSi usted no realizó esta solicitud, puede ignorar este correo de forma segura.\n\nAtentamente,\nDepartamento de Agrimensura - FIUBA",
+            "Hola {},\n\n
+            Se ha solicitado un enlace para restablecer la contraseña de su cuenta en el sistema GIA.\n\n
+            Para continuar, haga clic en el siguiente enlace (Válido por 15 minutos):\n
+            {}\n\n
+            Si usted no realizó esta solicitud, puede ignorar este correo de forma segura.\n\n
+            Atentamente,\n
+            Departamento de Agrimensura - FIUBA\n\n
+            ---\n
+            Este es un mensaje automático enviado por el sistema GIA. Por favor, no responda a este correo.",
             nombre_usuario, link_restablecimiento
         );
 
@@ -192,7 +289,14 @@ impl MailService {
         };
 
         let cuerpo = format!(
-            "Hola,\n\nSe ha generado una invitación institucional para darte de alta como {} en el Sistema GIA (Gestión de Instrumental de Agrimensura).\n\nPara configurar tu contraseña y activar tu acceso completo, ingresá al siguiente enlace (Válido por 24 horas):\n{}\n\nAtentamente,\nDepartamento de Agrimensura - FIUBA",
+            "Hola,\n\n
+            Se ha generado una invitación institucional para darte de alta como {} en el Sistema GIA (Gestión de Instrumental de Agrimensura).\n\n
+            Para configurar tu contraseña y habilitar tu acceso, ingresá al siguiente enlace (Válido por 24 horas):\n
+            {}\n\n
+            Atentamente,\n
+            Departamento de Agrimensura - FIUBA\n\n
+            ---\n
+            Este es un mensaje automático enviado por el sistema GIA. Por favor, no responda a este correo.",
             nombre_rol, link_invitacion
         );
 

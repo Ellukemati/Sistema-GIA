@@ -97,6 +97,11 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
             )
         },
 
+        (GET) (/mis-reservas/comprobante/{id: i64}) => {
+            let conn_guard = conn.lock().unwrap();
+            ReservaHandler::descargar_comprobante_pdf(request, &conn_guard, id)
+        },
+
         (POST) (/mis-reservas/cancelar/{id: i64}) => {
 
             let conn_guard =

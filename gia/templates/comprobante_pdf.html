@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    {% include "estilos/comprobante.html" %}
+</head>
+<body>
+
+    <table class="header-table">
+        <tr>
+            <td class="logo-left">
+                <img class="logo-img" src="data:image/png;base64,{{ logo_fiuba_b64 }}" alt="FIUBA">
+            </td>
+            <td class="logo-right">
+                <img class="logo-img" src="data:image/png;base64,{{ logo_agrimensura_b64 }}" alt="Agrimensura">
+            </td>
+        </tr>
+    </table>
+
+    <h1>Informe de Retiro de Instrumentos de Medición y Accesorios del Salón de Instrumental</h1>
+    
+    <table class="auditoria-bloque">
+        <tr>
+            <td class="fechas-contenedor" style="width: 55%;">
+                <div><strong>Fecha y hora de confirmación de la reserva:</strong> {{ momento_confirmacion }}</div>
+                <div><strong>Fecha y hora de la generación de este archivo:</strong> {{ fecha_hora_actual }}</div>
+                <div><strong>Período de préstamo solicitado:</strong> {{ fecha_inicio }}</div>
+            </td>
+            <td style="width: 45%; text-align: right;">
+                <div class="firma-contenedor">
+                    <div class="espacio-firma">FIRMA: {{ admin_nombre }}</div>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <div class="cuerpo">
+        El/La docente <strong>{{ docente }}</strong> solicita en el día de la fecha con el motivo:  <em>{{ motivo }}</em>, el siguiente instrumental que se describe en el cuadro:
+    </div>
+
+    <table class="tabla-items">
+        <thead>
+            <tr>
+                <th class="col-id">ID</th>
+                <th class="col-cat">Categoría</th>
+                <th>Descripción</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td class="col-id">
+                    {% if item.codigo_qr %} Nro. QR: {{ item.codigo_qr }}
+                    {% elif item.numero_serie %} S/N: {{ item.numero_serie }}
+                    {% elif item.patrimonio %} Pat.: {{ item.patrimonio }}
+                    {% else %} ID Int.: {{ item.id_interno }} {% endif %}
+                </td>
+                <td class="col-cat">{{ item.categoria }}</td>
+                <td>
+                    <strong>{{ item.marca }} {{ item.nombre_modelo }}</strong>
+                    {% if item.codigo_qr and item.numero_serie %} &nbsp; S/N: {{ item.numero_serie }} {% endif %}
+                    {% if item.patrimonio %} &nbsp; Pat.: {{ item.patrimonio }} {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="seccion-detalles">
+    <div class="titulo-detalles">Especificaciones, Observaciones e Imágenes del Instrumental Solicitado:</div>
+    {% for item in items %}
+        {% if item.observaciones or item.accesorios %}
+        <div class="item-detalles">
+            
+            <div class="item-title">
+                • 
+                {% if item.codigo_qr %}
+                    Núm. QR: {{ item.codigo_qr }}
+                {% elif item.numero_serie %}
+                    S/N: {{ item.numero_serie }}
+                {% elif item.patrimonio %}
+                    Pat.: {{ item.patrimonio }}
+                {% else %}
+                    ID Int.: {{ item.id_interno }}
+                {% endif %}:
+            </div>
+
+            {% if item.accesorios %}<div class="item-sub">- Accesorios: {{ item.accesorios }}</div>{% endif %}
+            {% if item.observaciones %}<div class="item-sub">- Observaciones: {{ item.observaciones }}</div>{% endif %}
+        </div>
+        {% endif %}
+    {% endfor %}
+</div>
+
+</body>
+</html>

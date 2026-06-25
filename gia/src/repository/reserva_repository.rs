@@ -16,6 +16,8 @@ pub struct EquipoRaw {
     pub codigo_qr: Option<String>,
     pub numero_serie: Option<String>,
     pub patrimonio: Option<String>,
+    pub observaciones: Option<String>,
+    pub accesorios: Option<String>,
 }
 pub struct ReservaRepository;
 
@@ -68,11 +70,11 @@ impl ReservaRepository {
     }
 
     pub fn obtener_equipos_por_reserva(
-        conn: &rusqlite::Connection,
+        conn: &Connection,
         reserva_id: i64,
     ) -> Result<Vec<EquipoRaw>, rusqlite::Error> {
         let mut stmt = conn.prepare(
-            "SELECT m.id, m.nombre_modelo, m.marca, m.categoria, e.id, e.codigo_qr, e.numero_serie, e.patrimonio 
+            "SELECT m.id, m.nombre_modelo, m.marca, m.categoria, e.id, e.codigo_qr, e.numero_serie, e.patrimonio, e.observaciones, e.accesorios 
              FROM reserva_ejemplar re
              JOIN ejemplares e ON re.ejemplar_id = e.id
              JOIN modelos m ON e.modelo_id = m.id
@@ -89,6 +91,8 @@ impl ReservaRepository {
                 codigo_qr: row.get(5)?,
                 numero_serie: row.get(6)?,
                 patrimonio: row.get(7)?,
+                observaciones: row.get(8)?,
+                accesorios: row.get(9)?,
             })
         })?;
 
@@ -96,8 +100,23 @@ impl ReservaRepository {
         for equipo in equipos_iter {
             equipos.push(equipo?);
         }
-
         Ok(equipos)
+    }
+
+    pub fn obtener_imagenes_ejemplar(
+        conn: &Connection,
+        ejemplar_id: i64,
+    ) -> Result<Vec<Vec<u8>>, rusqlite::Error> {
+        let mut stmt = conn.prepare(
+            "SELECT imagen_blob FROM ejemplar_imagen WHERE ejemplar_id = ?1 ORDER BY orden ASC",
+        )?;
+
+        let filas = stmt.query_map([ejemplar_id], |row| row.get::<_, Vec<u8>>(0))?;
+        let mut imagenes = Vec::new();
+        for img in filas {
+            imagenes.push(img?);
+        }
+        Ok(imagenes)
     }
 
     pub fn cancelar_por_usuario(
@@ -165,6 +184,23 @@ impl ReservaRepository {
         Ok(reservas)
     }
 
+    /// Guarda la auditoría completa de la confirmación
+    pub fn confirmar_aprobacion(
+        conn: &Connection,
+        reserva_id: i64,
+        nuevo_estado: &str,
+        admin_id: i64,
+        momento_confirmacion: &str,
+    ) -> SqlResult<usize> {
+        conn.execute(
+            "UPDATE reservas 
+             SET estado = ?1, id_admin_aprobador = ?2, momento_confirmacion = ?3 
+             WHERE id = ?4",
+            params![nuevo_estado, admin_id, momento_confirmacion, reserva_id],
+        )
+    }
+
+    /// Modifica el estado de forma atómica
     pub fn cambiar_estado(
         conn: &Connection,
         reserva_id: i64,
@@ -172,9 +208,39 @@ impl ReservaRepository {
     ) -> SqlResult<usize> {
         conn.execute(
             "UPDATE reservas SET estado = ?1 WHERE id = ?2",
-            rusqlite::params![nuevo_estado, reserva_id],
+            params![nuevo_estado, reserva_id],
         )
     }
+
+    /// Único método que junta toda la información cruzada usando JOINs
+    pub fn obtener_datos_notificacion(
+        conn: &Connection,
+        reserva_id: i64,
+    ) -> SqlResult<(String, String, String, String, String, String)> {
+        conn.query_row(
+            "SELECT 
+                u_docente.email AS docente_email, 
+                u_docente.nombre || ' ' || u_docente.apellido AS docente_nombre, 
+                COALESCE(r.motivo, 'Uso de instrumental') AS motivo, 
+                r.fecha_inicio,
+                COALESCE(r.momento_confirmacion, 'Sin fecha') AS momento_confirmacion,
+                COALESCE(u_admin.nombre || ' ' || u_admin.apellido, 'Administración GIA') AS admin_nombre
+             FROM reservas r 
+             JOIN usuarios u_docente ON r.id_usuario = u_docente.id 
+             LEFT JOIN usuarios u_admin ON r.id_admin_aprobador = u_admin.id
+             WHERE r.id = ?",
+            [reserva_id],
+            |row| Ok((
+                row.get(0)?,
+                row.get(1)?,
+                row.get(2)?,
+                row.get(3)?,
+                row.get(4)?,
+                row.get(5)?,
+            ))
+        )
+    }
+
     pub fn mostrar_mis_reservas(request: &Request, conn: &Connection) -> Response {
         let usuario_id = match Self::obtener_usuario_sesion(request, conn) {
             Ok(id) => id,
@@ -264,6 +330,7 @@ impl ReservaRepository {
         }
     }
 }
+
 #[cfg(test)]
 mod tests {
 
@@ -275,10 +342,10 @@ mod tests {
         let conn = Connection::open_in_memory().unwrap();
         conn.execute(
             "CREATE TABLE reserva_ejemplar (
-            reserva_id INTEGER NOT NULL,
-            ejemplar_id INTEGER NOT NULL,
-            PRIMARY KEY(reserva_id, ejemplar_id)
-        )",
+                reserva_id INTEGER NOT NULL,
+                ejemplar_id INTEGER NOT NULL,
+                PRIMARY KEY(reserva_id, ejemplar_id)
+            )",
             [],
         )
         .unwrap();
@@ -289,9 +356,11 @@ mod tests {
                 id_usuario INTEGER NOT NULL,
                 fecha_inicio TEXT NOT NULL,
                 fecha_fin TEXT NOT NULL,
-                estado TEXT NOT NULL,
+                estado TEXT NOT NULL CHECK (estado IN ('pendiente', 'activa', 'concluida', 'cancelada')),
                 motivo TEXT,
-                momento_creacion TEXT DEFAULT CURRENT_TIMESTAMP
+                momento_creacion TEXT DEFAULT CURRENT_TIMESTAMP,
+                id_admin_aprobador INTEGER,
+                momento_confirmacion TEXT
             )",
             [],
         )
@@ -443,5 +512,43 @@ mod tests {
         let reservas = ReservaRepository::listar_todas(&conn).unwrap();
 
         assert_eq!(reservas.len(), 2);
+    }
+
+    #[test]
+    fn test_obtener_imagenes_ejemplar_respeta_orden() {
+        use crate::repository::reserva_repository::ReservaRepository;
+        use rusqlite::Connection;
+
+        let conn = Connection::open_in_memory().unwrap();
+
+        conn.execute(
+            "CREATE TABLE ejemplar_imagen (
+            ejemplar_id INTEGER NOT NULL,
+            orden INTEGER NOT NULL,
+            imagen_blob BLOB NOT NULL,
+            imagen_mime TEXT NOT NULL,
+            PRIMARY KEY (ejemplar_id, orden)
+        )",
+            [],
+        )
+        .unwrap();
+
+        // Inserta desordenado a propósito en la BDD
+        conn.execute(
+            "INSERT INTO ejemplar_imagen VALUES (1, 1, ?, 'image/png')",
+            [vec![22, 22]],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO ejemplar_imagen VALUES (1, 0, ?, 'image/png')",
+            [vec![11, 11]],
+        )
+        .unwrap();
+
+        let imgs = ReservaRepository::obtener_imagenes_ejemplar(&conn, 1).unwrap();
+
+        assert_eq!(imgs.len(), 2);
+        assert_eq!(imgs[0], vec![11, 11]); // Orden 0 primero
+        assert_eq!(imgs[1], vec![22, 22]); // Orden 1 segundo
     }
 }

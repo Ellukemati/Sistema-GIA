@@ -11,9 +11,11 @@
     <section class="auth-card">
         <a href="/inicio" class="btn-volver">⬅ Volver al inicio</a>
         <header class="auth-header">
-            <p class="auth-brand">GIA</p>
+            <div class="auth-brand">
+                <img src="/static/img/logo_gia_transparente.png" alt="GIA" class="auth-logo">
+            </div>
             <h1>Registro de ejemplar</h1>
-            <p class="auth-subtitle">Alta de instrumento en inventario</p>
+            <p class="auth-subtitle">Alta de instrumento en inventario · FIUBA</p>
         </header>
 
         <form class="auth-form" hx-post="/ejemplar/registro" hx-target="#resultado">

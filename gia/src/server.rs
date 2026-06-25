@@ -20,7 +20,6 @@ impl Server {
         let conn = Arc::clone(&self.conn);
 
         rouille::start_server(&self.address, move |request| {
-            // El servidor delega TODA la lógica de URLs al Enrutador Principal
             routes::dispatch(request, Arc::clone(&conn))
         });
     }

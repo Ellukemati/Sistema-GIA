@@ -1,4 +1,5 @@
 pub mod auth_service;
+pub mod comprobante_service;
 pub mod ejemplar_service;
 pub mod image_service;
 pub mod mail_service;
