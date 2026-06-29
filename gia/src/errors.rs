@@ -97,3 +97,34 @@ impl From<std::io::Error> for ManualStorageError {
         ManualStorageError::Io(err)
     }
 }
+
+/// Errores específicos de la generación y obtención de comprobantes de reserva
+#[derive(Debug)]
+pub enum ErrorComprobante {
+    NoEncontrada,
+    NoConfirmada,
+    ErrorBD(rusqlite::Error),
+    ErrorPdf(String),
+}
+
+impl fmt::Display for ErrorComprobante {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ErrorComprobante::NoEncontrada => write!(f, "Reserva no encontrada"),
+            ErrorComprobante::NoConfirmada => write!(
+                f,
+                "El comprobante solo está disponible para reservas confirmadas"
+            ),
+            ErrorComprobante::ErrorBD(e) => write!(f, "Error de base de datos: {}", e),
+            ErrorComprobante::ErrorPdf(e) => write!(f, "Error generando PDF: {}", e),
+        }
+    }
+}
+
+impl std::error::Error for ErrorComprobante {}
+
+impl From<rusqlite::Error> for ErrorComprobante {
+    fn from(err: rusqlite::Error) -> Self {
+        ErrorComprobante::ErrorBD(err)
+    }
+}

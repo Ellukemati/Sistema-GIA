@@ -40,9 +40,14 @@ pub const BCRYPT_COST_FACTOR: u32 = 4;
 pub const MAILTRAP_USER: &str = "ca4badc18b73e0";
 pub const MAILTRAP_PASSWORD: &str = "c56ae035ae868b";
 
+/// Textos de correo electrónico
+pub const MAIL_EMISOR: &str = "No-Responder <no-responder@gia.fi.uba.ar>";
+pub const FIRMA_INSTITUCIONAL: &str = "Atentamente,\nDepartamento de Agrimensura - FIUBA";
+pub const PIE_AUTOMATICO: &str = "---\nEste es un mensaje automático enviado por el sistema GIA. Por favor, no responda a este correo.";
+
 /// Configuración de constantes para testing
 // Si MOCK_MAILS es true, se imprime el contenido del mail en la consola en lugar de enviarlo realmente,
 // y se simula que todos los envíos fueron exitosos. Para desarrollar sin agotar la cuota de Mailtrap.
 pub const MOCK_MAILS: bool = true;
 // Si PDF_TESTING es true, se generan los PDFs y se guardan en disco.
-pub const PDF_TESTING: bool = false;
+pub const PDF_TESTING: bool = true;

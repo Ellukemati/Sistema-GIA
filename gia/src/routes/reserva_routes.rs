@@ -1,9 +1,16 @@
-use crate::handlers::reserva_handler::ReservaHandler;
 use rouille::{Request, Response, router};
 use rusqlite::Connection;
+use std::sync::mpsc::SyncSender;
 use std::sync::{Arc, Mutex};
 
-pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
+use crate::handlers::reserva_handler::ReservaHandler;
+use crate::service::pdf_worker_service::PdfRequest;
+
+pub fn router(
+    request: &Request,
+    conn: Arc<Mutex<Connection>>,
+    pdf_tx: SyncSender<PdfRequest>,
+) -> Response {
     router!(request,
 
         (GET) (/reservas) => {
@@ -99,7 +106,12 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
 
         (GET) (/mis-reservas/comprobante/{id: i64}) => {
             let conn_guard = conn.lock().unwrap();
-            ReservaHandler::descargar_comprobante_pdf(request, &conn_guard, id)
+            ReservaHandler::descargar_comprobante_pdf(
+                request,
+                &conn_guard,
+                id,
+                pdf_tx.clone(),
+            )
         },
 
         (POST) (/mis-reservas/cancelar/{id: i64}) => {

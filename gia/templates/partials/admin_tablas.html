@@ -59,10 +59,16 @@
                             {{ reserva.motivo }}
                         </td>
                         <td data-label="Acciones" class="td-acciones">
-                            <button class="btn-aprobar" hx-post="/admin/reservas/{{ reserva.id }}/aprobar" hx-target="closest tr" hx-swap="outerHTML">
+                            <button class="btn-previsualizar" 
+                                    data-id="{{ reserva.id }}" 
+                                    onclick="abrirModalPrevisualizacion(this.dataset.id)">
+                                🔍 Previsualizar
+                            </button>
+                            
+                            <button class="btn-aprobar" hx-post="/admin/reservas/aprobar/{{ reserva.id }}" hx-target="closest tr" hx-swap="outerHTML">
                                 Aprobar
                             </button>
-                            <button class="btn-rechazar" hx-post="/admin/reservas/{{ reserva.id }}/rechazar" hx-target="closest tr" hx-swap="outerHTML">
+                            <button class="btn-rechazar" hx-post="/admin/reservas/rechazar/{{ reserva.id }}" hx-target="closest tr" hx-swap="outerHTML">
                                 Rechazar
                             </button>
                         </td>
@@ -91,10 +97,10 @@
                         <td data-label="Legajo">{{ profe.legajo }}</td>
                         <td data-label="Nombre">{{ profe.nombre }} {{ profe.apellido }} <br><small style="color: #666;">{{ profe.email }}</small></td>
                         <td data-label="Acciones" class="td-acciones">
-                            <button class="btn-aprobar" hx-post="/admin/profesores/{{ profe.id }}/aprobar" hx-target="closest tr" hx-swap="outerHTML">
+                            <button class="btn-aprobar" hx-post="/admin/profesores/aprobar/{{ profe.id }}" hx-target="closest tr" hx-swap="outerHTML">
                                 Habilitar
                             </button>
-                            <button class="btn-rechazar" hx-post="/admin/profesores/{{ profe.id }}/rechazar" hx-target="closest tr" hx-swap="outerHTML">
+                            <button class="btn-rechazar" hx-post="/admin/profesores/rechazar/{{ profe.id }}" hx-target="closest tr" hx-swap="outerHTML">
                                 Denegar
                             </button>
                         </td>
@@ -134,7 +140,7 @@
                         <td data-label="Acción" class="td-acciones">
                             <button
                                 class="btn-aprobar"
-                                hx-post="/admin/usuarios/{{ docente.id }}/hacer-admin"
+                                hx-post="/admin/usuarios/hacer-admin/{{ docente.id }}"
                                 hx-target="closest tr"
                                 hx-swap="outerHTML"
                             >
@@ -182,7 +188,7 @@
                         <td data-label="Acción" class="td-acciones">
                             <button
                                 class="btn-rechazar"
-                                hx-post="/admin/usuarios/{{ admin.id }}/quitar-admin"
+                                hx-post="/admin/usuarios/quitar-admin/{{ admin.id }}"
                                 hx-target="closest tr"
                                 hx-swap="outerHTML"
                             >
