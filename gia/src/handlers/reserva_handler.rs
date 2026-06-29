@@ -12,7 +12,7 @@ use crate::{
         ejemplar_repository::EjemplarRepository, image_repository::ImageRepository,
         modelo_repository::ModeloRepository,
         reserva_instrumento_repository::ReservaInstrumentoRepository,
-        sesion_repository::SesionRepository,
+        sesion_repository::SesionRepository, usuario_repository::UsuarioRepository,
     },
     service::ejemplar_service::EjemplarService,
     service::modelo_service::ModeloService,
@@ -367,49 +367,69 @@ impl ReservaHandler {
     }
 
     pub fn descargar_comprobante_pdf(
-        _request: &Request,
+        request: &Request,
         conn: &Connection,
         reserva_id: i64,
         pdf_tx: SyncSender<PdfRequest>,
     ) -> Response {
-        let data_comprobante = match ReservaService::preparar_datos_comprobante(conn, reserva_id) {
-            Ok(d) => d,
-            Err(crate::errors::ErrorComprobante::NoEncontrada) => {
-                return Response::text("Reserva no encontrada").with_status_code(404);
+        let id_usuario_sesion = match Self::obtener_usuario_sesion(request, conn) {
+            Ok(id) => id,
+            Err(response) => return response,
+        };
+
+        let reserva = match crate::repository::reserva_repository::ReservaRepository::buscar_por_id(
+            conn, reserva_id,
+        ) {
+            Ok(Some(r)) => r,
+            Ok(None) => return Response::text("Reserva no encontrada").with_status_code(404),
+            Err(e) => return Response::text(format!("Error: {}", e)).with_status_code(500),
+        };
+
+        if reserva.id_usuario != id_usuario_sesion {
+            let usuario_actual = match UsuarioRepository::buscar_por_id(conn, id_usuario_sesion) {
+                Ok(Some(u)) => u,
+                _ => {
+                    return Response::text("Usuario de sesión no encontrado").with_status_code(401);
+                }
+            };
+
+            if !usuario_actual.es_admin() {
+                return templates::response_mensaje_error_con_status(
+                    "Acceso denegado",
+                    "No tenés permisos para descargar este comprobante.",
+                    403,
+                );
             }
+        }
+
+        let data = match ReservaService::preparar_datos_comprobante(conn, reserva_id) {
+            Ok(d) => d,
             Err(crate::errors::ErrorComprobante::NoConfirmada) => {
                 return Response::text(
-                    "El comprobante solo esta disponible para reservas confirmadas",
+                    "El comprobante solo está disponible para reservas confirmadas",
                 )
                 .with_status_code(403);
             }
-            Err(e) => {
-                return Response::text(format!("Error: {}", e)).with_status_code(500);
-            }
+            _ => return Response::text("Error al procesar la reserva").with_status_code(500),
         };
 
-        let (tx_respuesta, rx_respuesta) = oneshot::channel();
-
+        let (tx, rx) = oneshot::channel();
         if pdf_tx
             .send(PdfRequest {
-                data: data_comprobante,
-                responder: tx_respuesta,
+                data,
+                responder: tx,
             })
             .is_err()
         {
-            return Response::text("El generador de PDF no esta disponible").with_status_code(503);
+            return Response::text("Generador de PDF no disponible").with_status_code(503);
         }
 
-        match rx_respuesta.recv() {
-            Ok(Ok(pdf_bytes)) => Response::from_data("application/pdf", pdf_bytes)
-                .with_additional_header(
-                    "Content-Disposition",
-                    format!("inline; filename=comprobante_{}.pdf", reserva_id),
-                ),
-            Ok(Err(e)) => {
-                Response::text(format!("Error al generar PDF: {}", e)).with_status_code(500)
-            }
-            Err(_) => Response::text("El hilo worker de PDF no respondio").with_status_code(500),
+        match rx.recv() {
+            Ok(Ok(bytes)) => Response::from_data("application/pdf", bytes).with_additional_header(
+                "Content-Disposition",
+                format!("inline; filename=comprobante_{}.pdf", reserva_id),
+            ),
+            _ => Response::text("Error en el motor worker de PDF").with_status_code(500),
         }
     }
 

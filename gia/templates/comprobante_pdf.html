@@ -21,29 +21,30 @@
     
     <table class="auditoria-bloque">
         <tr>
-            <td class="fechas-contenedor" style="width: 55%;">
-                <div><strong>Fecha y hora de confirmación de la reserva:</strong> {{ momento_confirmacion }}</div>
-                <div><strong>Fecha y hora de la generación de este archivo:</strong> {{ fecha_hora_actual }}</div>
-                <div><strong>Período de préstamo solicitado:</strong> {{ fecha_inicio }}</div>
+            <td class="fechas-contenedor">
+                <div><strong>Fecha y hora de confirmación y firma del comprobante original:</strong> {{ fecha_hora_confirmacion }}</div>
+                <div><strong>Fecha y hora de generación de este archivo:</strong> {{ fecha_hora_actual }}</div>
             </td>
-            <td style="width: 45%; text-align: right;">
+            <td class="firma-bloque-td">
                 <div class="firma-contenedor">
-                    <div class="espacio-firma">FIRMA: {{ admin_nombre }}</div>
+                    <span class="espacio-firma">
+                        FIRMA: <strong>{{ admin_nombre }}</strong>
+                    </span>
                 </div>
             </td>
         </tr>
     </table>
 
     <div class="cuerpo">
-        El/La docente <strong>{{ docente }}</strong> solicita en el día de la fecha con el motivo:  <em>{{ motivo }}</em>, el siguiente instrumental que se describe en el cuadro:
+        El/La docente <strong>{{ docente }}</strong> solicita el préstamo de instrumental <strong>{{ periodo_reserva }}</strong> con el motivo: <em>{{ motivo }}</em>. El instrumental solicitado se detalla a continuación:
     </div>
 
     <table class="tabla-items">
         <thead>
             <tr>
-                <th class="col-id">ID</th>
+                <th class="col-id">Identificador</th>
                 <th class="col-cat">Categoría</th>
-                <th>Descripción</th>
+                <th>Descripción del Instrumental</th>
             </tr>
         </thead>
         <tbody>
@@ -58,8 +59,10 @@
                 <td class="col-cat">{{ item.categoria }}</td>
                 <td>
                     <strong>{{ item.marca }} {{ item.nombre_modelo }}</strong>
-                    {% if item.codigo_qr and item.numero_serie %} &nbsp; S/N: {{ item.numero_serie }} {% endif %}
-                    {% if item.patrimonio %} &nbsp; Pat.: {{ item.patrimonio }} {% endif %}
+                    {% if item.codigo_qr and item.numero_serie %} &nbsp;| S/N: {{ item.numero_serie }} {% endif %}
+                    {% if item.patrimonio and (item.codigo_qr or item.numero_serie) %}
+                        &nbsp;| Pat.: {{ item.patrimonio }}
+                    {% endif %}
                 </td>
             </tr>
             {% endfor %}
@@ -67,30 +70,38 @@
     </table>
 
     <div class="seccion-detalles">
-    <div class="titulo-detalles">Especificaciones, Observaciones e Imágenes del Instrumental Solicitado:</div>
-    {% for item in items %}
-        {% if item.observaciones or item.accesorios %}
-        <div class="item-detalles">
-            
-            <div class="item-title">
-                • 
-                {% if item.codigo_qr %}
-                    Núm. QR: {{ item.codigo_qr }}
-                {% elif item.numero_serie %}
-                    S/N: {{ item.numero_serie }}
-                {% elif item.patrimonio %}
-                    Pat.: {{ item.patrimonio }}
-                {% else %}
-                    ID Int.: {{ item.id_interno }}
-                {% endif %}:
-            </div>
+        <div class="titulo-detalles">Accesorios, Observaciones e Imágenes del Instrumental Solicitado:</div>
+        {% for item in items %}
+            {% if item.observaciones or item.accesorios or (item.imagenes_b64 and item.imagenes_b64 | length > 0) %}
+            <div class="bloque-ejemplar-detalle">
+                
+                <div class="item-title">
+                    • 
+                    {% if item.codigo_qr %} Núm. QR: {{ item.codigo_qr }}
+                    {% elif item.numero_serie %} S/N: {{ item.numero_serie }}
+                    {% elif item.patrimonio %} Pat.: {{ item.patrimonio }}
+                    {% else %} ID Int.: {{ item.id_interno }} {% endif %}
+                    ({{ item.marca }} {{ item.nombre_modelo }})
+                </div>
 
-            {% if item.accesorios %}<div class="item-sub">- Accesorios: {{ item.accesorios }}</div>{% endif %}
-            {% if item.observaciones %}<div class="item-sub">- Observaciones: {{ item.observaciones }}</div>{% endif %}
-        </div>
-        {% endif %}
-    {% endfor %}
-</div>
+                {% if item.accesorios %}<div class="item-sub">- <strong>Accesorios:</strong> {{ item.accesorios }}</div>{% endif %}
+                {% if item.observaciones %}<div class="item-sub">- <strong>Observaciones:</strong> {{ item.observaciones }}</div>{% endif %}
+                
+                {% if item.imagenes_b64 and item.imagenes_b64 | length > 0 %}
+                <div class="contenedor-fotos">
+                    {% for img in item.imagenes_b64 %}
+                        {% if img and img != "" %}
+                        <div class="marco-foto">
+                            <img src="data:image/jpeg;base64,{{ img }}" class="foto-ejemplar" alt="Fotografía del ejemplar">
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        {% endfor %}
+    </div>
 
 </body>
 </html>

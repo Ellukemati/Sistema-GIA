@@ -33,35 +33,54 @@ impl ReservaRepository {
         Ok(conn.last_insert_rowid())
     }
 
-    pub fn buscar_por_id(conn: &Connection, id: i64) -> SqlResult<Option<Reserva>> {
+    pub fn buscar_por_id(conn: &Connection, id: i64) -> Result<Option<Reserva>, rusqlite::Error> {
         let mut stmt = conn.prepare(
-            "SELECT id, id_usuario, fecha_inicio, fecha_fin, estado, motivo, momento_creacion 
-             FROM reservas WHERE id = ?1",
+            "SELECT id, id_usuario, fecha_inicio, fecha_fin, estado, motivo, 
+                    momento_creacion, momento_confirmacion, id_admin_aprobador 
+             FROM reservas 
+             WHERE id = ?",
         )?;
 
-        let resultado = stmt.query_row([id], Reserva::from_row);
+        let mut rows = stmt.query([id])?;
 
-        match resultado {
-            Ok(reserva) => Ok(Some(reserva)),
+        if let Some(row) = rows.next()? {
+            Ok(Some(Reserva::from_row(row)?))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn obtener_id_admin_aprobador(
+        conn: &Connection,
+        id_reserva: i64,
+    ) -> Result<Option<i64>, rusqlite::Error> {
+        let mut stmt = conn.prepare("SELECT id_admin_aprobador FROM reservas WHERE id = ?")?;
+
+        match stmt.query_row([id_reserva], |row| row.get::<_, Option<i64>>(0)) {
+            Ok(id_admin) => Ok(id_admin),
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
             Err(e) => Err(e),
         }
     }
 
-    pub fn listar_por_usuario(conn: &Connection, usuario_id: i64) -> SqlResult<Vec<Reserva>> {
+    pub fn listar_por_usuario(
+        conn: &Connection,
+        id_usuario: i64,
+    ) -> Result<Vec<Reserva>, rusqlite::Error> {
         let mut stmt = conn.prepare(
-            "SELECT id, id_usuario, fecha_inicio, fecha_fin, estado, motivo, momento_creacion
-             FROM reservas
-             WHERE id_usuario = ?1
-             ORDER BY fecha_inicio",
+            "SELECT id, id_usuario, fecha_inicio, fecha_fin, estado, motivo, 
+                    momento_creacion, momento_confirmacion, id_admin_aprobador 
+             FROM reservas 
+             WHERE id_usuario = ?",
         )?;
 
-        let filas = stmt.query_map([usuario_id], Reserva::from_row)?;
-        let mut reservas = Vec::new();
-        for reserva in filas {
-            reservas.push(reserva?);
+        let mapped_rows = stmt.query_map([id_usuario], Reserva::from_row)?;
+
+        let mut lista = Vec::new();
+        for r in mapped_rows {
+            lista.push(r?);
         }
-        Ok(reservas)
+        Ok(lista)
     }
 
     pub fn obtener_equipos_por_reserva(
@@ -131,19 +150,20 @@ impl ReservaRepository {
         )
     }
 
-    pub fn listar_todas(conn: &Connection) -> SqlResult<Vec<Reserva>> {
+    pub fn listar_todas(conn: &Connection) -> Result<Vec<Reserva>, rusqlite::Error> {
         let mut stmt = conn.prepare(
-            "SELECT id, id_usuario, fecha_inicio, fecha_fin, estado, motivo, momento_creacion
-             FROM reservas
-             ORDER BY fecha_inicio",
+            "SELECT id, id_usuario, fecha_inicio, fecha_fin, estado, motivo, 
+                    momento_creacion, momento_confirmacion, id_admin_aprobador 
+             FROM reservas",
         )?;
 
-        let filas = stmt.query_map([], Reserva::from_row)?;
-        let mut reservas = Vec::new();
-        for reserva in filas {
-            reservas.push(reserva?);
+        let mapped_rows = stmt.query_map([], Reserva::from_row)?;
+
+        let mut lista = Vec::new();
+        for r in mapped_rows {
+            lista.push(r?);
         }
-        Ok(reservas)
+        Ok(lista)
     }
 
     pub fn tiene_reserva_activa_o_pendiente(
@@ -190,17 +210,24 @@ impl ReservaRepository {
         Ok(disponible.unwrap_or(false))
     }
 
-    pub fn listar_por_estado(conn: &Connection, estado: &str) -> SqlResult<Vec<Reserva>> {
+    pub fn listar_por_estado(
+        conn: &Connection,
+        estado: &str,
+    ) -> Result<Vec<Reserva>, rusqlite::Error> {
         let mut stmt = conn.prepare(
-            "SELECT id, id_usuario, fecha_inicio, fecha_fin, estado, motivo, momento_creacion
-             FROM reservas WHERE estado = ?1 ORDER BY momento_creacion ASC",
+            "SELECT id, id_usuario, fecha_inicio, fecha_fin, estado, motivo, 
+                    momento_creacion, momento_confirmacion, id_admin_aprobador 
+            FROM reservas 
+            WHERE estado = ?",
         )?;
-        let filas = stmt.query_map([estado], Reserva::from_row)?;
-        let mut reservas = Vec::new();
-        for r in filas {
-            reservas.push(r?);
+
+        let mapped_rows = stmt.query_map([estado], Reserva::from_row)?;
+
+        let mut lista = Vec::new();
+        for r in mapped_rows {
+            lista.push(r?);
         }
-        Ok(reservas)
+        Ok(lista)
     }
 
     /// Guarda la auditoría completa de la confirmación
@@ -330,6 +357,8 @@ mod tests {
             estado: "pendiente".to_string(),
             motivo: Some("Test".to_string()),
             momento_creacion: "2026-06-25T12:00:00".to_string(),
+            momento_confirmacion: Some("2026-06-26T12:00:00".to_string()),
+            id_admin_aprobador: Some(1),
         }
     }
 
