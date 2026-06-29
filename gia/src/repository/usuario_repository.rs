@@ -4,20 +4,43 @@ use rusqlite::{Connection, Result as SqlResult, params};
 pub struct UsuarioRepository;
 
 impl UsuarioRepository {
-    pub fn buscar_por_email(conn: &Connection, email: &str) -> SqlResult<Option<Usuario>> {
-        let mut stmt = conn.prepare(
-            "SELECT id, nombre, apellido, email, legajo, tipo, password_hash, aprobado, momento_creacion, avatar_blob, avatar_mime 
-             FROM usuarios 
-             WHERE email = ?1"
-        )?;
-
-        let mut rows = stmt.query([email])?;
-        if let Some(row) = rows.next()? {
-            Ok(Some(Usuario::from_row(row)?))
-        } else {
-            Ok(None)
+    fn query_usuario(
+        conn: &Connection,
+        sql: &str,
+        param: &dyn rusqlite::ToSql,
+    ) -> SqlResult<Option<Usuario>> {
+        let mut stmt = conn.prepare(sql)?;
+        let mut rows = stmt.query([param])?;
+        match rows.next()? {
+            Some(row) => Ok(Some(Usuario::from_row(row)?)),
+            None => Ok(None),
         }
     }
+
+    pub fn buscar_por_id(conn: &Connection, id: i64) -> SqlResult<Option<Usuario>> {
+        Self::query_usuario(
+            conn,
+            "SELECT id, nombre, apellido, email, legajo, tipo, password_hash, aprobado, momento_creacion, avatar_blob, avatar_mime FROM usuarios WHERE id = ?1",
+            &id,
+        )
+    }
+
+    pub fn buscar_por_legajo(conn: &Connection, legajo: i32) -> SqlResult<Option<Usuario>> {
+        Self::query_usuario(
+            conn,
+            "SELECT id, nombre, apellido, email, legajo, tipo, password_hash, aprobado, momento_creacion, avatar_blob, avatar_mime FROM usuarios WHERE legajo = ?1",
+            &legajo,
+        )
+    }
+
+    pub fn buscar_por_email(conn: &Connection, email: &str) -> SqlResult<Option<Usuario>> {
+        Self::query_usuario(
+            conn,
+            "SELECT id, nombre, apellido, email, legajo, tipo, password_hash, aprobado, momento_creacion, avatar_blob, avatar_mime FROM usuarios WHERE email = ?1",
+            &email,
+        )
+    }
+
     pub fn listar_administradores(conn: &Connection) -> SqlResult<Vec<Usuario>> {
         let mut stmt = conn.prepare(
             "SELECT id, nombre, apellido, email, legajo, tipo,
@@ -74,36 +97,6 @@ impl UsuarioRepository {
             WHERE id = ?1",
             [id],
         )
-    }
-    pub fn buscar_por_id(conn: &Connection, id: i64) -> SqlResult<Option<Usuario>> {
-        let mut stmt = conn.prepare(
-            "SELECT id, nombre, apellido, email, legajo, tipo, password_hash, aprobado, momento_creacion, avatar_blob, avatar_mime 
-             FROM usuarios 
-             WHERE id = ?1"
-        )?;
-
-        let mut rows = stmt.query([id])?;
-
-        if let Some(row) = rows.next()? {
-            Ok(Some(Usuario::from_row(row)?))
-        } else {
-            Ok(None)
-        }
-    }
-
-    pub fn buscar_por_legajo(conn: &Connection, legajo: i32) -> SqlResult<Option<Usuario>> {
-        let mut stmt = conn.prepare(
-            "SELECT id, nombre, apellido, email, legajo, tipo, password_hash, aprobado, momento_creacion, avatar_blob, avatar_mime 
-             FROM usuarios 
-             WHERE legajo = ?1"
-        )?;
-
-        let mut rows = stmt.query([legajo])?;
-        if let Some(row) = rows.next()? {
-            Ok(Some(Usuario::from_row(row)?))
-        } else {
-            Ok(None)
-        }
     }
 
     pub fn crear(conn: &Connection, usuario: &Usuario) -> SqlResult<i64> {

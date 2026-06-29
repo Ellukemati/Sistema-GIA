@@ -1,9 +1,12 @@
-use crate::models::usuario::Usuario;
-use crate::repository::sesion_repository::SesionRepository;
-use crate::repository::usuario_repository::UsuarioRepository;
-use crate::templates;
+use chrono::{Datelike, NaiveDate};
 use rouille::{Request, Response};
 use rusqlite::Connection;
+
+use crate::models::usuario::Usuario;
+use crate::repository::{
+    sesion_repository::SesionRepository, usuario_repository::UsuarioRepository,
+};
+use crate::templates;
 
 /// Extrae el valor de una cookie por su clave de los headers HTTP manualmente
 pub fn extraer_cookie(request: &Request, clave: &str) -> Option<String> {
@@ -22,6 +25,59 @@ pub fn extraer_cookie(request: &Request, clave: &str) -> Option<String> {
 /// Extrae el valor de 'session_token' de los headers HTTP manualmente
 pub fn extraer_token_sesion(request: &Request) -> Option<String> {
     extraer_cookie(request, "session_token")
+}
+
+/// Formatea un rango de fechas en español, por ejemplo:
+/// "para el próximo 5 de julio" (Si es un solo día)
+/// "desde el 5 de julio hasta el 10 de julio" (Si es un rango dentro del mismo año)
+/// "desde el 27 de diciembre de 2026 hasta el 10 de enero de 2027" (Si es un rango tiene distintos años de inicio y fin)
+pub fn formatear_rango_fechas(fecha_inicio_str: &str, fecha_fin_str: &str) -> String {
+    let meses = [
+        "enero",
+        "febrero",
+        "marzo",
+        "abril",
+        "mayo",
+        "junio",
+        "julio",
+        "agosto",
+        "septiembre",
+        "octubre",
+        "noviembre",
+        "diciembre",
+    ];
+
+    let inicio = match NaiveDate::parse_from_str(fecha_inicio_str, "%Y-%m-%d") {
+        Ok(d) => d,
+        Err(_) => return format!("desde el {} hasta el {}", fecha_inicio_str, fecha_fin_str),
+    };
+
+    let fin = match NaiveDate::parse_from_str(fecha_fin_str, "%Y-%m-%d") {
+        Ok(d) => d,
+        Err(_) => return format!("desde el {} hasta el {}", fecha_inicio_str, fecha_fin_str),
+    };
+
+    let dia_ini = inicio.day();
+    let mes_ini = meses[(inicio.month() as usize) - 1];
+    let anio_ini = inicio.year();
+
+    let dia_fin = fin.day();
+    let mes_fin = meses[(fin.month() as usize) - 1];
+    let anio_fin = fin.year();
+
+    if inicio == fin {
+        format!("para el próximo {} de {}", dia_ini, mes_ini)
+    } else if anio_ini != anio_fin {
+        format!(
+            "desde el {} de {} de {} hasta el {} de {} de {}",
+            dia_ini, mes_ini, anio_ini, dia_fin, mes_fin, anio_fin
+        )
+    } else {
+        format!(
+            "desde el {} de {} hasta el {} de {}",
+            dia_ini, mes_ini, dia_fin, mes_fin
+        )
+    }
 }
 
 /// Carrito (borrador) de reserva persistido en la cookie `reserva_carrito`.
@@ -136,4 +192,30 @@ pub fn usuario_actual(request: &Request, conn: &Connection) -> Result<Usuario, R
     };
 
     Ok(usuario)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_formatear_rango_fechas_mismo_dia() {
+        let res = formatear_rango_fechas("2026-08-18", "2026-08-18");
+        assert_eq!(res, "para el próximo 18 de agosto");
+    }
+
+    #[test]
+    fn test_formatear_rango_fechas_mismo_anio() {
+        let res = formatear_rango_fechas("2026-08-18", "2026-08-22");
+        assert_eq!(res, "desde el 18 de agosto hasta el 22 de agosto");
+    }
+
+    #[test]
+    fn test_formatear_rango_fechas_distinto_anio() {
+        let res = formatear_rango_fechas("2026-12-27", "2027-01-10");
+        assert_eq!(
+            res,
+            "desde el 27 de diciembre de 2026 hasta el 10 de enero de 2027"
+        );
+    }
 }

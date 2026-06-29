@@ -1,8 +1,8 @@
 use rusqlite::{Result as SqlResult, Row};
 use serde::Serialize;
 
-/// Representa una reserva segun la tabla `reservas`
-#[derive(Serialize)]
+/// Representa una reserva según la tabla `reservas` de la DB
+#[derive(Serialize, Clone)]
 pub struct Reserva {
     pub id: i64,
     pub id_usuario: i64,
@@ -11,6 +11,8 @@ pub struct Reserva {
     pub estado: String,
     pub motivo: Option<String>,
     pub momento_creacion: String,
+    pub momento_confirmacion: Option<String>,
+    pub id_admin_aprobador: Option<i64>,
 }
 
 impl Reserva {
@@ -23,12 +25,8 @@ impl Reserva {
             estado: row.get("estado")?,
             motivo: row.get("motivo")?,
             momento_creacion: row.get("momento_creacion")?,
+            momento_confirmacion: row.get("momento_confirmacion")?,
+            id_admin_aprobador: row.get("id_admin_aprobador")?,
         })
-    }
-
-    /// Edita las fechas de la reserva
-    pub fn editar_fechas(&mut self, nueva_fecha_inicio: String, nueva_fecha_fin: String) {
-        self.fecha_inicio = nueva_fecha_inicio;
-        self.fecha_fin = nueva_fecha_fin;
     }
 }

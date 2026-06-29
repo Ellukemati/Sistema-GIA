@@ -4,14 +4,16 @@ use rusqlite::Connection;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::io::Read;
+use std::sync::mpsc::SyncSender;
 use tera::Context;
 
 use crate::repository::{
     reserva_repository::ReservaRepository, sesion_repository::SesionRepository,
     usuario_repository::UsuarioRepository,
 };
-use crate::service::auth_service::AuthService;
-use crate::service::mail_service::MailService;
+use crate::service::{
+    auth_service::AuthService, mail_service::MailService, pdf_worker_service::PdfRequest,
+};
 use crate::templates;
 use crate::utils::extraer_token_sesion;
 
@@ -176,7 +178,7 @@ impl AdminHandler {
         reservas_vista
     }
 
-    pub fn mostrar_solicitudes(request: &Request, conn: &Connection) -> Response {
+    pub fn mostrar_dashboard(request: &Request, conn: &Connection) -> Response {
         if let Err(resp) = Self::verificar_admin(request, conn) {
             return resp;
         }
@@ -194,7 +196,7 @@ impl AdminHandler {
         ctx.insert("profesores", &profes);
         ctx.insert("docentes_aprobados", &docentes_aprobados);
         ctx.insert("administradores", &administradores);
-        templates::response_html(templates::render("admin_solicitudes.html", &ctx))
+        templates::response_html(templates::render("admin_dashboard.html", &ctx))
     }
 
     pub fn recargar_tablas_htmx(request: &Request, conn: &Connection) -> Response {
@@ -222,7 +224,93 @@ impl AdminHandler {
         templates::response_html(templates::render("partials/admin_tablas.html", &ctx))
     }
 
-    pub fn aprobar_reserva(request: &Request, conn: &Connection, id: i64) -> Response {
+    pub fn previsualizar_comprobante(
+        request: &Request,
+        conn: &Connection,
+        id: i64,
+        pdf_tx: &SyncSender<PdfRequest>,
+    ) -> Response {
+        if let Err(resp) = Self::verificar_admin(request, conn) {
+            return resp;
+        }
+
+        let data_comprobante =
+            match crate::service::reserva_service::ReservaService::preparar_datos_previsualizacion(
+                conn, id,
+            ) {
+                Ok(d) => d,
+                Err(e) => {
+                    return Response::text(format!("Error simulando comprobante: {}", e))
+                        .with_status_code(500);
+                }
+            };
+
+        let (tx_respuesta, rx_respuesta) = oneshot::channel();
+        if pdf_tx
+            .send(PdfRequest {
+                data: data_comprobante,
+                responder: tx_respuesta,
+            })
+            .is_err()
+        {
+            return Response::text("Generador de PDF no disponible").with_status_code(503);
+        }
+
+        match rx_respuesta.recv() {
+            Ok(Ok(pdf_bytes)) => Response::from_data("application/pdf", pdf_bytes)
+                .with_additional_header(
+                    "Content-Disposition",
+                    "inline; filename=previsualizacion.pdf",
+                ),
+            _ => Response::text("Error en el motor worker de PDF").with_status_code(500),
+        }
+    }
+
+    pub fn descargar_comprobante_admin(
+        request: &Request,
+        conn: &Connection,
+        id: i64,
+        pdf_tx: &SyncSender<PdfRequest>,
+    ) -> Response {
+        if let Err(resp) = Self::verificar_admin(request, conn) {
+            return resp;
+        }
+
+        let data_comprobante =
+            match crate::service::reserva_service::ReservaService::preparar_datos_comprobante(
+                conn, id,
+            ) {
+                Ok(d) => d,
+                Err(e) => return Response::text(format!("Error: {:?}", e)).with_status_code(400),
+            };
+
+        let (tx_respuesta, rx_respuesta) = oneshot::channel();
+        if pdf_tx
+            .send(PdfRequest {
+                data: data_comprobante,
+                responder: tx_respuesta,
+            })
+            .is_err()
+        {
+            return Response::text("Generador no disponible").with_status_code(503);
+        }
+
+        match rx_respuesta.recv() {
+            Ok(Ok(pdf_bytes)) => Response::from_data("application/pdf", pdf_bytes)
+                .with_additional_header(
+                    "Content-Disposition",
+                    format!("attachment; filename=comprobante_{}.pdf", id),
+                ),
+            _ => Response::text("Error al generar PDF").with_status_code(500),
+        }
+    }
+
+    pub fn aprobar_reserva(
+        request: &Request,
+        conn: &Connection,
+        id: i64,
+        pdf_tx: &SyncSender<PdfRequest>,
+    ) -> Response {
         if let Err(resp) = Self::verificar_admin(request, conn) {
             return resp;
         }
@@ -232,10 +320,11 @@ impl AdminHandler {
             Err(resp) => return resp,
         };
 
-        let admin_id = admin.id;
-
-        match crate::service::reserva_service::ReservaService::aprobar_reserva(conn, id, admin_id) {
-            Ok(_) => Response::html(""),
+        match crate::service::reserva_service::ReservaService::aprobar_reserva(
+            conn, id, admin.id, pdf_tx,
+        ) {
+            Ok(_) => Response::html("")
+                .with_additional_header("HX-Trigger", format!("{{\"abrirComprobante\": {}}}", id)),
             Err(ref e) => templates::response_mensaje_error("No se pudo aprobar la reserva", e),
         }
     }
@@ -387,96 +476,6 @@ impl AdminHandler {
         }
     }
 
-    // IDEA: Endpoint para enviar un comunicado general por mail a todos los usuarios, a un grupo específico o uno solo
-    // Para implementarlo en el front ver bien cómo recibe los parámetros
-    pub fn enviar_notificacion_admin(request: &Request, conn: &Connection) -> Response {
-        if let Err(resp) = Self::verificar_admin(request, conn) {
-            return resp;
-        }
-
-        // Lee el cuerpo en crudo del formulario enviado por HTMX
-        let mut body = String::new();
-        if let Some(mut reader) = request.data() {
-            let _ = reader.read_to_string(&mut body);
-        }
-
-        // Parseamos las variables comunes usando un mapeo simple
-        let datos_form = Self::parsear_formulario(&body);
-        let asunto = datos_form.get("asunto").cloned().unwrap_or_default();
-        let mensaje = datos_form.get("mensaje").cloned().unwrap_or_default();
-
-        if asunto.is_empty() || mensaje.is_empty() {
-            return templates::response_mensaje_error(
-                "Campos obligatorios",
-                "El asunto y el mensaje del comunicado son obligatorios.",
-            );
-        }
-
-        let mut ids_seleccionados = Vec::new();
-        for par in body.split('&') {
-            if let Some(id_str) = par.strip_prefix("usuarios_ids=")
-                && let Ok(id) = id_str.parse::<i64>()
-            {
-                ids_seleccionados.push(id);
-            }
-        }
-
-        if ids_seleccionados.is_empty() {
-            return templates::response_mensaje_error(
-                "No se pudo enviar",
-                "Debe seleccionar al menos un usuario para enviar el comunicado.",
-            );
-        }
-
-        let mut lote_destinatarios = Vec::new();
-        for id in &ids_seleccionados {
-            if let Ok(Some(u)) = UsuarioRepository::buscar_por_id(conn, *id) {
-                let nombre_completo = format!("{} {}", u.nombre, u.apellido);
-                lote_destinatarios.push((nombre_completo, u.email));
-            }
-        }
-
-        let total_intentos = lote_destinatarios.len();
-        let mut cantidad_enviados = 0;
-
-        if !lote_destinatarios.is_empty() {
-            match MailService::enviar_comunicado_lote(&lote_destinatarios, &asunto, &mensaje) {
-                Ok(exitos) => {
-                    cantidad_enviados = exitos;
-                }
-                Err(e) => {
-                    return templates::response_mensaje_error(
-                        "Error de correo",
-                        &format!("Ocurrió un problema con el servidor SMTP: {}", e),
-                    );
-                }
-            }
-        }
-
-        if cantidad_enviados == 0 {
-            return templates::response_mensaje_error(
-                "Envío fallido",
-                "No se pudo entregar el mensaje a ninguno de los usuarios seleccionados.",
-            );
-        }
-
-        let fallidos = total_intentos - cantidad_enviados;
-
-        let texto_resultado = if fallidos > 0 {
-            format!(
-                "El mensaje se envió correctamente a {} usuarios. Sin embargo, hubo un error con {} destinatario/s.",
-                cantidad_enviados, fallidos
-            )
-        } else {
-            format!(
-                "El mensaje se despachó correctamente a los {} usuarios seleccionados.",
-                cantidad_enviados
-            )
-        };
-
-        templates::response_mensaje_exito("Comunicado procesado", &texto_resultado)
-    }
-
     fn parsear_formulario(body: &str) -> HashMap<String, String> {
         let mut mapa = HashMap::new();
         for par in body.split('&') {
@@ -490,6 +489,7 @@ impl AdminHandler {
         }
         mapa
     }
+
     fn obtener_historial_reservas_filtrado(
         conn: &Connection,
         filtros: &FiltrosHistorial,
@@ -572,6 +572,7 @@ impl AdminHandler {
         }
         resultado
     }
+
     pub fn mostrar_historial_reservas(request: &Request, conn: &Connection) -> Response {
         if let Err(resp) = Self::verificar_admin(request, conn) {
             return resp;
@@ -649,6 +650,7 @@ impl AdminHandler {
         ctx.insert("total_paginas", &total_paginas);
         templates::response_html(templates::render("admin_historial_reservas.html", &ctx))
     }
+
     pub fn exportar_historial_csv(request: &Request, conn: &Connection) -> Response {
         if let Err(resp) = Self::verificar_admin(request, conn) {
             return resp;
@@ -705,4 +707,95 @@ impl AdminHandler {
             "attachment; filename=\"historial_reservas.csv\"",
         )
     }
+
+    /* Endpoint para enviar un comunicado general por mail a todos los usuarios, a un grupo específico o a uno solo.
+       Para implementarlo en el front ver bien cómo recibe los parámetros.
+
+    pub fn enviar_notificacion_admin(request: &Request, conn: &Connection) -> Response {
+        if let Err(resp) = Self::verificar_admin(request, conn) {
+            return resp;
+        }
+
+        let mut body = String::new();
+        if let Some(mut reader) = request.data() {
+            let _ = reader.read_to_string(&mut body);
+        }
+
+        // Parseamos las variables comunes usando un mapeo simple
+        let datos_form = Self::parsear_formulario(&body);
+        let asunto = datos_form.get("asunto").cloned().unwrap_or_default();
+        let mensaje = datos_form.get("mensaje").cloned().unwrap_or_default();
+
+        if asunto.is_empty() || mensaje.is_empty() {
+            return templates::response_mensaje_error(
+                "Campos obligatorios",
+                "El asunto y el mensaje del comunicado son obligatorios.",
+            );
+        }
+
+        let mut ids_seleccionados = Vec::new();
+        for par in body.split('&') {
+            if let Some(id_str) = par.strip_prefix("usuarios_ids=")
+                && let Ok(id) = id_str.parse::<i64>()
+            {
+                ids_seleccionados.push(id);
+            }
+        }
+
+        if ids_seleccionados.is_empty() {
+            return templates::response_mensaje_error(
+                "No se pudo enviar",
+                "Debe seleccionar al menos un usuario para enviar el comunicado.",
+            );
+        }
+
+        let mut lote_destinatarios = Vec::new();
+        for id in &ids_seleccionados {
+            if let Ok(Some(u)) = UsuarioRepository::buscar_por_id(conn, *id) {
+                let nombre_completo = format!("{} {}", u.nombre, u.apellido);
+                lote_destinatarios.push((nombre_completo, u.email));
+            }
+        }
+
+        let total_intentos = lote_destinatarios.len();
+        let mut cantidad_enviados = 0;
+
+        if !lote_destinatarios.is_empty() {
+            match MailService::enviar_comunicado_lote(&lote_destinatarios, &asunto, &mensaje) {
+                Ok(exitos) => {
+                    cantidad_enviados = exitos;
+                }
+                Err(e) => {
+                    return templates::response_mensaje_error(
+                        "Error de correo",
+                        &format!("Ocurrió un problema con el servidor SMTP: {}", e),
+                    );
+                }
+            }
+        }
+
+        if cantidad_enviados == 0 {
+            return templates::response_mensaje_error(
+                "Envío fallido",
+                "No se pudo entregar el mensaje a ninguno de los usuarios seleccionados.",
+            );
+        }
+
+        let fallidos = total_intentos - cantidad_enviados;
+
+        let texto_resultado = if fallidos > 0 {
+            format!(
+                "El mensaje se envió correctamente a {} usuarios. Sin embargo, hubo un error con {} destinatario/s.",
+                cantidad_enviados, fallidos
+            )
+        } else {
+            format!(
+                "El mensaje se despachó correctamente a los {} usuarios seleccionados.",
+                cantidad_enviados
+            )
+        };
+
+        templates::response_mensaje_exito("Comunicado procesado", &texto_resultado)
+    }
+    */
 }

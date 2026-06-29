@@ -1,11 +1,6 @@
-use crate::models::reserva::Reserva;
-use crate::models::reserva_view::ReservaView;
-use crate::repository::reserva_instrumento_repository::ReservaInstrumentoRepository;
-use crate::service::reserva_service::ReservaService;
-use crate::templates;
-use chrono::NaiveDate;
-use rouille::{Request, Response};
 use rusqlite::{Connection, OptionalExtension, Result as SqlResult, params};
+
+use crate::models::reserva::Reserva;
 
 pub struct EquipoRaw {
     pub modelo_id: i64,
@@ -38,35 +33,54 @@ impl ReservaRepository {
         Ok(conn.last_insert_rowid())
     }
 
-    pub fn buscar_por_id(conn: &Connection, id: i64) -> SqlResult<Option<Reserva>> {
+    pub fn buscar_por_id(conn: &Connection, id: i64) -> Result<Option<Reserva>, rusqlite::Error> {
         let mut stmt = conn.prepare(
-            "SELECT id, id_usuario, fecha_inicio, fecha_fin, estado, motivo, momento_creacion 
-             FROM reservas WHERE id = ?1",
+            "SELECT id, id_usuario, fecha_inicio, fecha_fin, estado, motivo, 
+                    momento_creacion, momento_confirmacion, id_admin_aprobador 
+             FROM reservas 
+             WHERE id = ?",
         )?;
 
-        let resultado = stmt.query_row([id], Reserva::from_row);
+        let mut rows = stmt.query([id])?;
 
-        match resultado {
-            Ok(reserva) => Ok(Some(reserva)),
+        if let Some(row) = rows.next()? {
+            Ok(Some(Reserva::from_row(row)?))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn obtener_id_admin_aprobador(
+        conn: &Connection,
+        id_reserva: i64,
+    ) -> Result<Option<i64>, rusqlite::Error> {
+        let mut stmt = conn.prepare("SELECT id_admin_aprobador FROM reservas WHERE id = ?")?;
+
+        match stmt.query_row([id_reserva], |row| row.get::<_, Option<i64>>(0)) {
+            Ok(id_admin) => Ok(id_admin),
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
             Err(e) => Err(e),
         }
     }
 
-    pub fn listar_por_usuario(conn: &Connection, usuario_id: i64) -> SqlResult<Vec<Reserva>> {
+    pub fn listar_por_usuario(
+        conn: &Connection,
+        id_usuario: i64,
+    ) -> Result<Vec<Reserva>, rusqlite::Error> {
         let mut stmt = conn.prepare(
-            "SELECT id, id_usuario, fecha_inicio, fecha_fin, estado, motivo, momento_creacion
-             FROM reservas
-             WHERE id_usuario = ?1
-             ORDER BY fecha_inicio",
+            "SELECT id, id_usuario, fecha_inicio, fecha_fin, estado, motivo, 
+                    momento_creacion, momento_confirmacion, id_admin_aprobador 
+             FROM reservas 
+             WHERE id_usuario = ?",
         )?;
 
-        let filas = stmt.query_map([usuario_id], Reserva::from_row)?;
-        let mut reservas = Vec::new();
-        for reserva in filas {
-            reservas.push(reserva?);
+        let mapped_rows = stmt.query_map([id_usuario], Reserva::from_row)?;
+
+        let mut lista = Vec::new();
+        for r in mapped_rows {
+            lista.push(r?);
         }
-        Ok(reservas)
+        Ok(lista)
     }
 
     pub fn obtener_equipos_por_reserva(
@@ -136,19 +150,20 @@ impl ReservaRepository {
         )
     }
 
-    pub fn listar_todas(conn: &Connection) -> SqlResult<Vec<Reserva>> {
+    pub fn listar_todas(conn: &Connection) -> Result<Vec<Reserva>, rusqlite::Error> {
         let mut stmt = conn.prepare(
-            "SELECT id, id_usuario, fecha_inicio, fecha_fin, estado, motivo, momento_creacion
-             FROM reservas
-             ORDER BY fecha_inicio",
+            "SELECT id, id_usuario, fecha_inicio, fecha_fin, estado, motivo, 
+                    momento_creacion, momento_confirmacion, id_admin_aprobador 
+             FROM reservas",
         )?;
 
-        let filas = stmt.query_map([], Reserva::from_row)?;
-        let mut reservas = Vec::new();
-        for reserva in filas {
-            reservas.push(reserva?);
+        let mapped_rows = stmt.query_map([], Reserva::from_row)?;
+
+        let mut lista = Vec::new();
+        for r in mapped_rows {
+            lista.push(r?);
         }
-        Ok(reservas)
+        Ok(lista)
     }
 
     pub fn tiene_reserva_activa_o_pendiente(
@@ -195,17 +210,24 @@ impl ReservaRepository {
         Ok(disponible.unwrap_or(false))
     }
 
-    pub fn listar_por_estado(conn: &Connection, estado: &str) -> SqlResult<Vec<Reserva>> {
+    pub fn listar_por_estado(
+        conn: &Connection,
+        estado: &str,
+    ) -> Result<Vec<Reserva>, rusqlite::Error> {
         let mut stmt = conn.prepare(
-            "SELECT id, id_usuario, fecha_inicio, fecha_fin, estado, motivo, momento_creacion
-             FROM reservas WHERE estado = ?1 ORDER BY momento_creacion ASC",
+            "SELECT id, id_usuario, fecha_inicio, fecha_fin, estado, motivo, 
+                    momento_creacion, momento_confirmacion, id_admin_aprobador 
+            FROM reservas 
+            WHERE estado = ?",
         )?;
-        let filas = stmt.query_map([estado], Reserva::from_row)?;
-        let mut reservas = Vec::new();
-        for r in filas {
-            reservas.push(r?);
+
+        let mapped_rows = stmt.query_map([estado], Reserva::from_row)?;
+
+        let mut lista = Vec::new();
+        for r in mapped_rows {
+            lista.push(r?);
         }
-        Ok(reservas)
+        Ok(lista)
     }
 
     /// Guarda la auditoría completa de la confirmación
@@ -224,7 +246,6 @@ impl ReservaRepository {
         )
     }
 
-    /// Modifica el estado de forma atómica
     pub fn cambiar_estado(
         conn: &Connection,
         reserva_id: i64,
@@ -236,7 +257,6 @@ impl ReservaRepository {
         )
     }
 
-    /// Único método que junta toda la información cruzada usando JOINs
     pub fn obtener_datos_notificacion(
         conn: &Connection,
         reserva_id: i64,
@@ -265,94 +285,6 @@ impl ReservaRepository {
         )
     }
 
-    pub fn mostrar_mis_reservas(request: &Request, conn: &Connection) -> Response {
-        let usuario_id = match Self::obtener_usuario_sesion(request, conn) {
-            Ok(id) => id,
-            Err(response) => return response,
-        };
-
-        let reservas = match Self::listar_por_usuario(conn, usuario_id) {
-            Ok(r) => r,
-            Err(e) => return Response::text(format!("Error: {}", e)).with_status_code(500),
-        };
-
-        let mut reservas_vista: Vec<ReservaView> = Vec::new();
-
-        for reserva in reservas {
-            let clase_estado = match reserva.estado.as_str() {
-                "activa" => "estado-aprobada",
-                "concluida" => "estado-concluida",
-                "pendiente" => "estado-pendiente",
-                "cancelada" => "estado-cancelada",
-                _ => "",
-            };
-
-            let texto_estado = match reserva.estado.as_str() {
-                "activa" => "Aceptada",
-                "concluida" => "Finalizada",
-                "pendiente" => "Pendiente",
-                "cancelada" => "Cancelada",
-                _ => &reserva.estado,
-            };
-
-            let equipos =
-                ReservaInstrumentoRepository::obtener_nombres_equipos_reserva(conn, reserva.id)
-                    .unwrap_or(vec![]);
-            let inicio = NaiveDate::parse_from_str(&reserva.fecha_inicio, "%Y-%m-%d").unwrap();
-            let fin = NaiveDate::parse_from_str(&reserva.fecha_fin, "%Y-%m-%d").unwrap();
-            let dias = (fin - inicio).num_days();
-
-            // Formatear creación
-            let creada_txt = "Hoy".to_string();
-
-            reservas_vista.push(ReservaView {
-                id: reserva.id,
-                fecha_inicio: reserva.fecha_inicio,
-                fecha_fin: reserva.fecha_fin,
-                estado: reserva.estado.clone(),
-                texto_estado: texto_estado.to_string(),
-                clase_estado: clase_estado.to_string(),
-                motivo: reserva.motivo.unwrap_or("Sin motivo".to_string()),
-                equipos,
-                dias,
-                creada: creada_txt,
-            });
-        }
-
-        let mut ctx = tera::Context::new();
-        ctx.insert("reservas", &reservas_vista);
-
-        match templates::render("mis_reservas.html", &ctx) {
-            Ok(html) => templates::response_html(Ok(html)),
-            Err(e) => Response::text(format!("Error Tera: {:?}", e)).with_status_code(500),
-        }
-    }
-
-    pub fn cancelar_reserva(request: &Request, conn: &Connection, reserva_id: i64) -> Response {
-        let usuario_id = match Self::obtener_usuario_sesion(request, conn) {
-            Ok(id) => id,
-            Err(response) => return response,
-        };
-
-        match ReservaService::cancelar_reserva(conn, reserva_id, usuario_id) {
-            Ok(_) => Response::empty_204().with_additional_header("HX-Redirect", "/mis-reservas"),
-            Err(e) => templates::response_mensaje_error("Error cancelando reserva", &e),
-        }
-    }
-
-    pub fn obtener_usuario_sesion(request: &Request, conn: &Connection) -> Result<i64, Response> {
-        let token = match crate::utils::extraer_token_sesion(request) {
-            Some(t) => t,
-            None => return Err(Response::redirect_303("/login")),
-        };
-
-        match crate::repository::sesion_repository::SesionRepository::buscar_por_token(conn, &token)
-        {
-            Ok(Some(sesion)) => Ok(sesion.id_usuario),
-            Ok(None) => Err(Response::redirect_303("/login")),
-            Err(e) => Err(Response::text(format!("Error: {}", e)).with_status_code(500)),
-        }
-    }
     pub fn listar_todas_detalladas(conn: &Connection) -> SqlResult<Vec<Reserva>> {
         let mut stmt = conn.prepare(
             "SELECT
@@ -450,6 +382,8 @@ mod tests {
             estado: "pendiente".to_string(),
             motivo: Some("Test".to_string()),
             momento_creacion: "2026-06-25T12:00:00".to_string(),
+            momento_confirmacion: Some("2026-06-26T12:00:00".to_string()),
+            id_admin_aprobador: Some(1),
         }
     }
 

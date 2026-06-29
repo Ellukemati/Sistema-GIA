@@ -55,7 +55,9 @@ impl ImageHandler {
     pub fn servir_modelo(modelo_id: i64, orden: i32, conn: Arc<Mutex<Connection>>) -> Response {
         match conn.lock() {
             Ok(guard) => match ImageRepository::buscar_modelo(&guard, modelo_id, orden) {
-                Ok(Some((blob, mime))) => Response::from_data(mime, blob),
+                // Cachea las imagenes pero pregunta al servidor si fueron actualizadas antes de mostrarlas
+                Ok(Some((blob, mime))) => Response::from_data(mime, blob)
+                    .with_additional_header("Cache-Control", "public, max-age=0, must-revalidate"),
                 Ok(None) => Response::empty_404(),
                 Err(e) => Response::text(e.to_string()).with_status_code(500),
             },
@@ -105,7 +107,9 @@ impl ImageHandler {
     pub fn servir_ejemplar(ejemplar_id: i64, orden: i32, conn: Arc<Mutex<Connection>>) -> Response {
         match conn.lock() {
             Ok(guard) => match ImageRepository::buscar_ejemplar(&guard, ejemplar_id, orden) {
-                Ok(Some((blob, mime))) => Response::from_data(mime, blob),
+                // Cachea las imagenes pero pregunta al servidor si fueron actualizadas antes de mostrarlas
+                Ok(Some((blob, mime))) => Response::from_data(mime, blob)
+                    .with_additional_header("Cache-Control", "public, max-age=0, must-revalidate"),
                 Ok(None) => Response::empty_404(),
                 Err(e) => Response::text(e.to_string()).with_status_code(500),
             },
