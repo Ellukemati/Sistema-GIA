@@ -1,8 +1,9 @@
-use chrono::{Datelike, Duration, Local, NaiveDate, NaiveDateTime};
+use chrono::{Duration, Local, NaiveDate};
 use rusqlite::Connection;
 use serde::Serialize;
+use std::sync::mpsc::SyncSender;
 
-use crate::service::mail_service::MailService;
+use crate::constants::{ESTADO_ACTIVA, PDF_TESTING};
 use crate::{
     models::reserva::Reserva,
     repository::{
@@ -10,6 +11,7 @@ use crate::{
         reserva_instrumento_repository::ReservaInstrumentoRepository,
         reserva_repository::ReservaRepository,
     },
+    service::{mail_service::MailService, pdf_worker_service::PdfRequest},
 };
 
 pub struct ReservaService;
@@ -83,24 +85,71 @@ impl ReservaService {
 
     pub fn aprobar_reserva(
         conn: &Connection,
-        reserva_id: i64,
+        id_reserva: i64,
         admin_id: i64,
+        pdf_tx: &SyncSender<PdfRequest>,
     ) -> Result<(), String> {
-        use crate::constants::ESTADO_ACTIVA;
-
-        let ahora_confirmada = Local::now()
+        let ahora = Local::now()
             .naive_local()
             .format("%Y-%m-%d %H:%M:%S")
             .to_string();
 
-        ReservaRepository::confirmar_aprobacion(
-            conn,
-            reserva_id,
-            ESTADO_ACTIVA,
-            admin_id,
-            &ahora_confirmada,
-        )
-        .map_err(|e| format!("Error al persistir la aprobación: {}", e))?;
+        ReservaRepository::confirmar_aprobacion(conn, id_reserva, ESTADO_ACTIVA, admin_id, &ahora)
+            .map_err(|e| format!("Error al persistir la aprobación: {}", e))?;
+
+        let data = Self::preparar_datos_comprobante(conn, id_reserva)
+            .map_err(|e| format!("Error preparando comprobante: {}", e))?;
+
+        let docente_email = data.docente_email.clone();
+        let docente_nombre = data.docente.clone();
+        let motivo = data.motivo.clone();
+
+        let rango = crate::utils::formatear_rango_fechas(&data.fecha_inicio, &data.fecha_fin);
+
+        let (tx_respuesta, rx_respuesta) = oneshot::channel();
+
+        pdf_tx
+            .send(PdfRequest {
+                data,
+                responder: tx_respuesta,
+            })
+            .map_err(|_| "El generador de PDF no está disponible desde el servicio")?;
+
+        let pdf_bytes = rx_respuesta
+            .recv()
+            .map_err(|_| "El hilo worker de PDF cerro el canal de forma inesperada")?
+            .map_err(|e| format!("Error en el motor wkhtmltopdf: {}", e))?;
+
+        if PDF_TESTING {
+            let _ = std::fs::write(format!("comprobante_test_{}.pdf", id_reserva), &pdf_bytes);
+        }
+
+        MailService::enviar_notificacion_reserva_aprobada_con_comprobante(
+            &docente_email,
+            &docente_nombre,
+            &id_reserva.to_string(),
+            &motivo,
+            &rango,
+            &pdf_bytes,
+        )?;
+
+        Ok(())
+    }
+
+    pub fn preparar_datos_comprobante(
+        conn: &Connection,
+        reserva_id: i64,
+    ) -> Result<crate::service::comprobante_service::ComprobanteData, crate::errors::ErrorComprobante>
+    {
+        use crate::errors::ErrorComprobante;
+        use crate::service::comprobante_service::{ComprobanteData, DetalleEjemplarComprobante};
+
+        let reserva_base = ReservaRepository::buscar_por_id(conn, reserva_id)?
+            .ok_or(ErrorComprobante::NoEncontrada)?;
+
+        if reserva_base.estado != "activa" && reserva_base.estado != "concluida" {
+            return Err(ErrorComprobante::NoConfirmada);
+        }
 
         let (
             docente_email,
@@ -109,87 +158,38 @@ impl ReservaService {
             fecha_inicio,
             momento_confirmacion,
             admin_nombre,
-        ) = ReservaRepository::obtener_datos_notificacion(conn, reserva_id)
-            .map_err(|e| format!("Error consultando datos de auditoría: {}", e))?;
+        ) = ReservaRepository::obtener_datos_notificacion(conn, reserva_id)?;
 
-        let items_raw = ReservaRepository::obtener_equipos_por_reserva(conn, reserva_id)
-            .map_err(|e| e.to_string())?;
+        let equipos_raw = ReservaRepository::obtener_equipos_por_reserva(conn, reserva_id)?;
 
-        let mut items = Vec::new();
-        for item in items_raw {
-            let imagenes_bytes =
-                ReservaRepository::obtener_imagenes_ejemplar(conn, item.ejemplar_id)
-                    .unwrap_or_default();
+        let items: Vec<DetalleEjemplarComprobante> = equipos_raw
+            .into_iter()
+            .map(|eq| DetalleEjemplarComprobante {
+                id_interno: eq.ejemplar_id,
+                marca: eq.marca,
+                nombre_modelo: eq.nombre_modelo,
+                categoria: eq.categoria.unwrap_or_else(|| "Sin categoría".to_string()),
+                numero_serie: eq.numero_serie,
+                codigo_qr: eq.codigo_qr,
+                patrimonio: eq.patrimonio,
+                observaciones: eq.observaciones,
+                accesorios: eq.accesorios,
+                imagenes_bytes: vec![],
+            })
+            .collect();
 
-            items.push(
-                crate::service::comprobante_service::DetalleEjemplarComprobante {
-                    id_interno: item.ejemplar_id,
-                    marca: item.marca,
-                    nombre_modelo: item.nombre_modelo,
-                    categoria: item
-                        .categoria
-                        .unwrap_or_else(|| "Instrumentos Varios".into()),
-                    numero_serie: item.numero_serie,
-                    codigo_qr: item.codigo_qr,
-                    patrimonio: item.patrimonio,
-                    observaciones: item.observaciones,
-                    accesorios: item.accesorios,
-                    imagenes_bytes,
-                },
-            );
-        }
-
-        let rango_fechas_texto =
-            Self::formatear_rango_fechas_institucional(&fecha_inicio, &fecha_inicio);
-
-        let emision_reporte_legible = Local::now()
-            .naive_local()
-            .format("%d/%m/%Y %H:%M")
-            .to_string();
-
-        let confirmacion_pdf_legible =
-            match NaiveDateTime::parse_from_str(&momento_confirmacion, "%Y-%m-%d %H:%M:%S") {
-                Ok(dt) => dt.format("%d/%m/%Y %H:%M").to_string(),
-                Err(_) => momento_confirmacion.clone(),
-            };
-
-        let data_comprobante = crate::service::comprobante_service::ComprobanteData {
-            docente: docente_nombre.clone(),
-            fecha_hora_actual: emision_reporte_legible,
-            motivo: motivo.clone(),
-            fecha_inicio: rango_fechas_texto.clone(),
-            fecha_fin: String::new(), // Queda seguro y compatible
+        Ok(ComprobanteData {
+            docente_email,
+            docente: docente_nombre,
+            fecha_hora_actual: chrono::Local::now().format("%d/%m/%Y %H:%M").to_string(),
+            motivo,
+            fecha_inicio,
+            fecha_fin: String::new(),
             admin_nombre,
-            admin_id,
-            momento_confirmacion: confirmacion_pdf_legible,
+            admin_id: 1,
+            momento_confirmacion,
             items,
-        };
-
-        let pdf_bytes =
-            crate::service::comprobante_service::ComprobanteService::generar_pdf_en_memoria(
-                data_comprobante,
-            )?;
-
-        if crate::constants::PDF_TESTING {
-            println!(
-                "[GIA DEBUG]: Escribiendo comprobante_test.pdf en la raíz por constante PDF_TESTING..."
-            );
-            let _ = std::fs::write("comprobante_test.pdf", &pdf_bytes);
-        }
-
-        let id_reserva_str = reserva_id.to_string();
-        std::thread::spawn(move || {
-            let _ = MailService::enviar_notificacion_reserva_aprobada_con_comprobante(
-                &docente_email,
-                &docente_nombre,
-                &id_reserva_str,
-                &motivo,
-                &rango_fechas_texto,
-                &pdf_bytes,
-            );
-        });
-
-        Ok(())
+        })
     }
 
     pub fn rechazar_reserva(conn: &Connection, reserva_id: i64) -> Result<(), String> {
@@ -213,55 +213,6 @@ impl ReservaService {
         });
 
         Ok(())
-    }
-
-    fn formatear_rango_fechas_institucional(fecha_inicio_str: &str, fecha_fin_str: &str) -> String {
-        let meses = [
-            "enero",
-            "febrero",
-            "marzo",
-            "abril",
-            "mayo",
-            "junio",
-            "julio",
-            "agosto",
-            "septiembre",
-            "octubre",
-            "noviembre",
-            "diciembre",
-        ];
-
-        let inicio = match NaiveDate::parse_from_str(fecha_inicio_str, "%Y-%m-%d") {
-            Ok(d) => d,
-            Err(_) => return format!("desde el {} hasta el {}", fecha_inicio_str, fecha_fin_str),
-        };
-
-        let fin = match NaiveDate::parse_from_str(fecha_fin_str, "%Y-%m-%d") {
-            Ok(d) => d,
-            Err(_) => return format!("desde el {} hasta el {}", fecha_inicio_str, fecha_fin_str),
-        };
-
-        let dia_ini = inicio.day();
-        let mes_ini = meses[(inicio.month() as usize) - 1];
-        let anio_ini = inicio.year();
-
-        let dia_fin = fin.day();
-        let mes_fin = meses[(fin.month() as usize) - 1];
-        let anio_fin = fin.year();
-
-        if inicio == fin {
-            format!("para el próximo {} de {}", dia_ini, mes_ini)
-        } else if anio_ini != anio_fin {
-            format!(
-                "desde el {} de {} de {} hasta el {} de {} de {}",
-                dia_ini, mes_ini, anio_ini, dia_fin, mes_fin, anio_fin
-            )
-        } else {
-            format!(
-                "desde el {} de {} hasta el {} de {}",
-                dia_ini, mes_ini, dia_fin, mes_fin
-            )
-        }
     }
 
     pub fn listar_carrito_detalle(
@@ -365,7 +316,6 @@ impl ReservaService {
     }
 }
 
-// MÓDULO DE TESTS ORIGINAL CONSERVADO INTACTO
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -527,11 +477,5 @@ mod tests {
         let items = ReservaService::listar_carrito_detalle(&conn, &[ejemplar_id]).unwrap();
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].modelo_nombre, "Violín");
-    }
-
-    #[test]
-    fn test_formatear_rango_fechas_mismo_dia() {
-        let res = ReservaService::formatear_rango_fechas_institucional("2026-08-18", "2026-08-18");
-        assert_eq!(res, "para el próximo 18 de agosto");
     }
 }

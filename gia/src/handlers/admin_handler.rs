@@ -4,14 +4,16 @@ use rusqlite::Connection;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::io::Read;
+use std::sync::mpsc::SyncSender;
 use tera::Context;
 
 use crate::repository::{
     reserva_repository::ReservaRepository, sesion_repository::SesionRepository,
     usuario_repository::UsuarioRepository,
 };
-use crate::service::auth_service::AuthService;
-use crate::service::mail_service::MailService;
+use crate::service::{
+    auth_service::AuthService, mail_service::MailService, pdf_worker_service::PdfRequest,
+};
 use crate::templates;
 use crate::utils::extraer_token_sesion;
 
@@ -205,7 +207,12 @@ impl AdminHandler {
         templates::response_html(templates::render("partials/admin_tablas.html", &ctx))
     }
 
-    pub fn aprobar_reserva(request: &Request, conn: &Connection, id: i64) -> Response {
+    pub fn aprobar_reserva(
+        request: &Request,
+        conn: &Connection,
+        id: i64,
+        pdf_tx: &SyncSender<PdfRequest>,
+    ) -> Response {
         if let Err(resp) = Self::verificar_admin(request, conn) {
             return resp;
         }
@@ -217,7 +224,9 @@ impl AdminHandler {
 
         let admin_id = admin.id;
 
-        match crate::service::reserva_service::ReservaService::aprobar_reserva(conn, id, admin_id) {
+        match crate::service::reserva_service::ReservaService::aprobar_reserva(
+            conn, id, admin_id, pdf_tx,
+        ) {
             Ok(_) => Response::html(""),
             Err(ref e) => templates::response_mensaje_error("No se pudo aprobar la reserva", e),
         }

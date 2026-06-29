@@ -1,9 +1,9 @@
 use base64::{Engine as _, engine::general_purpose};
 use serde::Serialize;
 use std::io::Read;
-use wkhtmltopdf::{PdfApplication, Size};
+use wkhtmltopdf::PdfApplication;
 
-use crate::constants::{PATH_LOGO_AGRIMENSURA, PATH_LOGO_FIUBA};
+use crate::constants::{PATH_LOGO_AGRIMENSURA_TRANSPARENTE, PATH_LOGO_FIUBA_TRANSPARENTE};
 
 #[derive(Serialize)]
 pub struct DetalleEjemplarComprobante {
@@ -21,6 +21,7 @@ pub struct DetalleEjemplarComprobante {
 
 #[derive(Serialize)]
 pub struct ComprobanteData {
+    pub docente_email: String,
     pub docente: String,
     pub fecha_hora_actual: String,
     pub motivo: String,
@@ -36,12 +37,22 @@ pub struct ComprobanteService;
 
 impl ComprobanteService {
     pub fn generar_pdf_en_memoria(data: ComprobanteData) -> Result<Vec<u8>, String> {
+        let app = wkhtmltopdf::PdfApplication::new()
+            .map_err(|e| format!("Error inicializando wkhtmltopdf: {}", e))?;
+        Self::generar_pdf_con_app(&app, data)
+    }
+
+    pub fn generar_pdf_con_app(
+        app: &PdfApplication,
+        data: ComprobanteData,
+    ) -> Result<Vec<u8>, String> {
         let tera = tera::Tera::new("templates/**/*")
             .map_err(|e| format!("Error inicializando Tera: {}", e))?;
 
-        let logo_fiuba_bytes = std::fs::read(PATH_LOGO_FIUBA).unwrap_or_else(|_| vec![0; 4]);
+        let logo_fiuba_bytes =
+            std::fs::read(PATH_LOGO_FIUBA_TRANSPARENTE).unwrap_or_else(|_| vec![0; 4]);
         let logo_agrimensura_bytes =
-            std::fs::read(PATH_LOGO_AGRIMENSURA).unwrap_or_else(|_| vec![0; 4]);
+            std::fs::read(PATH_LOGO_AGRIMENSURA_TRANSPARENTE).unwrap_or_else(|_| vec![0; 4]);
 
         let logo_fiuba_b64 = general_purpose::STANDARD.encode(logo_fiuba_bytes);
         let logo_agrimensura_b64 = general_purpose::STANDARD.encode(logo_agrimensura_bytes);
@@ -61,21 +72,36 @@ impl ComprobanteService {
 
         let cuerpo_html = tera
             .render("comprobante_pdf.html", &ctx)
-            .map_err(|e| format!("Error en plantilla principal: {}", e))?;
+            .map_err(|e| format!("Error en plantilla: {}", e))?;
 
-        let pdf_app = PdfApplication::new().map_err(|e| e.to_string())?;
-        let mut builder = pdf_app.builder();
+        let mut builder = app.builder();
 
-        builder.margin(Size::Millimeters(20)).image_quality(100);
+        builder
+            .margin(wkhtmltopdf::Margin {
+                top: wkhtmltopdf::Size::Millimeters(20),
+                bottom: wkhtmltopdf::Size::Millimeters(20),
+                left: wkhtmltopdf::Size::Millimeters(20),
+                right: wkhtmltopdf::Size::Millimeters(20),
+            })
+            .image_quality(100);
+
+        builder
+            .margin(wkhtmltopdf::Margin {
+                top: wkhtmltopdf::Size::Millimeters(20),
+                bottom: wkhtmltopdf::Size::Millimeters(20),
+                left: wkhtmltopdf::Size::Millimeters(20),
+                right: wkhtmltopdf::Size::Millimeters(20),
+            })
+            .image_quality(100);
 
         let mut pdf_output = builder
             .build_from_html(&cuerpo_html)
-            .map_err(|e| format!("Error en wkhtmltopdf: {}", e))?;
+            .map_err(|e| format!("Error wkhtmltopdf: {}", e))?;
 
         let mut pdf_bytes = Vec::new();
         pdf_output
             .read_to_end(&mut pdf_bytes)
-            .map_err(|e| format!("Error al leer buffer de PDF: {}", e))?;
+            .map_err(|e| format!("Error leyendo buffer: {}", e))?;
 
         Ok(pdf_bytes)
     }
@@ -88,7 +114,10 @@ mod tests {
 
     #[test]
     fn test_generar_pdf_vacio_y_con_items() {
+        let pdf_app = PdfApplication::new().expect("No se pudo inicializar wkhtmltopdf en test");
+
         let data = ComprobanteData {
+            docente_email: "jperez@fi.uba.ar".to_string(),
             docente: "Dr. Juan Pérez".to_string(),
             fecha_hora_actual: "25/06/2026 15:45:58".to_string(),
             motivo: "Práctica Taller Agrimensura".to_string(),
@@ -111,25 +140,16 @@ mod tests {
             }],
         };
 
-        let bytes = match ComprobanteService::generar_pdf_en_memoria(data) {
+        let bytes = match ComprobanteService::generar_pdf_con_app(&pdf_app, data) {
             Ok(b) => b,
-            Err(e) => panic!("El generador de PDF falló con el siguiente error: {:?}", e),
+            Err(e) => panic!("El generador de PDF falló: {:?}", e),
         };
 
-        // Si PDF_TESTING es true, se guarda el PDF generado en disco para testing
         if PDF_TESTING {
             let _ = std::fs::write("comprobante_test_desde_test.pdf", &bytes);
         }
 
-        assert!(
-            !bytes.is_empty(),
-            "El PDF generado no debería retornar un vector de bytes vacío"
-        );
-
-        assert_eq!(
-            &bytes[0..4],
-            b"%PDF",
-            "La firma del archivo generado no coincide con el estándar de formato PDF"
-        );
+        assert!(!bytes.is_empty());
+        assert_eq!(&bytes[0..4], b"%PDF");
     }
 }

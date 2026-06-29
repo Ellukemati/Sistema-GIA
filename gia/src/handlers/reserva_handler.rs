@@ -3,6 +3,7 @@ use rouille::{Request, Response};
 use rusqlite::Connection;
 use std::collections::HashMap;
 use std::io::Read;
+use std::sync::mpsc::SyncSender;
 use tera::Context;
 
 use crate::templates;
@@ -11,13 +12,11 @@ use crate::{
         ejemplar_repository::EjemplarRepository, image_repository::ImageRepository,
         modelo_repository::ModeloRepository,
         reserva_instrumento_repository::ReservaInstrumentoRepository,
-        reserva_repository::ReservaRepository, sesion_repository::SesionRepository,
-    },
-    service::comprobante_service::{
-        ComprobanteData, ComprobanteService, DetalleEjemplarComprobante,
+        sesion_repository::SesionRepository,
     },
     service::ejemplar_service::EjemplarService,
     service::modelo_service::ModeloService,
+    service::pdf_worker_service::PdfRequest,
     service::reserva_service::ReservaService,
     utils::{Carrito, cookie_carrito, cookie_carrito_vacio, extraer_token_sesion, leer_carrito},
 };
@@ -371,71 +370,46 @@ impl ReservaHandler {
         _request: &Request,
         conn: &Connection,
         reserva_id: i64,
+        pdf_tx: SyncSender<PdfRequest>,
     ) -> Response {
-        let datos_notificacion =
-            match ReservaRepository::obtener_datos_notificacion(conn, reserva_id) {
-                Ok(datos) => datos,
-                Err(rusqlite::Error::QueryReturnedNoRows) => {
-                    return Response::text("Reserva no encontrada").with_status_code(404);
-                }
-                Err(e) => return Response::text(format!("Error: {}", e)).with_status_code(500),
-            };
-
-        let (_, docente_nombre, motivo, fecha_inicio, momento_confirmacion, admin_nombre) =
-            datos_notificacion;
-
-        let reserva_base = match ReservaRepository::buscar_por_id(conn, reserva_id) {
-            Ok(Some(r)) => r,
-            _ => return Response::text("Error al validar consistencia").with_status_code(500),
+        let data_comprobante = match ReservaService::preparar_datos_comprobante(conn, reserva_id) {
+            Ok(d) => d,
+            Err(crate::errors::ErrorComprobante::NoEncontrada) => {
+                return Response::text("Reserva no encontrada").with_status_code(404);
+            }
+            Err(crate::errors::ErrorComprobante::NoConfirmada) => {
+                return Response::text(
+                    "El comprobante solo esta disponible para reservas confirmadas",
+                )
+                .with_status_code(403);
+            }
+            Err(e) => {
+                return Response::text(format!("Error: {}", e)).with_status_code(500);
+            }
         };
 
-        if reserva_base.estado != "activa" && reserva_base.estado != "concluida" {
-            return Response::text(
-                "El comprobante firmado solo está disponible para reservas confirmadas.",
-            )
-            .with_status_code(403);
+        let (tx_respuesta, rx_respuesta) = oneshot::channel();
+
+        if pdf_tx
+            .send(PdfRequest {
+                data: data_comprobante,
+                responder: tx_respuesta,
+            })
+            .is_err()
+        {
+            return Response::text("El generador de PDF no esta disponible").with_status_code(503);
         }
 
-        let equipos_raw = match ReservaRepository::obtener_equipos_por_reserva(conn, reserva_id) {
-            Ok(lista) => lista,
-            Err(e) => return Response::text(format!("Error: {}", e)).with_status_code(500),
-        };
-
-        let items: Vec<DetalleEjemplarComprobante> = equipos_raw
-            .into_iter()
-            .map(|eq| DetalleEjemplarComprobante {
-                id_interno: eq.ejemplar_id,
-                marca: eq.marca,
-                nombre_modelo: eq.nombre_modelo,
-                categoria: eq.categoria.unwrap_or_else(|| "Sin categoría".to_string()),
-                numero_serie: eq.numero_serie,
-                codigo_qr: eq.codigo_qr,
-                patrimonio: eq.patrimonio,
-                observaciones: eq.observaciones,
-                accesorios: eq.accesorios,
-                imagenes_bytes: vec![],
-            })
-            .collect();
-
-        let data_comprobante = ComprobanteData {
-            docente: docente_nombre,
-            fecha_hora_actual: chrono::Local::now().format("%d/%m/%Y %H:%M").to_string(),
-            motivo,
-            fecha_inicio,
-            fecha_fin: String::new(),
-            admin_nombre,
-            admin_id: 1,
-            momento_confirmacion,
-            items,
-        };
-
-        match ComprobanteService::generar_pdf_en_memoria(data_comprobante) {
-            Ok(pdf_bytes) => Response::from_data("application/pdf", pdf_bytes)
+        match rx_respuesta.recv() {
+            Ok(Ok(pdf_bytes)) => Response::from_data("application/pdf", pdf_bytes)
                 .with_additional_header(
                     "Content-Disposition",
                     format!("inline; filename=comprobante_{}.pdf", reserva_id),
                 ),
-            Err(e) => Response::text(format!("Error al generar PDF: {}", e)).with_status_code(500),
+            Ok(Err(e)) => {
+                Response::text(format!("Error al generar PDF: {}", e)).with_status_code(500)
+            }
+            Err(_) => Response::text("El hilo worker de PDF no respondio").with_status_code(500),
         }
     }
 
@@ -582,6 +556,7 @@ impl ReservaHandler {
 
         templates::response_html(Ok(html))
     }
+
     pub fn cancelar_reserva(request: &Request, conn: &Connection, reserva_id: i64) -> Response {
         let usuario_id = match Self::obtener_usuario_sesion(request, conn) {
             Ok(id) => id,

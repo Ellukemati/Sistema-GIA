@@ -1,19 +1,17 @@
-use crate::handlers::admin_handler::AdminHandler;
 use rouille::{Request, Response, router};
 use rusqlite::Connection;
+use std::sync::mpsc::SyncSender;
 use std::sync::{Arc, Mutex};
 
-pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
+use crate::handlers::admin_handler::AdminHandler;
+use crate::service::pdf_worker_service::PdfRequest;
+
+pub fn router(
+    request: &Request,
+    conn: Arc<Mutex<Connection>>,
+    pdf_tx: &SyncSender<PdfRequest>,
+) -> Response {
     router!(request,
-        /*
-        A IMPLEMENTAR PANEL DE CONTROL
-
-        (GET) (/admin/dashboard) => {
-            let conn_guard = conn.lock().unwrap();
-            AdminHandler::mostrar_dashboard_admin(request, &conn_guard)
-        },
-        */
-
         (POST) (/admin/usuarios/cambiar-rol) => {
             let conn_guard = conn.lock().unwrap();
             AdminHandler::procesar_cambio_rol(request, &conn_guard)
@@ -29,9 +27,9 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
             AdminHandler::recargar_tablas_htmx(request, &conn_guard)
         },
 
-        (POST) (/admin/reservas/{id: i64}/aprobar) => {
+        (POST) (/admin/reservas/aprobar/{id: i64}) => {
             let conn_guard = conn.lock().unwrap();
-            AdminHandler::aprobar_reserva(request, &conn_guard, id)
+            AdminHandler::aprobar_reserva(request, &conn_guard, id, pdf_tx)
         },
 
         (POST) (/admin/reservas/{id: i64}/rechazar) => {
@@ -58,16 +56,21 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
             AdminHandler::quitar_admin(request, &conn_guard, id)
         },
 
+        // Endpoint para invitar usuarios no registrados a través de un correo electrónico institucional, como Administradores o Docentes
+        /*
         (POST) (/admin/invitar) => {
             let conn_guard = conn.lock().unwrap();
             AdminHandler::procesar_envio_invitacion(request, &conn_guard)
         },
+        */
 
-        // IDEA: Endpoint para enviar un comunicado general por mail a todos los usuarios, a un grupo específico o uno solo
+        // Endpoint para enviar un comunicado general por mail a todos los usuarios, a un grupo específico o uno solo
+        /*
         (POST) (/admin/comunicados/enviar) => {
             let conn_guard = conn.lock().unwrap();
             AdminHandler::enviar_notificacion_admin(request, &conn_guard)
         },
+        */
 
         _ => Response::empty_404()
     )
