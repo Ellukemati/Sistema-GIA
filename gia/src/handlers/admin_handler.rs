@@ -4,14 +4,16 @@ use rusqlite::Connection;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::io::Read;
+use std::sync::mpsc::SyncSender;
 use tera::Context;
 
 use crate::repository::{
     reserva_repository::ReservaRepository, sesion_repository::SesionRepository,
     usuario_repository::UsuarioRepository,
 };
-use crate::service::auth_service::AuthService;
-use crate::service::mail_service::MailService;
+use crate::service::{
+    auth_service::AuthService, mail_service::MailService, pdf_worker_service::PdfRequest,
+};
 use crate::templates;
 use crate::utils::extraer_token_sesion;
 
@@ -159,7 +161,7 @@ impl AdminHandler {
         reservas_vista
     }
 
-    pub fn mostrar_solicitudes(request: &Request, conn: &Connection) -> Response {
+    pub fn mostrar_dashboard(request: &Request, conn: &Connection) -> Response {
         if let Err(resp) = Self::verificar_admin(request, conn) {
             return resp;
         }
@@ -177,7 +179,7 @@ impl AdminHandler {
         ctx.insert("profesores", &profes);
         ctx.insert("docentes_aprobados", &docentes_aprobados);
         ctx.insert("administradores", &administradores);
-        templates::response_html(templates::render("admin_solicitudes.html", &ctx))
+        templates::response_html(templates::render("admin_dashboard.html", &ctx))
     }
 
     pub fn recargar_tablas_htmx(request: &Request, conn: &Connection) -> Response {
@@ -205,7 +207,93 @@ impl AdminHandler {
         templates::response_html(templates::render("partials/admin_tablas.html", &ctx))
     }
 
-    pub fn aprobar_reserva(request: &Request, conn: &Connection, id: i64) -> Response {
+    pub fn previsualizar_comprobante(
+        request: &Request,
+        conn: &Connection,
+        id: i64,
+        pdf_tx: &SyncSender<PdfRequest>,
+    ) -> Response {
+        if let Err(resp) = Self::verificar_admin(request, conn) {
+            return resp;
+        }
+
+        let data_comprobante =
+            match crate::service::reserva_service::ReservaService::preparar_datos_previsualizacion(
+                conn, id,
+            ) {
+                Ok(d) => d,
+                Err(e) => {
+                    return Response::text(format!("Error simulando comprobante: {}", e))
+                        .with_status_code(500);
+                }
+            };
+
+        let (tx_respuesta, rx_respuesta) = oneshot::channel();
+        if pdf_tx
+            .send(PdfRequest {
+                data: data_comprobante,
+                responder: tx_respuesta,
+            })
+            .is_err()
+        {
+            return Response::text("Generador de PDF no disponible").with_status_code(503);
+        }
+
+        match rx_respuesta.recv() {
+            Ok(Ok(pdf_bytes)) => Response::from_data("application/pdf", pdf_bytes)
+                .with_additional_header(
+                    "Content-Disposition",
+                    "inline; filename=previsualizacion.pdf",
+                ),
+            _ => Response::text("Error en el motor worker de PDF").with_status_code(500),
+        }
+    }
+
+    pub fn descargar_comprobante_admin(
+        request: &Request,
+        conn: &Connection,
+        id: i64,
+        pdf_tx: &SyncSender<PdfRequest>,
+    ) -> Response {
+        if let Err(resp) = Self::verificar_admin(request, conn) {
+            return resp;
+        }
+
+        let data_comprobante =
+            match crate::service::reserva_service::ReservaService::preparar_datos_comprobante(
+                conn, id,
+            ) {
+                Ok(d) => d,
+                Err(e) => return Response::text(format!("Error: {:?}", e)).with_status_code(400),
+            };
+
+        let (tx_respuesta, rx_respuesta) = oneshot::channel();
+        if pdf_tx
+            .send(PdfRequest {
+                data: data_comprobante,
+                responder: tx_respuesta,
+            })
+            .is_err()
+        {
+            return Response::text("Generador no disponible").with_status_code(503);
+        }
+
+        match rx_respuesta.recv() {
+            Ok(Ok(pdf_bytes)) => Response::from_data("application/pdf", pdf_bytes)
+                .with_additional_header(
+                    "Content-Disposition",
+                    format!("attachment; filename=comprobante_{}.pdf", id),
+                ),
+            _ => Response::text("Error al generar PDF").with_status_code(500),
+        }
+    }
+
+    pub fn aprobar_reserva(
+        request: &Request,
+        conn: &Connection,
+        id: i64,
+        pdf_tx: &SyncSender<PdfRequest>,
+    ) -> Response {
         if let Err(resp) = Self::verificar_admin(request, conn) {
             return resp;
         }
@@ -215,10 +303,11 @@ impl AdminHandler {
             Err(resp) => return resp,
         };
 
-        let admin_id = admin.id;
-
-        match crate::service::reserva_service::ReservaService::aprobar_reserva(conn, id, admin_id) {
-            Ok(_) => Response::html(""),
+        match crate::service::reserva_service::ReservaService::aprobar_reserva(
+            conn, id, admin.id, pdf_tx,
+        ) {
+            Ok(_) => Response::html("")
+                .with_additional_header("HX-Trigger", format!("{{\"abrirComprobante\": {}}}", id)),
             Err(ref e) => templates::response_mensaje_error("No se pudo aprobar la reserva", e),
         }
     }
@@ -370,8 +459,23 @@ impl AdminHandler {
         }
     }
 
+    fn parsear_formulario(body: &str) -> HashMap<String, String> {
+        let mut mapa = HashMap::new();
+        for par in body.split('&') {
+            let mut partes = par.split('=');
+            if let (Some(clave), Some(valor)) = (partes.next(), partes.next()) {
+                mapa.insert(
+                    clave.to_string(),
+                    valor.replace("%40", "@").replace("+", " "),
+                );
+            }
+        }
+        mapa
+    }
+
     // IDEA: Endpoint para enviar un comunicado general por mail a todos los usuarios, a un grupo específico o uno solo
     // Para implementarlo en el front ver bien cómo recibe los parámetros
+    /*
     pub fn enviar_notificacion_admin(request: &Request, conn: &Connection) -> Response {
         if let Err(resp) = Self::verificar_admin(request, conn) {
             return resp;
@@ -459,18 +563,5 @@ impl AdminHandler {
 
         templates::response_mensaje_exito("Comunicado procesado", &texto_resultado)
     }
-
-    fn parsear_formulario(body: &str) -> HashMap<String, String> {
-        let mut mapa = HashMap::new();
-        for par in body.split('&') {
-            let mut partes = par.split('=');
-            if let (Some(clave), Some(valor)) = (partes.next(), partes.next()) {
-                mapa.insert(
-                    clave.to_string(),
-                    valor.replace("%40", "@").replace("+", " "),
-                );
-            }
-        }
-        mapa
-    }
+    */
 }

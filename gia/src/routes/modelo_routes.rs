@@ -20,6 +20,11 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
             ModeloHandler::procesar_registro(request, &conn_guard)
         },
 
+        (GET) (/modelo/{id: i64}) => {
+            let conn_guard = conn.lock().unwrap();
+            ModeloHandler::mostrar_detalle(request, &conn_guard, id)
+        },
+
         (GET) (/modelo/{id: i64}/editar) => {
             let conn_guard = conn.lock().unwrap();
             ModeloHandler::mostrar_formulario_edicion(request, &conn_guard, id)
@@ -28,11 +33,6 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
         (POST) (/modelo/{id: i64}/editar) => {
             let conn_guard = conn.lock().unwrap();
             ModeloHandler::procesar_edicion(request, &conn_guard, id)
-        },
-
-        (GET) (/modelo/{id: i64}) => {
-            let conn_guard = conn.lock().unwrap();
-            ModeloHandler::mostrar_detalle(request, &conn_guard, id)
         },
 
         _ => Response::empty_404()

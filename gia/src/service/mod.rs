@@ -5,4 +5,5 @@ pub mod image_service;
 pub mod mail_service;
 pub mod manual_service;
 pub mod modelo_service;
+pub mod pdf_worker_service;
 pub mod reserva_service;

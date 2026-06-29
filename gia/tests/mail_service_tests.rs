@@ -1,13 +1,14 @@
 #![cfg(test)]
 use gia::constants::MOCK_MAILS;
-use gia::service::mail_service::MailService;
+use gia::models::usuario::Usuario;
+use gia::service::mail_service::MailService; // 🌟 Importamos el modelo de usuario real para el test de admins
 
 // Ignorado para no enviar mails reales a Mailtrap durante pruebas automáticas (salvo usando cargo test -- --include-ignored),
 // pero se puede ejecutar manualmente para verificar el flujo completo. MOCK_MAILS = true para no enviar mails a Mailtrap.
 #[test]
 #[ignore]
 fn test_circuito_de_notificaciones() {
-    // CASO 1: Notificación de Reserva Confirmada
+    // CASO 1: Notificación de Reserva Confirmada (Docente)
     let resultado_reserva_aprobada =
         MailService::enviar_notificacion_reserva_aprobada_con_comprobante(
             "docentest@fi.uba.ar",
@@ -20,7 +21,7 @@ fn test_circuito_de_notificaciones() {
 
     assert!(
         resultado_reserva_aprobada.is_ok(),
-        "Falló la notificación de reserva aprobada"
+        "Falló la notificación de reserva aprobada para el docente"
     );
 
     // Solo espera los 10.5 segundos si estamos pegándole a la API de Mailtrap
@@ -57,7 +58,7 @@ fn test_circuito_de_notificaciones() {
         std::thread::sleep(std::time::Duration::from_millis(10500));
     }
 
-    // CASO 4: Notificación de Solicitud de Registro de Docente Rechazada
+    // CASO 4: Notificación de Solicitud de Registro de Docente  Rechazada
     let resultado_profe_rechazado =
         MailService::enviar_notificacion_profesor_rechazado("docentest@fi.uba.ar", "Aníbal López");
     assert!(
@@ -67,6 +68,63 @@ fn test_circuito_de_notificaciones() {
 
     if !MOCK_MAILS {
         println!("Esperando 10.5 segundos finales para liberar el canal SMTP...");
+        std::thread::sleep(std::time::Duration::from_millis(10500));
+    }
+}
+
+// Ignorado para no enviar mails reales a Mailtrap durante pruebas automáticas (salvo usando cargo test -- --include-ignored),
+// pero se puede ejecutar manualmente para verificar el flujo completo. MOCK_MAILS = true para no enviar mails a Mailtrap.
+#[test]
+#[ignore]
+fn test_notificacion_lote_administradores_reserva_aprobada() {
+    use gia::constants::TIPO_ADMIN;
+
+    let administradores_mock = vec![
+        Usuario {
+            id: 1,
+            nombre: "Admin".to_string(),
+            apellido: "Maestro".to_string(),
+            email: "adminmaestro@fi.uba.ar".to_string(),
+            legajo: 99991,
+            tipo: TIPO_ADMIN.to_string(),
+            password_hash: "hash_mock_1".to_string(),
+            aprobado: true,
+            momento_creacion: "2026-06-29 07:00:00".to_string(),
+            avatar_blob: None,
+            avatar_mime: None,
+        },
+        Usuario {
+            id: 2,
+            nombre: "Gestion".to_string(),
+            apellido: "Instrumental".to_string(),
+            email: "gestion@fi.uba.ar".to_string(),
+            legajo: 99992,
+            tipo: TIPO_ADMIN.to_string(),
+            password_hash: "hash_mock_2".to_string(),
+            aprobado: true,
+            momento_creacion: "2026-06-29 07:00:00".to_string(),
+            avatar_blob: None,
+            avatar_mime: None,
+        },
+    ];
+
+    let resultado_lote_admins =
+        MailService::enviar_notificacion_reserva_aprobada_admins_con_comprobante(
+            administradores_mock,
+            "42",
+            "Juan Pérez",
+            "Uso de Estación Total para testeo.",
+            "desde el 18 de agosto hasta el 2 de octubre",
+            &[], // buffer de bytes de PDF simulado vacío
+        );
+
+    assert!(
+        resultado_lote_admins.is_ok(),
+        "Falló la notificación de reserva aprobada enviada al lote de administradores"
+    );
+
+    if !MOCK_MAILS {
+        println!("Esperando 10.5 segundos de enfriamiento para Mailtrap...");
         std::thread::sleep(std::time::Duration::from_millis(10500));
     }
 }
