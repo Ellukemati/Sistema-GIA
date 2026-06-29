@@ -3,7 +3,6 @@
 {% block title %}Panel de Administración - GIA{% endblock %}
 
 {% block extra_head %}
-    {# 🌟 Incluimos los estilos de la interfaz de forma limpia desde su archivo modular #}
     {% include "estilos/admin_dashboard.html" %}
 {% endblock %}
 
@@ -53,7 +52,7 @@
         }
     });
 
-    // Cuando se aprueba una reserva, abre el comprobante original en otra pestaña al instante
+    // Cuando se aprueba una reserva, descarga automáticamente
     document.addEventListener("abrirComprobante", function(evt) {
         const idReserva = evt.detail.value;
         if (idReserva) {
