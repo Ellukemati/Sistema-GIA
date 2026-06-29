@@ -52,10 +52,18 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
             let conn_guard = conn.lock().unwrap();
             AdminHandler::hacer_admin(request, &conn_guard, id)
         },
+        (GET) (/admin/historial-reservas) => {
+            let conn_guard = conn.lock().unwrap();
+            AdminHandler::mostrar_historial_reservas(request, &conn_guard)
+        },
 
         (POST) (/admin/usuarios/{id: i64}/quitar-admin) => {
             let conn_guard = conn.lock().unwrap();
             AdminHandler::quitar_admin(request, &conn_guard, id)
+        },
+        (GET) (/admin/historial-reservas/csv) => {
+            let conn_guard = conn.lock().unwrap();
+            AdminHandler::exportar_historial_csv(request, &conn_guard)
         },
 
         (POST) (/admin/invitar) => {

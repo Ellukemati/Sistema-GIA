@@ -353,6 +353,30 @@ impl ReservaRepository {
             Err(e) => Err(Response::text(format!("Error: {}", e)).with_status_code(500)),
         }
     }
+    pub fn listar_todas_detalladas(conn: &Connection) -> SqlResult<Vec<Reserva>> {
+        let mut stmt = conn.prepare(
+            "SELECT
+                id,
+                id_usuario,
+                fecha_inicio,
+                fecha_fin,
+                estado,
+                motivo,
+                momento_creacion
+            FROM reservas
+            ORDER BY momento_creacion DESC",
+        )?;
+
+        let filas = stmt.query_map([], Reserva::from_row)?;
+
+        let mut reservas = Vec::new();
+
+        for fila in filas {
+            reservas.push(fila?);
+        }
+
+        Ok(reservas)
+    }
 }
 
 #[cfg(test)]

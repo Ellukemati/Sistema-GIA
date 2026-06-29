@@ -35,7 +35,16 @@ pub struct CategoriaAgrupada {
     pub nombre_categoria: String,
     pub modelos: Vec<ModeloAgrupado>,
 }
-
+#[derive(Serialize)]
+struct HistorialReservaVista {
+    pub id: i64,
+    pub profesor: String,
+    pub fecha_inicio: String,
+    pub fecha_fin: String,
+    pub estado: String,
+    pub motivo: String,
+    pub momento_creacion: String,
+}
 #[derive(Serialize)]
 struct ReservaVista {
     pub id: i64,
@@ -45,7 +54,6 @@ struct ReservaVista {
     pub motivo: String,
     pub categorias: Vec<CategoriaAgrupada>,
 }
-
 impl AdminHandler {
     /// Valida que el usuario tenga sesión activa y sea Administrador
     fn verificar_admin(request: &Request, conn: &Connection) -> Result<(), Response> {
@@ -472,5 +480,230 @@ impl AdminHandler {
             }
         }
         mapa
+    }
+    fn obtener_historial_reservas_filtrado(
+        conn: &Connection,
+        docente: &str,
+        estado: &str,
+        fecha_desde: &str,
+        fecha_hasta: &str,
+        motivo: &str,
+        ordenar_por: &str,
+        direccion: &str,
+    ) -> Vec<HistorialReservaVista> {
+        let reservas = ReservaRepository::listar_todas(conn).unwrap_or_default();
+
+        let mut resultado = Vec::new();
+
+        for r in reservas {
+            let profesor = match UsuarioRepository::buscar_por_id(conn, r.id_usuario) {
+                Ok(Some(u)) => format!("{} {}", u.nombre, u.apellido),
+                _ => "Usuario desconocido".to_string(),
+            };
+
+            if !docente.is_empty() && !profesor.to_lowercase().contains(&docente.to_lowercase()) {
+                continue;
+            }
+
+            if !estado.is_empty() && r.estado != estado {
+                continue;
+            }
+
+            if !fecha_desde.is_empty() && r.fecha_inicio < fecha_desde.to_string() {
+                continue;
+            }
+
+            if !fecha_hasta.is_empty() && r.fecha_fin > fecha_hasta.to_string() {
+                continue;
+            }
+
+            let motivo_reserva = r.motivo.clone().unwrap_or_else(|| "Sin motivo".to_string());
+
+            if !motivo.is_empty()
+                && !motivo_reserva
+                    .to_lowercase()
+                    .contains(&motivo.to_lowercase())
+            {
+                continue;
+            }
+
+            resultado.push(HistorialReservaVista {
+                id: r.id,
+                profesor,
+                fecha_inicio: r.fecha_inicio,
+                fecha_fin: r.fecha_fin,
+                estado: r.estado,
+                motivo: motivo_reserva,
+                momento_creacion: r.momento_creacion,
+            });
+        }
+
+        match ordenar_por {
+            "docente" => {
+                resultado.sort_by(|a, b| a.profesor.to_lowercase().cmp(&b.profesor.to_lowercase()));
+            }
+
+            "fecha_inicio" => {
+                resultado.sort_by(|a, b| a.fecha_inicio.cmp(&b.fecha_inicio));
+            }
+
+            "fecha_fin" => {
+                resultado.sort_by(|a, b| a.fecha_fin.cmp(&b.fecha_fin));
+            }
+
+            "estado" => {
+                resultado.sort_by(|a, b| a.estado.cmp(&b.estado));
+            }
+
+            _ => {
+                resultado.sort_by(|a, b| a.momento_creacion.cmp(&b.momento_creacion));
+            }
+        }
+
+        if direccion == "desc" {
+            resultado.reverse();
+        }
+        resultado
+    }
+    pub fn mostrar_historial_reservas(request: &Request, conn: &Connection) -> Response {
+        if let Err(resp) = Self::verificar_admin(request, conn) {
+            return resp;
+        }
+
+        let docente = request.get_param("docente").unwrap_or_default();
+
+        let estado = request.get_param("estado").unwrap_or_default();
+
+        let fecha_desde = request.get_param("fecha_desde").unwrap_or_default();
+
+        let fecha_hasta = request.get_param("fecha_hasta").unwrap_or_default();
+
+        let motivo = request.get_param("motivo").unwrap_or_default();
+
+        let ordenar_por = request
+            .get_param("ordenar_por")
+            .unwrap_or_else(|| "momento_creacion".to_string());
+
+        let direccion = request
+            .get_param("direccion")
+            .unwrap_or_else(|| "desc".to_string());
+
+        let pagina = request
+            .get_param("page")
+            .unwrap_or_else(|| "1".to_string())
+            .parse::<usize>()
+            .unwrap_or(1);
+
+        let por_pagina = 20usize;
+
+        let mut reservas = Self::obtener_historial_reservas_filtrado(
+            conn,
+            &docente,
+            &estado,
+            &fecha_desde,
+            &fecha_hasta,
+            &motivo,
+            &ordenar_por,
+            &direccion,
+        );
+
+        let total_reservas = reservas.len();
+
+        let total_paginas = if total_reservas == 0 {
+            1
+        } else {
+            ((total_reservas as f64) / (por_pagina as f64)).ceil() as usize
+        };
+
+        let inicio = (pagina - 1) * por_pagina;
+
+        reservas = reservas
+            .into_iter()
+            .skip(inicio)
+            .take(por_pagina)
+            .collect();
+
+        let mut ctx = Context::new();
+
+        ctx.insert("reservas", &reservas);
+
+        ctx.insert("filtro_docente", &docente);
+        ctx.insert("filtro_estado", &estado);
+        ctx.insert("filtro_fecha_desde", &fecha_desde);
+        ctx.insert("filtro_fecha_hasta", &fecha_hasta);
+        ctx.insert("filtro_motivo", &motivo);
+        ctx.insert("ordenar_por", &ordenar_por);
+        ctx.insert("direccion", &direccion);
+        ctx.insert("pagina_actual", &pagina);
+        let tiene_anterior = pagina > 1;
+        let tiene_siguiente = pagina < total_paginas;
+        ctx.insert("tiene_anterior", &tiene_anterior);
+        ctx.insert("tiene_siguiente", &tiene_siguiente);
+        ctx.insert("pagina_anterior", &(pagina - 1));
+        ctx.insert("pagina_siguiente", &(pagina + 1));
+        ctx.insert("total_paginas", &total_paginas);
+        templates::response_html(templates::render("admin_historial_reservas.html", &ctx))
+    }
+    pub fn exportar_historial_csv(
+        request: &Request,
+        conn: &Connection,
+    ) -> Response {
+
+        if let Err(resp) = Self::verificar_admin(request, conn) {
+            return resp;
+        }
+
+        let docente = request.get_param("docente").unwrap_or_default();
+        let estado = request.get_param("estado").unwrap_or_default();
+        let fecha_desde = request.get_param("fecha_desde").unwrap_or_default();
+        let fecha_hasta = request.get_param("fecha_hasta").unwrap_or_default();
+        let motivo = request.get_param("motivo").unwrap_or_default();
+
+        let ordenar_por = request
+            .get_param("ordenar_por")
+            .unwrap_or_else(|| "momento_creacion".to_string());
+
+        let direccion = request
+            .get_param("direccion")
+            .unwrap_or_else(|| "desc".to_string());
+
+        let reservas = Self::obtener_historial_reservas_filtrado(
+            conn,
+            &docente,
+            &estado,
+            &fecha_desde,
+            &fecha_hasta,
+            &motivo,
+            &ordenar_por,
+            &direccion,
+        );
+
+        let mut csv = String::new();
+
+        csv.push_str(
+            "ID,Docente,Estado,Fecha Inicio,Fecha Fin,Motivo,Creada\n"
+        );
+
+        for r in reservas {
+
+            let fila = format!(
+                "{},{},{},{},{},{},{}\n",
+                r.id,
+                r.profesor.replace(",", " "),
+                r.estado,
+                r.fecha_inicio,
+                r.fecha_fin,
+                r.motivo.replace(",", " "),
+                r.momento_creacion
+            );
+
+            csv.push_str(&fila);
+        }
+
+        Response::from_data("text/csv", csv)
+            .with_additional_header(
+                "Content-Disposition",
+                "attachment; filename=\"historial_reservas.csv\""
+            )
     }
 }
