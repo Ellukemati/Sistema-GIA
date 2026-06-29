@@ -45,6 +45,15 @@ struct HistorialReservaVista {
     pub motivo: String,
     pub momento_creacion: String,
 }
+struct FiltrosHistorial {
+    docente: String,
+    estado: String,
+    fecha_desde: String,
+    fecha_hasta: String,
+    motivo: String,
+    ordenar_por: String,
+    direccion: String,
+}
 #[derive(Serialize)]
 struct ReservaVista {
     pub id: i64,
@@ -483,13 +492,7 @@ impl AdminHandler {
     }
     fn obtener_historial_reservas_filtrado(
         conn: &Connection,
-        docente: &str,
-        estado: &str,
-        fecha_desde: &str,
-        fecha_hasta: &str,
-        motivo: &str,
-        ordenar_por: &str,
-        direccion: &str,
+        filtros: &FiltrosHistorial,
     ) -> Vec<HistorialReservaVista> {
         let reservas = ReservaRepository::listar_todas(conn).unwrap_or_default();
 
@@ -501,28 +504,32 @@ impl AdminHandler {
                 _ => "Usuario desconocido".to_string(),
             };
 
-            if !docente.is_empty() && !profesor.to_lowercase().contains(&docente.to_lowercase()) {
+            if !filtros.docente.is_empty()
+                && !profesor
+                    .to_lowercase()
+                    .contains(&filtros.docente.to_lowercase())
+            {
                 continue;
             }
 
-            if !estado.is_empty() && r.estado != estado {
+            if !filtros.estado.is_empty() && r.estado != filtros.estado {
                 continue;
             }
 
-            if !fecha_desde.is_empty() && r.fecha_inicio < fecha_desde.to_string() {
+            if !filtros.fecha_desde.is_empty() && r.fecha_inicio < filtros.fecha_desde {
                 continue;
             }
 
-            if !fecha_hasta.is_empty() && r.fecha_fin > fecha_hasta.to_string() {
+            if !filtros.fecha_hasta.is_empty() && r.fecha_fin > filtros.fecha_hasta {
                 continue;
             }
 
             let motivo_reserva = r.motivo.clone().unwrap_or_else(|| "Sin motivo".to_string());
 
-            if !motivo.is_empty()
+            if !filtros.motivo.is_empty()
                 && !motivo_reserva
                     .to_lowercase()
-                    .contains(&motivo.to_lowercase())
+                    .contains(&filtros.motivo.to_lowercase())
             {
                 continue;
             }
@@ -538,9 +545,9 @@ impl AdminHandler {
             });
         }
 
-        match ordenar_por {
+        match filtros.ordenar_por.as_str() {
             "docente" => {
-                resultado.sort_by(|a, b| a.profesor.to_lowercase().cmp(&b.profesor.to_lowercase()));
+                resultado.sort_by_key(|a| a.profesor.to_lowercase());
             }
 
             "fecha_inicio" => {
@@ -560,7 +567,7 @@ impl AdminHandler {
             }
         }
 
-        if direccion == "desc" {
+        if filtros.direccion == "desc" {
             resultado.reverse();
         }
         resultado
@@ -598,13 +605,15 @@ impl AdminHandler {
 
         let mut reservas = Self::obtener_historial_reservas_filtrado(
             conn,
-            &docente,
-            &estado,
-            &fecha_desde,
-            &fecha_hasta,
-            &motivo,
-            &ordenar_por,
-            &direccion,
+            &FiltrosHistorial {
+                docente: docente.clone(),
+                estado: estado.clone(),
+                fecha_desde: fecha_desde.clone(),
+                fecha_hasta: fecha_hasta.clone(),
+                motivo: motivo.clone(),
+                ordenar_por: ordenar_por.clone(),
+                direccion: direccion.clone(),
+            },
         );
 
         let total_reservas = reservas.len();
@@ -617,11 +626,7 @@ impl AdminHandler {
 
         let inicio = (pagina - 1) * por_pagina;
 
-        reservas = reservas
-            .into_iter()
-            .skip(inicio)
-            .take(por_pagina)
-            .collect();
+        reservas = reservas.into_iter().skip(inicio).take(por_pagina).collect();
 
         let mut ctx = Context::new();
 
@@ -644,11 +649,7 @@ impl AdminHandler {
         ctx.insert("total_paginas", &total_paginas);
         templates::response_html(templates::render("admin_historial_reservas.html", &ctx))
     }
-    pub fn exportar_historial_csv(
-        request: &Request,
-        conn: &Connection,
-    ) -> Response {
-
+    pub fn exportar_historial_csv(request: &Request, conn: &Connection) -> Response {
         if let Err(resp) = Self::verificar_admin(request, conn) {
             return resp;
         }
@@ -669,23 +670,22 @@ impl AdminHandler {
 
         let reservas = Self::obtener_historial_reservas_filtrado(
             conn,
-            &docente,
-            &estado,
-            &fecha_desde,
-            &fecha_hasta,
-            &motivo,
-            &ordenar_por,
-            &direccion,
+            &FiltrosHistorial {
+                docente: docente.clone(),
+                estado: estado.clone(),
+                fecha_desde: fecha_desde.clone(),
+                fecha_hasta: fecha_hasta.clone(),
+                motivo: motivo.clone(),
+                ordenar_por: ordenar_por.clone(),
+                direccion: direccion.clone(),
+            },
         );
 
         let mut csv = String::new();
 
-        csv.push_str(
-            "ID,Docente,Estado,Fecha Inicio,Fecha Fin,Motivo,Creada\n"
-        );
+        csv.push_str("ID,Docente,Estado,Fecha Inicio,Fecha Fin,Motivo,Creada\n");
 
         for r in reservas {
-
             let fila = format!(
                 "{},{},{},{},{},{},{}\n",
                 r.id,
@@ -700,10 +700,9 @@ impl AdminHandler {
             csv.push_str(&fila);
         }
 
-        Response::from_data("text/csv", csv)
-            .with_additional_header(
-                "Content-Disposition",
-                "attachment; filename=\"historial_reservas.csv\""
-            )
+        Response::from_data("text/csv", csv).with_additional_header(
+            "Content-Disposition",
+            "attachment; filename=\"historial_reservas.csv\"",
+        )
     }
 }
