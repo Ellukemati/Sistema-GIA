@@ -3,88 +3,139 @@
 {% block title %}Historial de Reservas - GIA{% endblock %}
 
 {% block extra_head %}
-    {# 🌟 Incluimos los estilos de la tabla e interfaz de forma modular #}
+    {# 🌟 Incluye de forma limpia los estilos modulares aumentados (+2px) #}
     {% include "estilos/admin_historial_reservas.html" %}
 {% endblock %}
 
 {% block content %}
-<div style="max-width: 1200px; margin: auto; padding: 20px 0;">
+<div class="historial-container">
     <a href="/admin/dashboard" style="text-decoration: none; color: #0091D5; font-weight: 600;">⬅ Volver al Panel de Control</a>
     <h1 style="margin-top: 15px; margin-bottom: 5px;">📜 Historial de Reservas</h1>
     <p style="color: #666; margin-bottom: 25px;">Auditoría y consulta de registros históricos del Salón de Instrumental.</p>
 
-    <table id="tabla-reservas">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Solicitante</th>
-                <th>Legajo</th>
-                <th>Período</th>
-                <th>Estado</th>
-                <th>Motivo</th>
-                <th>Creación</th>
-                <th>Aprobación y Firma</th>
-                <th>Descargar</th>
-            </tr>
-        </thead>
+    <form method="GET" action="/admin/historial-reservas" class="filtros">
+        <input type="text" name="docente" placeholder="Buscar docente..." value="{{ filtro_docente }}">
+        
+        <select name="estado">
+            <option value="">Todos los estados</option>
+            <option value="pendiente" {% if filtro_estado == "pendiente" %}selected{% endif %}>Pendiente</option>
+            <option value="activa" {% if filtro_estado == "activa" %}selected{% endif %}>Activa</option>
+            <option value="cancelada" {% if filtro_estado == "cancelada" %}selected{% endif %}>Cancelada</option>
+            <option value="concluida" {% if filtro_estado == "concluida" %}selected{% endif %}>Finalizada</option>
+        </select>
 
-        <tbody>
-            {% for reserva in reservas %}
-            <tr>
-                <td>{{ reserva.id }}</td>
-                <td class="col-solicitante">{{ reserva.profesor }}</td>
-                <td>{{ reserva.legajo }}</td>
-                
-                <td style="text-align: center; white-space: nowrap;">
-                    {# 🌟 Período ordenado YYYY-MM-DD a DD-MM-YYYY con quiebres de línea #}
-                    {% set ini = reserva.fecha_inicio | split(pat="-") %}
-                    {% set fin = reserva.fecha_fin | split(pat="-") %}
-                    {{ ini[2] }}-{{ ini[1] }}-{{ ini[0] }}
-                    <br><span style="color: #888; font-size: 0.85rem; font-style: italic;">al</span><br>
-                    {{ fin[2] }}-{{ fin[1] }}-{{ fin[0] }}
-                </td>
-                
-                <td>
-                    <span class="estado-badge {{ reserva.clase_estado }}">
-                        {{ reserva.texto_estado }}
-                    </span>
-                </td>
-                <td>{{ reserva.motivo }}</td>
-                
-                <td style="white-space: nowrap;">
-                    {% set partes_alta = reserva.momento_creacion | split(pat=" ") %}
-                    {% set f_alta = partes_alta[0] | split(pat="-") %}
-                    {{ f_alta[2] }}-{{ f_alta[1] }}-{{ f_alta[0] }}
-                    <br><span style="color: #888; font-size: 0.85rem;">{{ partes_alta[1] }}</span>
-                </td>
+        <input type="date" name="fecha_desde" value="{{ filtro_fecha_desde }}">
+        <input type="date" name="fecha_hasta" value="{{ filtro_fecha_hasta }}">
+        <input type="text" name="motivo" placeholder="Motivo..." value="{{ filtro_motivo }}">
+        
+        <select name="ordenar_por">
+            <option value="momento_creacion" {% if ordenar_por == "momento_creacion" %}selected{% endif %}>Más recientes</option>
+            <option value="docente" {% if ordenar_por == "docente" %}selected{% endif %}>Docente</option>
+            <option value="fecha_inicio" {% if ordenar_por == "fecha_inicio" %}selected{% endif %}>Fecha inicio</option>
+            <option value="fecha_fin" {% if ordenar_por == "fecha_fin" %}selected{% endif %}>Fecha fin</option>
+            <option value="estado" {% if ordenar_por == "estado" %}selected{% endif %}>Estado</option>
+        </select>
 
-                <td style="white-space: nowrap;">
-                    {% if reserva.momento_confirmacion and reserva.momento_confirmacion != "---" %}
-                        {% set partes_firma = reserva.momento_confirmacion | split(pat=" ") %}
-                        {% set f_firma = partes_firma[0] | split(pat="-") %}
-                        {{ f_firma[2] }}-{{ f_firma[1] }}-{{ f_firma[0] }}
-                        <br><span style="color: #888; font-size: 0.85rem;">{{ partes_firma[1] }}</span>
-                    {% else %}
-                        <span style="color: #aaa;">---</span>
-                    {% endif %}
-                </td>
-                
-                <td>
-                    {% if reserva.estado == "activa" or reserva.estado == "concluida" %}
-                        <a href="/admin/historial-reservas/comprobante/{{ reserva.id }}" target="_blank" class="btn-descargar-historial" title="Descargar Comprobante Oficial">📄 PDF</a>
-                    {% else %}
-                        <span class="texto-no-disponible">No disponible</span>
-                    {% endif %}
-                </td>
-            </tr>
+        <select name="direccion">
+            <option value="asc" {% if direccion == "asc" %}selected{% endif %}>Ascendente</option>
+            <option value="desc" {% if direccion == "desc" %}selected{% endif %}>Descendente</option>
+        </select>
+
+        <button type="submit">Filtrar</button>
+    </form>
+
+    <div class="tabla-wrapper">
+        <div style="margin-bottom: 20px;">
+            <a href="/admin/historial-reservas/csv?docente={{ filtro_docente }}&estado={{ filtro_estado }}&fecha_desde={{ filtro_fecha_desde }}&fecha_hasta={{ filtro_fecha_hasta }}&motivo={{ filtro_motivo }}&ordenar_por={{ ordenar_por }}&direccion={{ direccion }}" class="btn-descargar-historial" style="text-decoration: none; background-color: #28a745;">⬇ Exportar CSV</a>
+        </div>
+        
+        <table id="tabla-reservas">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Solicitante</th>
+                    <th>Legajo</th>
+                    <th>Período</th>
+                    <th>Estado</th>
+                    <th>Motivo</th>
+                    <th>Creación</th>
+                    <th>Aprobación y Firma</th>
+                    <th>Descargar</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for reserva in reservas %}
+                <tr>
+                    <td>{{ reserva.id }}</td>
+                    <td class="col-solicitante">{{ reserva.profesor }}</td>
+                    <td>{{ reserva.legajo }}</td>
+                    
+                    <td style="text-align: center; white-space: nowrap;">
+                        {% set ini = reserva.fecha_inicio | split(pat="-") %}
+                        {% set fin = reserva.fecha_fin | split(pat="-") %}
+                        {{ ini[2] }}-{{ ini[1] }}-{{ ini[0] }}
+                        <br><span style="color: #888; font-size: 0.95rem; font-style: italic;">al</span><br>
+                        {{ fin[2] }}-{{ fin[1] }}-{{ fin[0] }}
+                    </td>
+                    
+                    <td>
+                        <span class="estado-badge {{ reserva.clase_estado }}">
+                            {{ reserva.texto_estado }}
+                        </span>
+                    </td>
+                    <td>{{ reserva.motivo }}</td>
+                    
+                    <td style="white-space: nowrap;">
+                        {% set partes_alta = reserva.momento_creacion | split(pat=" ") %}
+                        {% set f_alta = partes_alta[0] | split(pat="-") %}
+                        {{ f_alta[2] }}-{{ f_alta[1] }}-{{ f_alta[0] }}
+                        <br><span style="color: #888; font-size: 0.95rem;">{{ partes_alta[1] }}</span>
+                    </td>
+
+                    <td style="white-space: nowrap;">
+                        {% if reserva.momento_confirmacion and reserva.momento_confirmacion != "---" %}
+                            {% set partes_firma = reserva.momento_confirmacion | split(pat=" ") %}
+                            {% set f_firma = partes_firma[0] | split(pat="-") %}
+                            {{ f_firma[2] }}-{{ f_firma[1] }}-{{ f_firma[0] }}
+                            <br><span style="color: #888; font-size: 0.95rem;">{{ partes_firma[1] }}</span>
+                        {% else %}
+                            <span style="color: #aaa;">---</span>
+                        {% endif %}
+                    </td>
+                    
+                    <td>
+                        {% if reserva.estado == "activa" or reserva.estado == "concluida" %}
+                            <a href="/admin/historial-reservas/comprobante/{{ reserva.id }}" target="_blank" class="btn-descargar-historial" title="Descargar Comprobante Oficial">📄 PDF</a>
+                        {% else %}
+                            <span class="texto-no-disponible">No disponible</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" style="text-align:center;">No hay reservas registradas con los filtros actuales.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="paginacion-container">
+            {% set query_filtros = "&docente=" ~ filtro_docente ~ "&estado=" ~ filtro_estado ~ "&fecha_desde=" ~ filtro_fecha_desde ~ "&fecha_hasta=" ~ filtro_fecha_hasta ~ "&motivo=" ~ filtro_motivo ~ "&ordenar_por=" ~ ordenar_por ~ "&direccion=" ~ direccion %}
+            
+            {% if tiene_anterior %}
+                <a class="btn-paginacion" href="/admin/historial-reservas?page={{ pagina_actual - 1 }}{{ query_filtros }}">← Anterior</a>
             {% else %}
-            <tr>
-                <td colspan="9" style="text-align:center;">
-                    No hay reservas registradas.
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                <span class="btn-paginacion disabled">← Anterior</span>
+            {% endif %}
+
+            <span class="paginacion-info">Página {{ pagina_actual }} de {{ total_paginas }}</span>
+
+            {% if tiene_siguiente %}
+                <a class="btn-paginacion" href="/admin/historial-reservas?page={{ pagina_actual + 1 }}{{ query_filtros }}">Siguiente →</a>
+            {% else %}
+                <span class="btn-paginacion disabled">Siguiente →</span>
+            {% endif %}
+        </div>
+    </div>
 </div>
 {% endblock %}

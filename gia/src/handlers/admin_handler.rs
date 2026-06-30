@@ -46,20 +46,11 @@ struct HistorialReservaVista {
     pub fecha_inicio: String,
     pub fecha_fin: String,
     pub estado: String,
-    pub texto_estado: String, // "Aprobada", "En Curso" o "Concluida"
-    pub clase_estado: String, // Clase CSS dinámica
+    pub texto_estado: String,
+    pub clase_estado: String,
     pub motivo: String,
     pub momento_creacion: String,
     pub momento_confirmacion: String,
-}
-struct FiltrosHistorial {
-    docente: String,
-    estado: String,
-    fecha_desde: String,
-    fecha_hasta: String,
-    motivo: String,
-    ordenar_por: String,
-    direccion: String,
 }
 
 #[derive(Serialize)]
@@ -73,7 +64,6 @@ struct ReservaVista {
 }
 
 impl AdminHandler {
-    /// Valida que el usuario tenga sesión activa y sea Administrador
     fn verificar_admin(request: &Request, conn: &Connection) -> Result<(), Response> {
         let token = extraer_token_sesion(request)
             .ok_or_else(|| Response::text("No autorizado").with_status_code(401))?;
@@ -109,11 +99,8 @@ impl AdminHandler {
                 .map(|d| d.format("%d/%m").to_string())
                 .unwrap_or_else(|_| r.fecha_fin.clone());
 
-            // 1. LLAMAMOS AL REPOSITORIO (El handler ya no sabe de SQL)
             let equipos_raw =
                 ReservaRepository::obtener_equipos_por_reserva(conn, r.id).unwrap_or_default();
-
-            // 2. AGRUPAMOS LOS DATOS PARA LA VISTA (Esto se queda en el handler)
             let mut categorias_agrupadas: Vec<CategoriaAgrupada> = Vec::new();
 
             for item in equipos_raw {
@@ -137,7 +124,6 @@ impl AdminHandler {
                     identificador,
                 };
 
-                // Lógica de agrupación en 3 niveles
                 let cat_agrupada = match categorias_agrupadas
                     .iter_mut()
                     .find(|c| c.nombre_categoria == cat_str)
@@ -193,10 +179,8 @@ impl AdminHandler {
         let mut ctx = Context::new();
         let reservas = Self::obtener_reservas_detalladas(conn);
         let profes = UsuarioRepository::listar_profesores_pendientes(conn).unwrap_or_default();
-
         let docentes_aprobados =
             UsuarioRepository::listar_docentes_aprobados(conn).unwrap_or_default();
-
         let administradores = UsuarioRepository::listar_administradores(conn).unwrap_or_default();
 
         ctx.insert("reservas", &reservas);
@@ -216,10 +200,8 @@ impl AdminHandler {
         let tab_activo = request
             .get_param("tab_activo")
             .unwrap_or_else(|| "0".to_string());
-
         let docentes_aprobados =
             UsuarioRepository::listar_docentes_aprobados(conn).unwrap_or_default();
-
         let administradores = UsuarioRepository::listar_administradores(conn).unwrap_or_default();
 
         let mut ctx = Context::new();
@@ -368,7 +350,6 @@ impl AdminHandler {
 
         if let Ok(Some(u)) = UsuarioRepository::buscar_por_id(conn, id) {
             let _ = UsuarioRepository::aprobar_profesor(conn, id);
-
             let nombre_completo = format!("{} {}", u.nombre, u.apellido);
             let _ = MailService::enviar_notificacion_profesor_aprobado(&u.email, &nombre_completo);
         }
@@ -382,21 +363,17 @@ impl AdminHandler {
 
         if let Ok(Some(u)) = UsuarioRepository::buscar_por_id(conn, id) {
             let nombre_completo = format!("{} {}", u.nombre, u.apellido);
-
             let _ = MailService::enviar_notificacion_profesor_rechazado(&u.email, &nombre_completo);
-
             let _ = UsuarioRepository::eliminar(conn, id);
         }
-
         Response::html("")
     }
+
     pub fn hacer_admin(request: &Request, conn: &Connection, id: i64) -> Response {
         if let Err(resp) = Self::verificar_admin(request, conn) {
             return resp;
         }
-
         let _ = UsuarioRepository::hacer_admin(conn, id);
-
         Response::html("")
     }
 
@@ -404,13 +381,10 @@ impl AdminHandler {
         if let Err(resp) = Self::verificar_admin(request, conn) {
             return resp;
         }
-
         let _ = UsuarioRepository::quitar_admin(conn, id);
-
         Response::html("")
     }
 
-    /// Procesa el disparo de la invitación que hace un admin desde el panel de control
     pub fn procesar_envio_invitacion(request: &Request, conn: &Connection) -> Response {
         let mut body = String::new();
         if let Some(mut reader) = request.data() {
@@ -497,9 +471,16 @@ impl AdminHandler {
         mapa
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn obtener_historial_reservas_filtrado(
         conn: &Connection,
-        filtros: &FiltrosHistorial,
+        docente: &str,
+        estado: &str,
+        fecha_desde: &str,
+        fecha_hasta: &str,
+        motivo: &str,
+        ordenar_por: &str,
+        direccion: &str,
     ) -> Vec<HistorialReservaVista> {
         let reservas = ReservaRepository::listar_todas(conn).unwrap_or_default();
         let mut resultado = Vec::new();
@@ -511,27 +492,27 @@ impl AdminHandler {
                 _ => ("Usuario desconocido".to_string(), 0),
             };
 
-            if !filtros.docente.is_empty()
-                && !profesor
-                    .to_lowercase()
-                    .contains(&filtros.docente.to_lowercase())
-            {
+            if !docente.is_empty() && !profesor.to_lowercase().contains(&docente.to_lowercase()) {
                 continue;
             }
-            if !filtros.estado.is_empty() && r.estado != filtros.estado {
+
+            if !estado.is_empty() && r.estado != estado {
                 continue;
             }
-            if !filtros.fecha_desde.is_empty() && r.fecha_inicio < filtros.fecha_desde {
+
+            if !fecha_desde.is_empty() && r.fecha_inicio.as_str() < fecha_desde {
                 continue;
             }
-            if !filtros.fecha_hasta.is_empty() && r.fecha_fin > filtros.fecha_hasta {
+
+            if !fecha_hasta.is_empty() && r.fecha_fin.as_str() > fecha_hasta {
                 continue;
             }
+
             let motivo_reserva = r.motivo.clone().unwrap_or_else(|| "Sin motivo".to_string());
-            if !filtros.motivo.is_empty()
+            if !motivo.is_empty()
                 && !motivo_reserva
                     .to_lowercase()
-                    .contains(&filtros.motivo.to_lowercase())
+                    .contains(&motivo.to_lowercase())
             {
                 continue;
             }
@@ -583,9 +564,9 @@ impl AdminHandler {
             });
         }
 
-        match filtros.ordenar_por.as_str() {
+        match ordenar_por {
             "docente" => {
-                resultado.sort_by_key(|a| a.profesor.to_lowercase());
+                resultado.sort_by(|a, b| a.profesor.to_lowercase().cmp(&b.profesor.to_lowercase()));
             }
             "fecha_inicio" => {
                 resultado.sort_by(|a, b| a.fecha_inicio.cmp(&b.fecha_inicio));
@@ -601,7 +582,7 @@ impl AdminHandler {
             }
         }
 
-        if filtros.direccion == "desc" {
+        if direccion == "desc" {
             resultado.reverse();
         }
         resultado
@@ -613,19 +594,13 @@ impl AdminHandler {
         }
 
         let docente = request.get_param("docente").unwrap_or_default();
-
         let estado = request.get_param("estado").unwrap_or_default();
-
         let fecha_desde = request.get_param("fecha_desde").unwrap_or_default();
-
         let fecha_hasta = request.get_param("fecha_hasta").unwrap_or_default();
-
         let motivo = request.get_param("motivo").unwrap_or_default();
-
         let ordenar_por = request
             .get_param("ordenar_por")
             .unwrap_or_else(|| "momento_creacion".to_string());
-
         let direccion = request
             .get_param("direccion")
             .unwrap_or_else(|| "desc".to_string());
@@ -640,33 +615,27 @@ impl AdminHandler {
 
         let mut reservas = Self::obtener_historial_reservas_filtrado(
             conn,
-            &FiltrosHistorial {
-                docente: docente.clone(),
-                estado: estado.clone(),
-                fecha_desde: fecha_desde.clone(),
-                fecha_hasta: fecha_hasta.clone(),
-                motivo: motivo.clone(),
-                ordenar_por: ordenar_por.clone(),
-                direccion: direccion.clone(),
-            },
+            &docente,
+            &estado,
+            &fecha_desde,
+            &fecha_hasta,
+            &motivo,
+            &ordenar_por,
+            &direccion,
         );
 
         let total_reservas = reservas.len();
-
         let total_paginas = if total_reservas == 0 {
             1
         } else {
             ((total_reservas as f64) / (por_pagina as f64)).ceil() as usize
         };
-
         let inicio = (pagina - 1) * por_pagina;
 
         reservas = reservas.into_iter().skip(inicio).take(por_pagina).collect();
 
         let mut ctx = Context::new();
-
         ctx.insert("reservas", &reservas);
-
         ctx.insert("filtro_docente", &docente);
         ctx.insert("filtro_estado", &estado);
         ctx.insert("filtro_fecha_desde", &fecha_desde);
@@ -675,6 +644,7 @@ impl AdminHandler {
         ctx.insert("ordenar_por", &ordenar_por);
         ctx.insert("direccion", &direccion);
         ctx.insert("pagina_actual", &pagina);
+
         let tiene_anterior = pagina > 1;
         let tiene_siguiente = pagina < total_paginas;
         ctx.insert("tiene_anterior", &tiene_anterior);
@@ -682,6 +652,7 @@ impl AdminHandler {
         ctx.insert("pagina_anterior", &(pagina - 1));
         ctx.insert("pagina_siguiente", &(pagina + 1));
         ctx.insert("total_paginas", &total_paginas);
+
         templates::response_html(templates::render("admin_historial_reservas.html", &ctx))
     }
 
@@ -690,21 +661,27 @@ impl AdminHandler {
             return resp;
         }
 
+        let docente = request.get_param("docente").unwrap_or_default();
+        let estado = request.get_param("estado").unwrap_or_default();
+        let fecha_desde = request.get_param("fecha_desde").unwrap_or_default();
+        let fecha_hasta = request.get_param("fecha_hasta").unwrap_or_default();
+        let motivo = request.get_param("motivo").unwrap_or_default();
+        let ordenar_por = request
+            .get_param("ordenar_por")
+            .unwrap_or_else(|| "momento_creacion".to_string());
+        let direccion = request
+            .get_param("direccion")
+            .unwrap_or_else(|| "desc".to_string());
+
         let reservas = Self::obtener_historial_reservas_filtrado(
             conn,
-            &FiltrosHistorial {
-                docente: request.get_param("docente").unwrap_or_default(),
-                estado: request.get_param("estado").unwrap_or_default(),
-                fecha_desde: request.get_param("fecha_desde").unwrap_or_default(),
-                fecha_hasta: request.get_param("fecha_hasta").unwrap_or_default(),
-                motivo: request.get_param("motivo").unwrap_or_default(),
-                ordenar_por: request
-                    .get_param("ordenar_por")
-                    .unwrap_or_else(|| "momento_creacion".to_string()),
-                direccion: request
-                    .get_param("direccion")
-                    .unwrap_or_else(|| "desc".to_string()),
-            },
+            &docente,
+            &estado,
+            &fecha_desde,
+            &fecha_hasta,
+            &motivo,
+            &ordenar_por,
+            &direccion,
         );
 
         let mut csv = String::new();
@@ -732,96 +709,4 @@ impl AdminHandler {
             "attachment; filename=\"historial_reservas.csv\"",
         )
     }
-
-    // IDEA: Endpoint para enviar un comunicado general por mail a todos los usuarios, a un grupo específico o uno solo
-    // Para implementarlo en el front ver bien cómo recibe los parámetros
-    /*
-    pub fn enviar_notificacion_admin(request: &Request, conn: &Connection) -> Response {
-        if let Err(resp) = Self::verificar_admin(request, conn) {
-            return resp;
-        }
-
-        // Lee el cuerpo en crudo del formulario enviado por HTMX
-        let mut body = String::new();
-        if let Some(mut reader) = request.data() {
-            let _ = reader.read_to_string(&mut body);
-        }
-
-        // Parseamos las variables comunes usando un mapeo simple
-        let datos_form = Self::parsear_formulario(&body);
-        let asunto = datos_form.get("asunto").cloned().unwrap_or_default();
-        let mensaje = datos_form.get("mensaje").cloned().unwrap_or_default();
-
-        if asunto.is_empty() || mensaje.is_empty() {
-            return templates::response_mensaje_error(
-                "Campos obligatorios",
-                "El asunto y el mensaje del comunicado son obligatorios.",
-            );
-        }
-
-        let mut ids_seleccionados = Vec::new();
-        for par in body.split('&') {
-            if let Some(id_str) = par.strip_prefix("usuarios_ids=")
-                && let Ok(id) = id_str.parse::<i64>()
-            {
-                ids_seleccionados.push(id);
-            }
-        }
-
-        if ids_seleccionados.is_empty() {
-            return templates::response_mensaje_error(
-                "No se pudo enviar",
-                "Debe seleccionar al menos un usuario para enviar el comunicado.",
-            );
-        }
-
-        let mut lote_destinatarios = Vec::new();
-        for id in &ids_seleccionados {
-            if let Ok(Some(u)) = UsuarioRepository::buscar_por_id(conn, *id) {
-                let nombre_completo = format!("{} {}", u.nombre, u.apellido);
-                lote_destinatarios.push((nombre_completo, u.email));
-            }
-        }
-
-        let total_intentos = lote_destinatarios.len();
-        let mut cantidad_enviados = 0;
-
-        if !lote_destinatarios.is_empty() {
-            match MailService::enviar_comunicado_lote(&lote_destinatarios, &asunto, &mensaje) {
-                Ok(exitos) => {
-                    cantidad_enviados = exitos;
-                }
-                Err(e) => {
-                    return templates::response_mensaje_error(
-                        "Error de correo",
-                        &format!("Ocurrió un problema con el servidor SMTP: {}", e),
-                    );
-                }
-            }
-        }
-
-        if cantidad_enviados == 0 {
-            return templates::response_mensaje_error(
-                "Envío fallido",
-                "No se pudo entregar el mensaje a ninguno de los usuarios seleccionados.",
-            );
-        }
-
-        let fallidos = total_intentos - cantidad_enviados;
-
-        let texto_resultado = if fallidos > 0 {
-            format!(
-                "El mensaje se envió correctamente a {} usuarios. Sin embargo, hubo un error con {} destinatario/s.",
-                cantidad_enviados, fallidos
-            )
-        } else {
-            format!(
-                "El mensaje se despachó correctamente a los {} usuarios seleccionados.",
-                cantidad_enviados
-            )
-        };
-
-        templates::response_mensaje_exito("Comunicado procesado", &texto_resultado)
-    }
-    */
 }

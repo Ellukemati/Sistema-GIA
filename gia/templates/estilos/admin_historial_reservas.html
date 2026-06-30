@@ -1,14 +1,61 @@
 <style>
-    /* Estilos generales de la tabla del Historial */
+    /* Contenedor principal acotado */
+    .historial-container {
+        max-width: 1200px;
+        margin: auto;
+        padding: 20px 10px; /* Un poco de margen extra para pantallas chicas */
+    }
+
+    /* Formulario de filtros responsivo */
+    .filtros {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 25px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .filtros input, .filtros select {
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        font-size: 0.95rem;
+        background-color: #fff;
+    }
+
+    .filtros button {
+        background-color: #0091D5;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        transition: background-color 0.2s;
+    }
+
+    .filtros button:hover {
+        background-color: #0077b0;
+    }
+
+    /* 🌟 CONTENEDOR MÁGICO: Evita que la tabla rompa el layout en celulares */
+    .tabla-wrapper {
+        background: white;
+        border-radius: 12px;
+        padding: 15px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        overflow-x: auto; /* Permite scroll horizontal prolijo en móviles */
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Tabla blanca sólida */
     #tabla-reservas {
         width: 100%;
         border-collapse: collapse;
         margin-top: 15px;
         font-size: 1.1rem;
         background-color: #ffffff;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        border-radius: 8px;
-        overflow: hidden;
     }
 
     #tabla-reservas th, #tabla-reservas td {
@@ -27,85 +74,91 @@
         background-color: #fafafa;
     }
 
-    .col-docente {
+    .col-solicitante {
         font-weight: 500;
         color: #222;
     }
 
-    /* Badges de Estado de la Reserva */
+    /* Badges de Estado */
     .estado-badge {
         display: inline-block;
-        padding: 4px 8px;
+        padding: 5px 10px;
         border-radius: 4px;
-        font-size: 0.95rem;;
+        font-size: 0.95rem;
         font-weight: 600;
         text-transform: uppercase;
         text-align: center;
-        min-width: 85px;
+        min-width: 95px;
     }
 
-    .estado-pendiente {
-        background-color: #ffeeba;
-        color: #856404;
-    }
+    .estado-pendiente { background-color: #ffeeba; color: #856404; }
+    .estado-cancelada { background-color: #f8d7da; color: #721c24; }
+    .estado-aprobada { background-color: #d4edda; color: #155724; }
+    .estado-en-curso { background-color: #cce5ff; color: #004085; }
+    .estado-concluida { background-color: #e2e3e5; color: #383d41; }
 
-    .estado-cancelada {
-        background-color: #f8d7da;
-        color: #721c24;
-    }
-
-    .estado-concluida {
-        background-color: #e2e3e5;
-        color: #383d41;
-    }
-
-    /* NUEVOS SUB-ESTADOS CALCULADOS EN VIVO */
-    .estado-aprobada {
-        background-color: #d4edda;
-        color: #155724;
-    }
-
-    .estado-en-curso {
-        background-color: #cce5ff;
-        color: #004085;
-    }
-
-    .estado-concluida {
-        background-color: #e2e3e5;
-        color: #383d41;
-    }
-
-    /* TEXTO NO DISPONIBLE OPACO */
     .texto-no-disponible {
-        color: #777777;
-        font-size: 0.95rem;
-        font-style: italic;
-        opacity: 1; 
+        color: #777777 !important;
+        font-size: 0.95rem !important;
+        font-style: italic !important;
+        opacity: 0.7 !important; 
         user-select: none;
         display: inline-block;
     }
 
-    /* Botón de descarga de comprobantes */
     .btn-descargar-historial {
         background-color: #28a745;
         color: white;
         text-decoration: none;
-        padding: 5px 10px;
+        padding: 6px 12px;
         border-radius: 6px;
         font-size: 0.95rem;
         font-weight: bold;
-        transition: background-color 0.2s ease, transform 0.1s ease;
         display: inline-block;
         border: none;
         cursor: pointer;
     }
 
-    .btn-descargar-historial:hover {
-        background-color: #218838;
-        transform: translateY(-1px);
+    .btn-descargar-historial:hover { background-color: #218838; }
+
+    /* Paginación inferior */
+    .paginacion-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 18px;
+        margin-top: 30px;
     }
 
-    .btn-descargar-historial:active {
-        transform: translateY(0);
+    .btn-paginacion {
+        background-color: #0091D5;
+        color: white;
+        text-decoration: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-weight: bold;
+        font-size: 0.95rem;
+    }
+
+    .btn-paginacion.disabled { background-color: #c7d2da; cursor: not-allowed; pointer-events: none; }
+    .paginacion-info { font-weight: bold; color: #5a6a75; font-size: 0.95rem; }
+
+    /* 🌟 MEDIA QUERIES PARA CELULARES (Pantallas menores a 768px) */
+    @media (max-width: 768px) {
+        .filtros {
+            flex-direction: column; /* Apila los inputs uno abajo del otro */
+            align-items: stretch;  /* Hace que ocupen todo el ancho del cel */
+            gap: 10px;
+        }
+
+        .filtros input, .filtros select, .filtros button {
+            width: 100%; /* Aprovecha el espacio táctil */
+            box-sizing: border-box;
+        }
+
+        /* Aire extra para que el scroll horizontal con el dedo sea cómodo */
+        #tabla-reservas th, #tabla-reservas td {
+            padding: 10px 8px;
+        }
     }
 </style>
