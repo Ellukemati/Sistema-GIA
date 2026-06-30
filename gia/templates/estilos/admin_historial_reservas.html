@@ -1,0 +1,111 @@
+<style>
+    /* Estilos generales de la tabla del Historial */
+    #tabla-reservas {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+        font-size: 1.1rem;
+        background-color: #ffffff;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    #tabla-reservas th, #tabla-reservas td {
+        border: 1px solid #e0e0e0;
+        padding: 12px 14px;
+        text-align: left;
+    }
+
+    #tabla-reservas th {
+        background-color: #f5f5f5;
+        color: #333;
+        font-weight: 600;
+    }
+
+    #tabla-reservas tr:nth-child(even) {
+        background-color: #fafafa;
+    }
+
+    .col-docente {
+        font-weight: 500;
+        color: #222;
+    }
+
+    /* Badges de Estado de la Reserva */
+    .estado-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.95rem;;
+        font-weight: 600;
+        text-transform: uppercase;
+        text-align: center;
+        min-width: 85px;
+    }
+
+    .estado-pendiente {
+        background-color: #ffeeba;
+        color: #856404;
+    }
+
+    .estado-cancelada {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+
+    .estado-concluida {
+        background-color: #e2e3e5;
+        color: #383d41;
+    }
+
+    /* NUEVOS SUB-ESTADOS CALCULADOS EN VIVO */
+    .estado-aprobada {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .estado-en-curso {
+        background-color: #cce5ff;
+        color: #004085;
+    }
+
+    .estado-concluida {
+        background-color: #e2e3e5;
+        color: #383d41;
+    }
+
+    /* TEXTO NO DISPONIBLE OPACO */
+    .texto-no-disponible {
+        color: #777777;
+        font-size: 0.95rem;
+        font-style: italic;
+        opacity: 1; 
+        user-select: none;
+        display: inline-block;
+    }
+
+    /* Botón de descarga de comprobantes */
+    .btn-descargar-historial {
+        background-color: #28a745;
+        color: white;
+        text-decoration: none;
+        padding: 5px 10px;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        font-weight: bold;
+        transition: background-color 0.2s ease, transform 0.1s ease;
+        display: inline-block;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-descargar-historial:hover {
+        background-color: #218838;
+        transform: translateY(-1px);
+    }
+
+    .btn-descargar-historial:active {
+        transform: translateY(0);
+    }
+</style>
