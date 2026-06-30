@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    {% block head %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}GIA{% endblock %}</title>
+    
+    <link rel="icon" type="image/png" href="/{{ logo_path }}">
+
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     
-    <script>    // Manejar errores HTTP en htmx
+    <script>
         document.addEventListener('htmx:beforeOnLoad', function (evt) {
             if (evt.detail.xhr.status >= 400) {
                 evt.detail.shouldSwap = true;
@@ -51,10 +53,9 @@
         .btn-volver:hover {
             color: #007bff;
         }
-
     </style>
+    
     {% block extra_head %}{% endblock %}
-    {% endblock %}
 </head>
 <body>
     {% block content %}{% endblock %}

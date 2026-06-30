@@ -12,7 +12,11 @@ fn engine() -> &'static Tera {
 }
 
 pub fn render(template: &str, context: &Context) -> Result<String, tera::Error> {
-    engine().render(template, context)
+    let mut ctx_global = context.clone();
+
+    ctx_global.insert("logo_path", crate::constants::PATH_LOGO_GIA_TRANSPARENTE);
+
+    engine().render(template, &ctx_global)
 }
 
 pub fn render_mensaje_exito(titulo: &str, mensaje: &str) -> Result<String, tera::Error> {
