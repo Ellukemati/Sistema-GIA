@@ -1,10 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}GIA - Registro{% endblock %}
-
-{% block extra_head %}
-    {% include "estilos/auth.html" %}
-{% endblock %}
+{% block title %}Registro de Docentes{% endblock %}
 
 {% block content %}
 <main class="auth-page">
@@ -18,7 +14,7 @@
         </header>
 
         <form class="auth-form" hx-post="/registro" hx-target="#resultado">
-            <div class="field-row">
+            <div class="field-row" style="grid-template-columns: 1fr 1fr;">
                 <div class="field">
                     <label for="nombre">Nombre</label>
                     <input id="nombre" type="text" name="nombre" autocomplete="given-name" required>
@@ -51,7 +47,9 @@
             <p><a href="/modelo">Ingresar como invitado</a></p>
         </footer>
 
-        {% include "partials/resultado.html" %}
+        <div id="resultado">
+            {% include "partials/resultado.html" %}
+        </div>
     </section>
 </main>
 {% include "partials/script_validacion_password.html" %}

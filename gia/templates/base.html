@@ -6,6 +6,9 @@
     <title>{% block title %}GIA{% endblock %}</title>
     
     <link rel="icon" type="image/png" href="/{{ logo_path }}">
+    
+    <!-- Enlace a CSS global -->
+    <link rel="stylesheet" href="/static/css/base.css">
 
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     
@@ -32,28 +35,6 @@
             });
         }
     </script>
-    <style>
-        body {
-            background-image: url('../static/img/fondo.png');
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            background-attachment: fixed;
-        }
-        .btn-volver {
-            display: inline-flex;
-            align-items: center;
-            color: #6c757d;
-            text-decoration: none;
-            font-weight: bold;
-            font-size: 0.95em;
-            margin-bottom: 20px;
-            transition: color 0.2s;
-        }
-        .btn-volver:hover {
-            color: #007bff;
-        }
-    </style>
     
     {% block extra_head %}{% endblock %}
 </head>

@@ -33,7 +33,7 @@ impl AuthHandler {
     pub fn mostrar_formulario_solicitud() -> Response {
         let ctx = Context::new();
         templates::response_html(templates::render(
-            "usuario_solicitar_restablecimiento_contrasena.html",
+            "usuario_solicitar_restablecimiento_password.html",
             &ctx,
         ))
     }
@@ -295,10 +295,10 @@ impl AuthHandler {
 
         match AuthService::restablecer_password(conn, &token, &password) {
             Ok(_) => templates::response_mensaje_exito(
-                "Contraseña modificada",
-                "Su clave ha sido actualizada de forma segura. Ya puede dirigirse al Ingreso.",
+                "Contraseña cambiada",
+                "Su contraseña ha sido actualizada. Ya puede dirigirse al Ingreso y usarla.",
             ),
-            Err(e) => templates::response_mensaje_error("No se pudo actualizar", &e),
+            Err(e) => templates::response_mensaje_error("No se pudo restablecer la contraseña", &e),
         }
     }
 

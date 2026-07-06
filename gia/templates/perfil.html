@@ -2,246 +2,67 @@
 
 {% block title %}Mi Perfil{% endblock %}
 
-{% block extra_head %}
-<style>
-
-.perfil-container {
-    max-width: 700px;
-    margin: 50px auto;
-    background: white;
-    padding: 40px;
-    border-radius: 16px;
-    border: 1px solid #dbe7f0;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.05);
-}
-
-.perfil-header {
-    text-align: center;
-    margin-bottom: 40px;
-}
-
-.perfil-avatar {
-    width: 130px;
-    height: 130px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 4px solid #dbe7f0;
-    margin-bottom: 15px;
-}
-
-#avatar-input {
-    margin-top: 10px;
-}
-
-.perfil-nombre {
-    font-size: 1.8em;
-    font-weight: bold;
-}
-
-.perfil-email {
-    color: #6c757d;
-}
-
-.perfil-form {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.form-group {
-    display: flex;
-    flex-direction: column;
-}
-
-.form-group label {
-    margin-bottom: 8px;
-    font-weight: 600;
-}
-
-.form-group input {
-    padding: 12px;
-    border-radius: 10px;
-    border: 1px solid #cfd9e2;
-    font-size: 1em;
-}
-
-.btn-guardar {
-    background: #0091D5;
-    color: white;
-    border: none;
-    padding: 14px;
-    border-radius: 10px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-.btn-guardar:hover {
-    background: #007bb5;
-}
-
-.btn-cerrar {
-    display: inline-block;
-    text-align: center;
-    margin-top: 25px;
-    padding: 12px;
-    border-radius: 10px;
-    text-decoration: none;
-    color: white;
-    background: #dc3545;
-    font-weight: bold;
-}
-
-</style>
-{% endblock %}
-
 {% block content %}
-
-<div class="perfil-container">
-    <div style="max-width: 1200px; margin: auto;">
+<div class="perfil-container" style="max-width: 700px; margin: 50px auto; background: white; padding: 40px; border-radius: var(--radius-md); border: 1px solid var(--color-border); box-shadow: var(--shadow-card);">
     <a href="/inicio" class="btn-volver">⬅ Volver al inicio</a>
-</div>
-<div class="perfil-header">
-
-    <img
-        id="avatar-preview"
-        src="/imagenes/avatares/{{ usuario_actual.legajo }}"
-        class="perfil-avatar"
-        onerror="this.onerror=null; this.src='/static/img/avatardefault.avif';"
-    >
-
-    <div class="perfil-nombre">
-        {{ usuario_actual.nombre }} {{ usuario_actual.apellido }}
+    
+    <div class="perfil-header" style="text-align: center; margin-bottom: 40px;">
+        <img id="avatar-preview" src="/imagenes/avatares/{{ usuario_actual.legajo }}" class="profile-avatar" style="width: 130px; height: 130px; border: 4px solid #dbe7f0;" onerror="this.onerror=null; this.src='/static/img/avatardefault.avif';">
+        <div class="perfil-nombre" style="font-size: 1.8em; font-weight: bold; margin-top: 10px;">{{ usuario_actual.nombre }} {{ usuario_actual.apellido }}</div>
+        <div class="perfil-email" style="color: var(--color-muted);">{{ usuario_actual.email }}</div>
     </div>
 
-    <div class="perfil-email">
-        {{ usuario_actual.email }}
-    </div>
-
-</div>
-
-    <form
-        class="perfil-form"
-        id="perfil-form"
-        method="POST"
-        action="/perfil"
-        enctype="multipart/form-data"
-    >
-
-        <div class="form-group">
+    <form class="auth-form" id="perfil-form" method="POST" action="/perfil" enctype="multipart/form-data">
+        <div class="field">
             <label>Nombre</label>
-
-            <input
-                type="text"
-                name="nombre"
-                value="{{ usuario_actual.nombre }}"
-            >
+            <input type="text" name="nombre" value="{{ usuario_actual.nombre }}">
         </div>
 
-        <div class="form-group">
+        <div class="field">
             <label>Apellido</label>
-
-            <input
-                type="text"
-                name="apellido"
-                value="{{ usuario_actual.apellido }}"
-            >
+            <input type="text" name="apellido" value="{{ usuario_actual.apellido }}">
         </div>
 
-        <div class="form-group">
+        <div class="field">
             <label>Email</label>
-
-            <input
-                type="email"
-                value="{{ usuario_actual.email }}"
-                disabled
-            >
+            <input type="email" value="{{ usuario_actual.email }}" disabled style="background: #f1f5f9; cursor: not-allowed;">
         </div>
 
-        <div class="form-group">
-
+        <div class="field">
             <label>Foto de perfil</label>
-
-            <input
-                type="file"
-                name="avatar"
-                accept="image/*"
-            >
-
-        </div>
-        <div class="form-group">
-
-            <label>Nueva contraseña</label>
-
-            <input
-                type="password"
-                name="password"
-                id="password"
-                placeholder="Dejar vacío para no cambiar"
-            >
-
+            <input type="file" name="avatar" accept="image/*">
         </div>
 
-        <div class="form-group">
-
-            <label>Repetir contraseña</label>
-
-            <input
-                type="password"
-                name="password_repetida"
-                id="password_repetida"
-                placeholder="Repetir nueva contraseña"
-            >
-
-        <div
-            id="error-password"
-            style="color:red; margin-top:5px;"
-        ></div>
-
-
+        <div class="field-row" style="grid-template-columns: 1fr 1fr;">
+            <div class="field">
+                <label for="password">Nueva contraseña</label>
+                <input type="password" name="password" id="password" placeholder="Dejar vacío para no cambiar">
+            </div>
+            <div class="field">
+                <label for="password_repetida">Confirmar nueva contraseña</label>
+                <input type="password" name="password_repetida" id="password_repetida" placeholder="Repetir nueva contraseña">
+            </div>
         </div>
-        <button
-            type="submit"
-            class="btn-guardar"
-        >
-            Guardar cambios
-        </button>
+        
+        <div id="error-password" style="color: var(--color-admin); font-weight: bold; margin-bottom: 10px;"></div>
 
+        <button type="submit" class="btn-primary">Guardar cambios</button>
     </form>
 
-    <a
-        href="/cerrar-sesion"
-        class="btn-cerrar"
-    >
-        Cerrar sesión
-    </a>
-
+    <a href="/cerrar-sesion" class="btn-secondary" style="margin-top: 25px; background: var(--color-admin); color: white; border: none;">Cerrar sesión</a>
 </div>
+
 <script>
-document
-    .getElementById("perfil-form")
-    .addEventListener("submit", function(e) {
+document.getElementById("perfil-form").addEventListener("submit", function(e) {
+    const p1 = document.getElementById("password").value;
+    const p2 = document.getElementById("password_repetida").value;
+    const error = document.getElementById("error-password");
+    error.textContent = "";
 
-        const p1 =
-            document.getElementById("password").value;
-
-        const p2 =
-            document.getElementById("password_repetida").value;
-
-        const error =
-            document.getElementById("error-password");
-
-        error.textContent = "";
-
-        if (
-            p1 !== "" &&
-            p1 !== p2
-        ) {
-
-            e.preventDefault();
-
-            error.textContent =
-                "Las contraseñas no coinciden";
-        }
-    });
+    if (p1 !== "" && p1 !== p2) {
+        e.preventDefault();
+        error.textContent = "⚠ Las contraseñas no coinciden";
+    }
+});
 </script>
 {% endblock %}

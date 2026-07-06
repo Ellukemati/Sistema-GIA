@@ -1,17 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Historial de Reservas - GIA{% endblock %}
-
-{% block extra_head %}
-    {# 🌟 Incluye de forma limpia los estilos modulares aumentados (+2px) #}
-    {% include "estilos/admin_historial_reservas.html" %}
-{% endblock %}
+{% block title %}Historial de reservas{% endblock %}
 
 {% block content %}
 <div class="historial-container">
-    <a href="/admin/dashboard" style="text-decoration: none; color: #0091D5; font-weight: 600;">⬅ Volver al Panel de Control</a>
+    <a href="/admin/dashboard" class="btn-volver">⬅ Volver al Panel de Control</a>
     <h1 style="margin-top: 15px; margin-bottom: 5px;">📜 Historial de Reservas</h1>
-    <p style="color: #666; margin-bottom: 25px;">Auditoría y consulta de registros históricos del Salón de Instrumental.</p>
+    <p style="color: var(--color-muted); margin-bottom: 25px;">Auditoría y consulta de registros históricos del Salón de Instrumental.</p>
 
     <form method="GET" action="/admin/historial-reservas" class="filtros">
         <input type="text" name="docente" placeholder="Buscar docente..." value="{{ filtro_docente }}">
@@ -41,12 +36,12 @@
             <option value="desc" {% if direccion == "desc" %}selected{% endif %}>Descendente</option>
         </select>
 
-        <button type="submit">Filtrar</button>
+        <button type="submit" class="btn-primary" style="width: auto; min-height: auto; padding: 8px 20px;">Filtrar</button>
     </form>
 
     <div class="tabla-wrapper">
         <div style="margin-bottom: 20px;">
-            <a href="/admin/historial-reservas/csv?docente={{ filtro_docente }}&estado={{ filtro_estado }}&fecha_desde={{ filtro_fecha_desde }}&fecha_hasta={{ filtro_fecha_hasta }}&motivo={{ filtro_motivo }}&ordenar_por={{ ordenar_por }}&direccion={{ direccion }}" class="btn-descargar-historial" style="text-decoration: none; background-color: #28a745;">⬇ Exportar CSV</a>
+            <a href="/admin/historial-reservas/csv?docente={{ filtro_docente }}&estado={{ filtro_estado }}&fecha_desde={{ filtro_fecha_desde }}&fecha_hasta={{ filtro_fecha_hasta }}&motivo={{ filtro_motivo }}&ordenar_por={{ ordenar_por }}&direccion={{ direccion }}" class="btn-descargar-historial">⬇ Exportar CSV</a>
         </div>
         
         <table id="tabla-reservas">
@@ -74,7 +69,7 @@
                         {% set ini = reserva.fecha_inicio | split(pat="-") %}
                         {% set fin = reserva.fecha_fin | split(pat="-") %}
                         {{ ini[2] }}-{{ ini[1] }}-{{ ini[0] }}
-                        <br><span style="color: #888; font-size: 0.95rem; font-style: italic;">al</span><br>
+                        <br><span style="color: var(--color-muted); font-size: 0.95rem; font-style: italic;">al</span><br>
                         {{ fin[2] }}-{{ fin[1] }}-{{ fin[0] }}
                     </td>
                     
@@ -89,7 +84,7 @@
                         {% set partes_alta = reserva.momento_creacion | split(pat=" ") %}
                         {% set f_alta = partes_alta[0] | split(pat="-") %}
                         {{ f_alta[2] }}-{{ f_alta[1] }}-{{ f_alta[0] }}
-                        <br><span style="color: #888; font-size: 0.95rem;">{{ partes_alta[1] }}</span>
+                        <br><span style="color: var(--color-muted); font-size: 0.95rem;">{{ partes_alta[1] }}</span>
                     </td>
 
                     <td style="white-space: nowrap;">
@@ -97,7 +92,7 @@
                             {% set partes_firma = reserva.momento_confirmacion | split(pat=" ") %}
                             {% set f_firma = partes_firma[0] | split(pat="-") %}
                             {{ f_firma[2] }}-{{ f_firma[1] }}-{{ f_firma[0] }}
-                            <br><span style="color: #888; font-size: 0.95rem;">{{ partes_firma[1] }}</span>
+                            <br><span style="color: var(--color-muted); font-size: 0.95rem;">{{ partes_firma[1] }}</span>
                         {% else %}
                             <span style="color: #aaa;">---</span>
                         {% endif %}

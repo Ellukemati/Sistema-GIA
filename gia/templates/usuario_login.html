@@ -1,10 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}GIA - Iniciar sesión{% endblock %}
-
-{% block extra_head %}
-    {% include "estilos/auth.html" %}
-{% endblock %}
+{% block title %}Iniciar sesión{% endblock %}
 
 {% block content %}
 <main class="auth-page">
@@ -30,11 +26,13 @@
             <button type="submit" class="btn-primary">Ingresar</button>
         </form>
 
-        <footer class="auth-footer">
-            <p>¿No tenés cuenta? <a href="/registro">Registrarse</a></p>
+        <footer class="auth-footer" style="text-align: center; margin-top: 10px;">
+            <p>¿No tenés cuenta? <a href="/registro">Registrate</a></p>
         </footer>
 
-        {% include "partials/resultado.html" %}
+        <div id="resultado">
+            {% include "partials/resultado.html" %}
+        </div>
     </section>
 </main>
 {% include "partials/script_toggle_password.html" %}

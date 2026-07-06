@@ -1,15 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}GIA - {{ modelo.nombre_modelo }}{% endblock %}
-
-{% block extra_head %}
-    {% include "estilos/auth.html" %}
-    {% include "estilos/detalle.html" %}
-    {% include "estilos/ejemplares.html" %}
-{% endblock %}
+{% block title %}{{ modelo.nombre_modelo }}{% endblock %}
 
 {% block content %}
 <main class="detalle-page">
+    <a href="/modelo" class="btn-volver">⬅ Volver al catálogo</a>
+
     <article class="detalle-card">
         <div class="detalle-media">
             {% if imagen %}
@@ -24,19 +20,13 @@
 
             <div class="detalle-meta">
                 <span class="detalle-badge"><span>Marca:</span> {{ modelo.marca }}</span>
-                {% if modelo.categoria %}
-                <span class="detalle-badge"><span>Categoría:</span> {{ modelo.categoria }}</span>
-                {% else %}
-                <span class="detalle-badge"><span>Categoría:</span> Sin categoría</span>
-                {% endif %}
+                <span class="detalle-badge"><span>Categoría:</span> {{ modelo.categoria | default(value='Sin categoría') }}</span>
             </div>
 
             <p class="detalle-descripcion-label">Descripción</p>
-            {% if modelo.descripcion %}
-            <p class="detalle-descripcion">{{ modelo.descripcion }}</p>
-            {% else %}
-            <p class="detalle-descripcion detalle-descripcion--vacia">Sin descripción.</p>
-            {% endif %}
+            <p class="detalle-descripcion {% if not modelo.descripcion %}detalle-descripcion--vacia{% endif %}">
+                {{ modelo.descripcion | default(value='Sin descripción.') }}
+            </p>
 
             <div class="detalle-acciones">
                 {% if es_admin %}
@@ -55,9 +45,5 @@
         <h2 class="ejemplares-titulo">Ejemplares</h2>
         {% include "partials/reserva_ejemplares.html" %}
     </section>
-
-    <footer class="detalle-footer">
-        <a href="/modelo">&larr; Volver al catálogo</a>
-    </footer>
 </main>
 {% endblock %}

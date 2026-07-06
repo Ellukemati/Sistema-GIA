@@ -1,38 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}GIA - Bienvenida{% endblock %}
-
-{% block extra_head %}
-    {% include "estilos/auth.html" %}
-    <style>
-        .welcome-intro {
-            margin: 0;
-            text-align: center;
-            font-size: 0.95rem;
-            color: var(--color-muted);
-            line-height: 1.6;
-        }
-
-        .welcome-actions {
-            display: flex;
-            flex-direction: column;
-            gap: var(--spacing-md);
-            margin-top: var(--spacing-xl);
-        }
-
-        .welcome-actions a {
-            display: block;
-            text-align: center;
-            box-sizing: border-box;
-            text-decoration: none;
-            line-height: 1.2;
-        }
-
-        .welcome-actions .btn-primary {
-            margin-top: 0;
-        }
-    </style>
-{% endblock %}
+{% block title %}Bienvenida{% endblock %}
 
 {% block content %}
 <main class="auth-page">
@@ -45,16 +13,16 @@
             <p class="auth-subtitle">Gestión de Instrumental de Agrimensura · FIUBA</p>
         </header>
 
-        <p class="welcome-intro">
+        <p class="auth-subtitle" style="text-align: center; font-size: 1rem; line-height: 1.6; margin-bottom: 30px;">
             Ingresá con tu cuenta institucional o registrate para solicitar reservas de instrumental.
         </p>
 
-        <div class="welcome-actions">
-            <a href="/ingreso" class="btn-primary">Iniciar sesión</a>
+        <div class="field" style="gap: 15px;">
+            <a href="/ingreso" class="btn-primary" style="text-decoration: none; text-align: center;">Iniciar sesión</a>
             <a href="/registro" class="btn-secondary">Registrarse</a>
         </div>
 
-        <footer class="auth-footer">
+        <footer class="auth-footer" style="text-align: center; margin-top: 20px;">
             <p><a href="/modelo">Ingresar como invitado</a></p>
         </footer>
     </section>

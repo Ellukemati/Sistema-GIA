@@ -1,12 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}GIA - {{ modelo.nombre_modelo }}{% endblock %}
-
-{% block extra_head %}
-    {% include "estilos/auth.html" %}
-    {% include "estilos/detalle.html" %}
-    {% include "estilos/ejemplares.html" %}
-{% endblock %}
+{% block title %}{{ modelo.nombre_modelo }}{% endblock %}
 
 {% block content %}
 <main class="detalle-page">
@@ -24,19 +18,13 @@
 
             <div class="detalle-meta">
                 <span class="detalle-badge"><span>Marca:</span> {{ modelo.marca }}</span>
-                {% if modelo.categoria %}
-                <span class="detalle-badge"><span>Categoría:</span> {{ modelo.categoria }}</span>
-                {% else %}
-                <span class="detalle-badge"><span>Categoría:</span> Sin categoría</span>
-                {% endif %}
+                <span class="detalle-badge"><span>Categoría:</span> {{ modelo.categoria | default(value='Sin categoría') }}</span>
             </div>
 
             <p class="detalle-descripcion-label">Descripción</p>
-            {% if modelo.descripcion %}
-            <p class="detalle-descripcion">{{ modelo.descripcion }}</p>
-            {% else %}
-            <p class="detalle-descripcion detalle-descripcion--vacia">Sin descripción.</p>
-            {% endif %}
+            <p class="detalle-descripcion {% if not modelo.descripcion %}detalle-descripcion--vacia{% endif %}">
+                {{ modelo.descripcion | default(value='Sin descripción.') }}
+            </p>
 
             <div class="detalle-acciones">
                 {% if tiene_manual %}
@@ -48,7 +36,7 @@
         </div>
     </article>
 
-    <section class="ejemplares-seccion">
+    <section class="ejemplares-seccion" style="background: white; padding: var(--spacing-lg); border-radius: var(--radius-md); border: 1px solid var(--color-border); box-shadow: var(--shadow-soft);">
         {% if con_fechas %}
         <h2 class="ejemplares-titulo">Ejemplares disponibles</h2>
         <p class="ejemplares-fechas">
@@ -61,9 +49,9 @@
 
             {% include "partials/reserva_ejemplares.html" %}
 
-            <div class="ejemplares-acciones">
-                <a class="btn-volver" href="/reservas">&larr; Volver a modelos</a>
-                <button type="submit" class="btn-manual">Agregar a la reserva</button>
+            <div class="ejemplares-acciones" style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+                <a class="btn-volver" href="/reservas" style="margin-bottom: 0;">&larr; Volver a modelos</a>
+                <button type="submit" class="btn-primary" style="width: auto; min-height: auto; padding: 10px 20px;">Agregar a la reserva</button>
             </div>
         </form>
         {% else %}
@@ -74,8 +62,8 @@
 
         {% include "partials/reserva_ejemplares.html" %}
 
-        <div class="ejemplares-acciones">
-            <a class="btn-volver" href="/reservas">&larr; Volver a modelos</a>
+        <div class="ejemplares-acciones" style="margin-top: 20px;">
+            <a class="btn-volver" href="/reservas" style="margin-bottom: 0;">&larr; Volver a modelos</a>
         </div>
         {% endif %}
     </section>
