@@ -306,30 +306,26 @@ textarea:focus {
     text-align: center;
 }
 
+/* Propiedades de caja "Olvidé mi contraseña" */
+.field-hint {
+    margin-top: 2px !important;
+    margin-bottom: 0px !important;
+    line-height: 1.2;
+}
+
+/* Estilos de color y fuente para los enlaces de redirección */
 .auth-footer p a,
 .auth-footer p a:visited,
 .field-hint a,
 .field-hint a:visited {
     color: var(--color-primary);
-    font-weight: 600; 
+    font-weight: 600;
 }
 
 .auth-footer p a:hover,
 .field-hint a:hover {
     color: var(--color-primary-hover);
-}
-
-/* AISLAMIENTO EXCLUSIVO */
-form[hx-post="/restablecer"] .btn-primary,
-form[hx-post="/restablecer-contrasena"] .btn-primary,
-form[hx-post="/registro-invitacion"] .btn-primary {
-    margin-top: 1rem;
-}
-
-form[hx-post="/restablecer"] ~ .auth-footer,
-form[hx-post="/restablecer-contrasena"] ~ .auth-footer,
-form[hx-post="/registro-invitacion"] ~ .auth-footer {
-    margin-top: 1.5rem;
+    text-decoration: underline;
 }
 
 /* Lógica de radio expandible para accesorios */
