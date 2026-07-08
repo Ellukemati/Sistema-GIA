@@ -3,22 +3,20 @@
 {% block title %}Registro por invitación{% endblock %}
 
 {% block content %}
-<div class="auth-page">
-    <div class="auth-card">
+<main class="auth-page">
+    <section class="auth-card">
         <header class="auth-header">
             <div class="auth-brand">
                 <img src="/static/img/logo_gia_transparente.png" alt="GIA" class="auth-logo">
             </div>
-            <h1>Invitación Institucional</h1>
-            <p class="auth-subtitle">Completá tus datos de acceso para activar tu cuenta en el sistema.</p>
+            <h1>Registro por invitación</h1>
+            <p class="auth-subtitle">Completá tus datos para registrarte como {{ tipo_cuenta }} en el sistema.</p>
         </header>
 
-        <div id="resultado-alta"></div>
-
-        <form hx-post="/registro-invitacion" hx-target="#resultado-alta" class="auth-form">
+        <form hx-post="/registro-invitacion" hx-target="#resultado-alta" hx-swap="innerHTML scroll:#resultado-alta:top" class="auth-form">
             <input type="hidden" name="token" value="{{ token }}">
 
-            <div class="field-row" style="grid-template-columns: 1fr 1fr;">
+            <div class="field-row">
                 <div class="field">
                     <label for="nombre">Nombre</label>
                     <input type="text" id="nombre" name="nombre" required autocomplete="given-name">
@@ -30,21 +28,34 @@
             </div>
 
             <div class="field">
-                <label for="legajo">Legajo FIUBA</label>
-                <input type="text" id="legajo" name="legajo" inputmode="numeric" pattern="[0-9]*" placeholder="Ej. 12345" required>
+                <label for="legajo">Legajo</label>
+                <input 
+                    type="text" 
+                    id="legajo" 
+                    name="legajo" 
+                    inputmode="numeric" 
+                    pattern="[0-9]*" 
+                    required
+                    oninvalid="this.setCustomValidity('El legajo debe contener únicamente números')"
+                    oninput="this.setCustomValidity('')"
+                >
             </div>
 
-            {% include "partials/campo_password.html" %}
-            {% include "partials/campo_password_confirm.html" %}
+            <div class="field-row">
+                {% include "partials/campo_password.html" %}
+                {% include "partials/campo_password_confirm.html" %}
+            </div>
 
-            <button type="submit" class="btn-primary">Confirmar Registro</button>
+            <button type="submit" class="btn-primary" style="margin-top: 0rem;">Crear cuenta</button>
         </form>
 
-        <footer class="auth-footer">
-            <p>¿Ya te registraste? <a href="/ingreso">Iniciá sesión acá</a></p>
+        <div id="resultado-alta"></div>
+
+        <footer class="auth-footer" style="text-align: center; margin-top: 15px; display: flex; flex-direction: column; gap: var(--spacing-xs);">
+            <p style="margin: 0;">¿Ya te registraste? <a href="/ingreso">Iniciar sesión</a></p>
         </footer>
-    </div>
-</div>
+    </section>
+</main>
 
 {% include "partials/script_validacion_password.html" %}
 {% endblock %}

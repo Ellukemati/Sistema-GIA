@@ -42,12 +42,13 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
         },
 
         (GET) (/registro-invitacion) => {
-            AuthHandler::mostrar_formulario_registro_invitacion(request)
+            let conn_guard = conn.lock().unwrap();
+            AuthHandler::mostrar_formulario_registro_invitacion(request, &conn_guard)
         },
 
         (POST) (/registro-invitacion) => {
             let conn_guard = conn.lock().unwrap();
-            AuthHandler::procesar_alta_registro_invitacion(request, &conn_guard)
+            AuthHandler::procesar_registro_invitacion(request, &conn_guard)
         },
 
         (GET) (/) => {

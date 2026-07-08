@@ -31,7 +31,9 @@ impl AuthService {
         }
 
         match UsuarioRepository::buscar_por_email(conn, &email) {
-            Ok(Some(_)) => return Err("Ya existe un usuario con ese email".to_string()),
+            Ok(Some(_)) => {
+                return Err("Ya existe un usuario registrado con el email ingresado.".to_string());
+            }
             Ok(None) => {}
             Err(e) => return Err(format!("Error consultando usuarios: {}", e)),
         }
@@ -57,7 +59,19 @@ impl AuthService {
                 Ok(Some(user)) => Ok(user),
                 _ => Err("Usuario creado, pero hubo un error al recuperarlo".to_string()),
             },
-            Err(e) => Err(format!("Error en la base de datos al crear cuenta: {}", e)),
+            Err(e) => {
+                let err_str = e.to_string();
+                if err_str.contains("usuarios.legajo")
+                    || err_str.contains("UNIQUE constraint failed")
+                {
+                    Err("Ya hay un usuario registrado con el legajo ingresado.".to_string())
+                } else {
+                    Err(format!(
+                        "Error en la base de datos al crear cuenta: {}",
+                        err_str
+                    ))
+                }
+            }
         }
     }
 
@@ -72,9 +86,13 @@ impl AuthService {
             Ok(Some(usuario)) => {
                 if !usuario.aprobado {
                     return Err(
-                        "Tu cuenta fue registrada pero está pendiente de aprobación.".to_string(),
+                        "Tu cuenta está registrada pero está pendiente de aprobación.\n\n\
+                         Esperá a que un administrador la apruebe.\n\n\
+                         Te llegará una notificación al correo cuando ocurra."
+                            .to_string(),
                     );
                 }
+
                 if Self::verificar_password(password, &usuario.password_hash) {
                     let time = SystemTime::now()
                         .duration_since(UNIX_EPOCH)
@@ -87,10 +105,10 @@ impl AuthService {
                         Err(e) => Err(format!("Error al crear sesión: {}", e)),
                     }
                 } else {
-                    Err("Contraseña incorrecta".to_string())
+                    Err("Contraseña incorrecta.".to_string())
                 }
             }
-            Ok(None) => Err("Usuario no encontrado".to_string()),
+            Ok(None) => Err("El email ingresado no está registrado.".to_string()),
             Err(e) => Err(format!("Error al consultar la base de datos: {}", e)),
         }
     }
@@ -103,14 +121,17 @@ impl AuthService {
         conn: &Connection,
         email: &str,
     ) -> Result<(), String> {
-        let usuario = match UsuarioRepository::buscar_por_email(conn, email)
-            .map_err(|e| e.to_string())?
-        {
-            Some(u) => u,
-            None => {
-                return Err("Si el email es válido, recibirás un correo a la brevedad.".to_string());
-            }
-        };
+        let usuario =
+            match UsuarioRepository::buscar_por_email(conn, email).map_err(|e| e.to_string())? {
+                Some(u) => u,
+                None => {
+                    return Ok(());
+                }
+            };
+
+        if !usuario.aprobado {
+            return Ok(());
+        }
 
         let ahora_nano = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -142,6 +163,7 @@ impl AuthService {
 
         Ok(())
     }
+
     pub fn cambiar_password_usuario(
         conn: &Connection,
         id_usuario: i64,
@@ -197,11 +219,11 @@ impl AuthService {
     /// INVITACIÓN DE NUEVOS USUARIOS POR MAIL
     pub fn invitar_usuario(conn: &Connection, email: &str, tipo: &str) -> Result<(), String> {
         if !Self::validar_email_fiuba(email) {
-            return Err("El email debe pertenecer a FIUBA".to_string());
+            return Err("El email debe ser FIUBA.".to_string());
         }
 
         if let Ok(Some(_)) = UsuarioRepository::buscar_por_email(conn, email) {
-            return Err("Este usuario ya está registrado en el sistema.".to_string());
+            return Err("Ya hay un usuario registrado con el email ingresado.".to_string());
         }
 
         let ahora_nano = SystemTime::now()
@@ -258,7 +280,7 @@ impl AuthService {
 
         match UsuarioRepository::buscar_por_legajo(conn, legajo) {
             Ok(Some(_)) => {
-                return Err("El legajo ingresado ya se encuentra registrado.".to_string());
+                return Err("Ya hay un usuario registrado con el legajo ingresado.".to_string());
             }
             Ok(None) => {}
             Err(e) => return Err(format!("Error consultando legajos: {}", e)),
@@ -420,7 +442,7 @@ mod tests {
 
         let resultado = AuthService::login(&conn, "rdoblas@fi.uba.ar", "clave_equivocada");
         assert!(resultado.is_err());
-        assert_eq!(resultado.unwrap_err(), "Contraseña incorrecta");
+        assert_eq!(resultado.unwrap_err(), "Contraseña incorrecta.");
     }
 
     #[test]
@@ -451,7 +473,7 @@ mod tests {
         assert!(resultado_duplicado.is_err());
         assert_eq!(
             resultado_duplicado.unwrap_err(),
-            "Ya existe un usuario con ese email"
+            "Ya existe un usuario registrado con el email ingresado."
         );
     }
 
@@ -460,12 +482,7 @@ mod tests {
         let conn = crear_db_test();
         let resultado =
             AuthService::solicitar_restablecimiento_password(&conn, "incognito@fi.uba.ar");
-
-        assert!(resultado.is_err());
-        assert_eq!(
-            resultado.unwrap_err(),
-            "Si el email es válido, recibirás un correo a la brevedad."
-        );
+        assert!(resultado.is_ok())
     }
 
     #[test]
@@ -487,7 +504,6 @@ mod tests {
     #[test]
     #[ignore]
     fn test_circuito_completo_restablecimiento_password() {
-        // LOCK INTERNO: Frena otros hilos de envío de mail hasta terminar la ejecución
         let _guard = LOCK_MAILTRAP.lock().unwrap();
 
         let conn = crear_db_test();
@@ -502,6 +518,10 @@ mod tests {
             "clavegogh123",
         )
         .unwrap();
+
+        // Hay que aprobar el usuario para poder restablecer la contraseña
+        conn.execute("UPDATE usuarios SET aprobado = 1 WHERE id = 1", [])
+            .unwrap();
 
         let resultado_solicitud =
             AuthService::solicitar_restablecimiento_password(&conn, "vgogh@fi.uba.ar");
@@ -556,6 +576,10 @@ mod tests {
             "clavebase123",
         )
         .unwrap();
+
+        // Hay que aprobar el usuario para poder restablecer la contraseña
+        conn.execute("UPDATE usuarios SET aprobado = 1 WHERE id = 1", [])
+            .unwrap();
 
         AuthService::solicitar_restablecimiento_password(&conn, "lmessi@fi.uba.ar").unwrap();
         esperar_cuota_mailtrap();
@@ -653,7 +677,7 @@ mod tests {
         assert!(resultado_invitar.is_err());
         assert_eq!(
             resultado_invitar.unwrap_err(),
-            "Este usuario ya está registrado en el sistema."
+            "Ya hay un usuario registrado con el email ingresado."
         );
     }
 
@@ -698,7 +722,7 @@ mod tests {
         assert!(resultado_alta.is_err());
         assert_eq!(
             resultado_alta.unwrap_err(),
-            "El legajo ingresado ya se encuentra registrado."
+            "Ya hay un usuario registrado con el legajo ingresado."
         );
     }
 

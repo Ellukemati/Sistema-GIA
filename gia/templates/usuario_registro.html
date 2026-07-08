@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Registro de Docentes{% endblock %}
+{% block title %}Registro de docentes{% endblock %}
 
 {% block content %}
 <main class="auth-page">
@@ -10,47 +10,60 @@
                 <img src="/static/img/logo_gia_transparente.png" alt="GIA" class="auth-logo">
             </div>
             <h1>Registro de docentes</h1>
-            <p class="auth-subtitle">Acceso institucional FIUBA</p>
         </header>
 
-        <form class="auth-form" hx-post="/registro" hx-target="#resultado">
-            <div class="field-row" style="grid-template-columns: 1fr 1fr;">
+        <form hx-post="/registro" 
+              hx-target="#resultado-alta" 
+              hx-swap="innerHTML scroll:#resultado-alta:bottom" 
+              class="auth-form">
+              
+            <div class="field-row">
                 <div class="field">
                     <label for="nombre">Nombre</label>
-                    <input id="nombre" type="text" name="nombre" autocomplete="given-name" required>
+                    <input type="text" id="nombre" name="nombre" required autocomplete="given-name">
                 </div>
                 <div class="field">
                     <label for="apellido">Apellido</label>
-                    <input id="apellido" type="text" name="apellido" autocomplete="family-name" required>
+                    <input type="text" id="apellido" name="apellido" required autocomplete="family-name">
                 </div>
             </div>
 
-            <div class="field">
-                <label for="email">Email</label>
-                <input id="email" type="email" name="email" placeholder="docente@fi.uba.ar" autocomplete="email" required>
-                <small class="field-hint">Usá tu correo institucional @fi.uba.ar</small>
+            <div class="field-row">
+                <div class="field">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" placeholder="usuario@fi.uba.ar" autocomplete="email" required>
+                </div>
+                <div class="field">
+                    <label for="legajo">Legajo</label>
+                    <input 
+                        type="text" 
+                        id="legajo" 
+                        name="legajo" 
+                        inputmode="numeric" 
+                        pattern="[0-9]*" 
+                        required
+                        oninvalid="this.setCustomValidity('El legajo debe contener únicamente números')"
+                        oninput="this.setCustomValidity('')"
+                    >
+                </div>
             </div>
 
-            <div class="field">
-                <label for="legajo">Legajo</label>
-                <input id="legajo" type="number" name="legajo" placeholder="12345678" required>
+            <div class="field-row">
+                {% include "partials/campo_password.html" %}
+                {% include "partials/campo_password_confirm.html" %}
             </div>
-
-            {% include "partials/campo_password.html" %}
-            {% include "partials/campo_password_confirm.html" %}
-
+              
             <button type="submit" class="btn-primary">Crear cuenta</button>
         </form>
 
-        <footer class="auth-footer">
-            <p>¿Ya tenés cuenta? <a href="/ingreso">Iniciar sesión</a></p>
-            <p><a href="/modelo">Ingresar como invitado</a></p>
-        </footer>
+        <div id="resultado-alta"></div>
 
-        <div id="resultado">
-            {% include "partials/resultado.html" %}
-        </div>
+        <footer class="auth-footer" style="text-align: center; margin-top: 15px; display: flex; flex-direction: column; gap: var(--spacing-xs);">
+            <p style="margin: 0;">¿Ya tenés cuenta? <a href="/ingreso">Iniciar sesión</a></p>
+            <p style="margin: 0; font-size: 1em;"><a href="/" class="back-link">Volver al portal de bienvenida</a></p>
+        </footer>
     </section>
 </main>
+
 {% include "partials/script_validacion_password.html" %}
 {% endblock %}

@@ -1,11 +1,12 @@
-use crate::repository::image_repository::ImageRepository;
-use crate::repository::sesion_repository::SesionRepository;
-use crate::repository::usuario_repository::UsuarioRepository;
-use crate::service::auth_service::AuthService;
-use crate::service::image_service::procesar_avatar;
+use crate::constants::EXPIRACION_SESION;
+use crate::repository::{
+    image_repository::ImageRepository, sesion_repository::SesionRepository,
+    usuario_repository::UsuarioRepository,
+};
+use crate::service::{auth_service::AuthService, image_service::procesar_avatar};
 use crate::templates;
-use crate::utils::extraer_token_sesion;
-use crate::utils::usuario_actual;
+use crate::utils::{extraer_token_sesion, usuario_actual};
+
 use rouille::{Request, Response};
 use rusqlite::Connection;
 use std::collections::HashMap;
@@ -71,6 +72,9 @@ impl AuthHandler {
         Response::redirect_302("/ingreso")
     }
 
+    /// Registro publico desde la web
+    /// Cualquiera puede mandar la solicitud de registro, pero la cuenta es de tipo Docente
+    /// y nace sin el aprobado, requiriendo aprobacion de un administrador
     pub fn procesar_registro(request: &Request, conn: &Connection) -> Response {
         let mut body = String::new();
         if let Some(mut reader) = request.data() {
@@ -100,15 +104,63 @@ impl AuthHandler {
 
         match AuthService::registrar_cuenta(conn, legajo, nombre, apellido, email, tipo, &password)
         {
-            Ok(usuario) => templates::response_mensaje_exito(
-                "¡Cuenta creada!",
-                &format!("Bienvenido/a {}.", usuario.nombre_completo()),
+            Ok(_usuario) => templates::response_mensaje_exito(
+                "Solicitud de registro enviada",
+                "Tu registro ha sido enviado.\n\
+                 Ahora un administrador debe habilitar tu cuenta antes de que puedas iniciar sesión.\n\
+                 Te vamos a enviar un correo con la respuesta a tu solicitud.",
             ),
 
             Err(e) => templates::response_mensaje_error(
                 "No se pudo completar el registro",
                 &e.to_string(),
             ),
+        }
+    }
+
+    /// Registro privado por invitación de un administrador
+    /// Viene de un enlace por email. Como fue enviada por un administrador, se aprueba de inmediato
+    pub fn procesar_registro_invitacion(request: &Request, conn: &Connection) -> Response {
+        let mut body = String::new();
+        if let Some(mut reader) = request.data() {
+            let _ = reader.read_to_string(&mut body);
+        }
+
+        let datos_parseados = Self::parsear_formulario(&body);
+        let token = datos_parseados.get("token").cloned().unwrap_or_default();
+        let nombre = datos_parseados.get("nombre").cloned().unwrap_or_default();
+        let apellido = datos_parseados.get("apellido").cloned().unwrap_or_default();
+        let password = datos_parseados.get("password").cloned().unwrap_or_default();
+
+        if token.is_empty() {
+            return templates::response_mensaje_error(
+                "Error de sesión",
+                "El token de la invitación es inválido o ha expirado.",
+            );
+        }
+
+        let legajo = match datos_parseados
+            .get("legajo")
+            .unwrap_or(&String::new())
+            .parse::<i32>()
+        {
+            Ok(val) => val,
+            Err(_) => {
+                return templates::response_mensaje_error(
+                    "Formato incorrecto",
+                    "El legajo ingresado debe ser un valor numérico válido.",
+                );
+            }
+        };
+
+        match AuthService::registrar_por_invitacion(
+            conn, &token, nombre, apellido, legajo, &password,
+        ) {
+            Ok(_) => templates::response_mensaje_exito(
+                "¡Cuenta registrada!",
+                "Su cuenta fue registrada y habilitada, ya puede iniciar sesión.",
+            ),
+            Err(e) => templates::response_mensaje_error("No se pudo completar el alta", &e),
         }
     }
 
@@ -124,8 +176,10 @@ impl AuthHandler {
 
         match AuthService::login(conn, &email, &password) {
             Ok((_usuario, token)) => {
-                let cookie_str =
-                    format!("session_token={}; HttpOnly; Path=/; Max-Age=86400", token);
+                let cookie_str = format!(
+                    "session_token={}; HttpOnly; Path=/; Max-Age={}",
+                    token, EXPIRACION_SESION
+                );
                 Response::empty_204()
                     .with_additional_header("Set-Cookie", cookie_str)
                     .with_additional_header("HX-Redirect", "/inicio")
@@ -296,70 +350,57 @@ impl AuthHandler {
         match AuthService::restablecer_password(conn, &token, &password) {
             Ok(_) => templates::response_mensaje_exito(
                 "Contraseña cambiada",
-                "Su contraseña ha sido actualizada. Ya puede dirigirse al Ingreso y usarla.",
+                "Su contraseña ha sido actualizada. Ya puede dirigirse al ingreso y usarla.",
             ),
             Err(e) => templates::response_mensaje_error("No se pudo restablecer la contraseña", &e),
         }
     }
 
     /// Renderiza la vista de configuración final para el usuario invitado
-    pub fn mostrar_formulario_registro_invitacion(request: &Request) -> Response {
+    pub fn mostrar_formulario_registro_invitacion(
+        request: &Request,
+        conn: &Connection,
+    ) -> Response {
         let token = request.get_param("token").unwrap_or_default();
 
         if token.is_empty() {
             return templates::response_mensaje_error(
                 "Enlace de invitación inválido",
-                "El token de acceso no se encuentra presente en la dirección URL.",
+                "El token de acceso no se encuentra en la dirección URL.",
             );
         }
 
-        let mut ctx = Context::new();
-        ctx.insert("token", &token);
-        templates::response_html(templates::render("usuario_registro_invitacion.html", &ctx))
-    }
+        let ahora_segundos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64;
 
-    /// Carga los datos definitivos del invitado a la tabla de usuarios activos
-    pub fn procesar_alta_registro_invitacion(request: &Request, conn: &Connection) -> Response {
-        let mut body = String::new();
-        if let Some(mut reader) = request.data() {
-            let _ = reader.read_to_string(&mut body);
-        }
-
-        let datos_parseados = Self::parsear_formulario(&body);
-        let token = datos_parseados.get("token").cloned().unwrap_or_default();
-        let nombre = datos_parseados.get("nombre").cloned().unwrap_or_default();
-        let apellido = datos_parseados.get("apellido").cloned().unwrap_or_default();
-        let password = datos_parseados.get("password").cloned().unwrap_or_default();
-
-        if token.is_empty() {
-            return templates::response_mensaje_error(
-                "Error de sesión",
-                "El token de la invitación es inválido o ha expirado.",
-            );
-        }
-
-        let legajo = match datos_parseados
-            .get("legajo")
-            .unwrap_or(&String::new())
-            .parse::<i32>()
-        {
-            Ok(val) => val,
-            Err(_) => {
-                return templates::response_mensaje_error(
-                    "Formato incorrecto",
-                    "El legajo ingresado debe ser un valor numérico válido.",
-                );
-            }
-        };
-
-        match AuthService::registrar_por_invitacion(
-            conn, &token, nombre, apellido, legajo, &password,
+        // Buscamos si la invitación es válida y no expiró
+        match crate::repository::invitacion_repository::InvitacionRepository::buscar_valido(
+            conn,
+            &token,
+            ahora_segundos,
         ) {
-            Ok(_) => templates::response_mensaje_exito(
-                "Alta confirmada",
-                "Su usuario ha sido dado de alta y habilitado con éxito. Ya puede iniciar sesión de forma regular.",
+            Ok(Some(invitacion)) => {
+                let mut ctx = Context::new();
+                ctx.insert("token", &token);
+
+                let tipo_visible = if invitacion.tipo == crate::constants::TIPO_ADMIN {
+                    "Administrador"
+                } else {
+                    "Docente"
+                };
+                ctx.insert("tipo_cuenta", tipo_visible);
+
+                templates::response_html(templates::render(
+                    "usuario_registro_invitacion.html",
+                    &ctx,
+                ))
+            }
+            _ => templates::response_mensaje_error(
+                "Invitación inválida o expirada",
+                "El enlace utilizado ya no es válido, fue utilizado previamente o ha superado el tiempo límite de 24 horas.",
             ),
-            Err(e) => templates::response_mensaje_error("No se pudo completar el alta", &e),
         }
     }
 
@@ -368,12 +409,33 @@ impl AuthHandler {
         for par in cuerpo.split('&') {
             let mut partes = par.split('=');
             if let (Some(clave), Some(valor)) = (partes.next(), partes.next()) {
-                let valor_decodificado = valor.replace("%40", "@").replace("+", " ");
+                let con_espacios = valor.replace("+", " ");
+
+                let mut bytes = Vec::new();
+                let mut i = 0;
+                let chars: Vec<char> = con_espacios.chars().collect();
+
+                while i < chars.len() {
+                    if chars[i] == '%'
+                        && i + 2 < chars.len()
+                        && let Some(hex_str) = con_espacios.get(i + 1..i + 3)
+                        && let Ok(byte) = u8::from_str_radix(hex_str, 16)
+                    {
+                        bytes.push(byte);
+                        i += 3;
+                        continue;
+                    }
+                    bytes.extend_from_slice(chars[i].to_string().as_bytes());
+                    i += 1;
+                }
+
+                let valor_decodificado = String::from_utf8(bytes).unwrap_or(con_espacios);
                 mapa.insert(clave.to_string(), valor_decodificado.trim().to_string());
             }
         }
         mapa
     }
+
     pub fn obtener_avatar(conn: &Connection, usuario_id: i64) -> Response {
         let usuario = match UsuarioRepository::buscar_por_id(conn, usuario_id) {
             Ok(Some(u)) => u,

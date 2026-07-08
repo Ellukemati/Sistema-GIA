@@ -98,7 +98,7 @@ h1 {
 
 .auth-card {
     width: 100%;
-    max-width: 420px;
+    max-width: 720px;
     background-color: var(--color-surface);
     border: 2px solid var(--color-primary);
     border-radius: var(--radius-md);
@@ -135,7 +135,8 @@ h1 {
 .auth-form {
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
+    gap: var(--spacing-md);
+    width: 100%;
 }
 
 .field {
@@ -147,7 +148,7 @@ h1 {
 
 .field-row {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
     gap: var(--spacing-md);
 }
 
@@ -207,17 +208,23 @@ textarea:focus {
     padding: 0.65rem 1rem;
     font-size: 1rem;
     font-weight: 700;
-    color: var(--color-surface);
+    color: var(--color-surface) !important;
     background-color: var(--color-accent);
     border: none;
     border-radius: var(--radius-sm);
     cursor: pointer;
     transition: background-color 0.15s ease, transform 0.1s ease;
-    margin-top: -4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    text-decoration: none;
 }
 
 .btn-primary:hover {
     background-color: var(--color-accent-hover);
+    color: var(--color-surface) !important;
+    text-decoration: none;
 }
 
 .btn-primary:active {
@@ -230,21 +237,54 @@ textarea:focus {
     padding: 0.65rem 1rem;
     font-size: 0.95rem;
     font-weight: 600;
-    color: var(--color-primary);
-    background-color: var(--color-surface);
-    border: 1.5px solid var(--color-primary);
+    color: var(--color-surface) !important;
+    background-color: var(--color-primary);
     border-radius: var(--radius-sm);
-    cursor: pointer;
     transition: background-color 0.15s ease, color 0.15s ease;
-    text-decoration: none;
-    display: block;
-    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     box-sizing: border-box;
+    text-decoration: none;
 }
 
-.btn-secondary:hover {
-    background-color: var(--color-primary);
-    color: var(--color-surface);
+.btn-secondary:hover { 
+    background-color: var(--color-primary-hover);
+    color: var(--color-surface) !important; 
+    text-decoration: none;
+}
+
+.btn-tertiary {
+    width: 100%;
+    min-height: 40px;
+    padding: 0.65rem 1rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-muted) !important;
+    background-color: var(--color-bg);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    text-decoration: none;
+}
+
+.btn-tertiary:hover {
+    background-color: var(--color-border);
+    color: var(--color-text) !important;
+    border-color: var(--color-muted);
+    text-decoration: none;
+}
+
+.welcome-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    margin-top: 1.25rem;
 }
 
 .btn-cancelar {
@@ -279,15 +319,17 @@ textarea:focus {
     color: var(--color-primary-hover);
 }
 
-/* 🌟 AISLAMIENTO EXCLUSIVO: Ajuste armónico específico para los formularios de restablecer */
+/* AISLAMIENTO EXCLUSIVO */
 form[hx-post="/restablecer"] .btn-primary,
-form[hx-post="/restablecer-contrasena"] .btn-primary {
-    margin-top: 1rem; /* Separa el botón del último campo */
+form[hx-post="/restablecer-contrasena"] .btn-primary,
+form[hx-post="/registro-invitacion"] .btn-primary {
+    margin-top: 1rem;
 }
 
 form[hx-post="/restablecer"] ~ .auth-footer,
-form[hx-post="/restablecer-contrasena"] ~ .auth-footer {
-    margin-top: 1.5rem; /* Da aire al enlace inferior en las dos vistas */
+form[hx-post="/restablecer-contrasena"] ~ .auth-footer,
+form[hx-post="/registro-invitacion"] ~ .auth-footer {
+    margin-top: 1.5rem;
 }
 
 /* Lógica de radio expandible para accesorios */
@@ -349,7 +391,7 @@ form[hx-post="/restablecer-contrasena"] ~ .auth-footer {
 
 .toggle-password {
     position: absolute;
-    right: 0.75rem;
+    right: 0.25rem;
     background: none;
     border: none;
     color: var(--color-muted);
@@ -1460,19 +1502,25 @@ th {
 .mensaje {
     padding: 0.75rem 1rem;
     border-radius: 6px;
-    font-size: 0.9rem;
+    font-size: 1rem;
     border: 1.5px solid transparent;
-    margin-top: var(--spacing-md, 1rem);
+    margin-top: 10px;
+    margin-bottom: 10px;
+    white-space: pre-line;
+    line-height: 1 !important;
 }
 
 .mensaje strong {
     display: block;
-    margin-bottom: 0.5rem;
-    font-size: 0.95rem;
+    margin-top: 0px;
+    margin-bottom: 0px;
+    font-size: 1rem;
 }
 
 .mensaje p {
     margin: 0;
+    font-size: 1rem;
+    line-height: 1.4;
 }
 
 .mensaje--exito {
@@ -1524,8 +1572,9 @@ th {
     }
 
     .field-row {
-        grid-template-columns: 1fr;
-        gap: 0;
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: var(--spacing-sm, 12px) !important;
     }
 
     .logout-wrapper {
@@ -1545,7 +1594,6 @@ th {
         height: 55px;
     }
 
-    /* Transformación de tablas administrativas en tarjetas independientes */
     .table-responsive table,
     .table-responsive tbody,
     .table-responsive tr,
@@ -1659,6 +1707,17 @@ th {
         font-size: 1rem;
     }
 
+    .auth-page {
+        padding: var(--spacing-sm, 12px) 10px !important;
+    }
+
+    .auth-card {
+        padding: var(--spacing-lg, 1.5rem) var(--spacing-md, 1rem) !important;
+        border-radius: var(--radius-md, 10px);
+        width: 100% !important;
+        box-sizing: border-box;
+    }
+
     .cards-grid {
         justify-content: center;
     }
@@ -1700,5 +1759,13 @@ th {
 
     .reserva-fechas-hint {
         font-size: 0.75rem;
+    }
+
+@media (max-width: 350px) {
+
+    .field-row {
+        grid-template-columns: 1fr !important;
+    }
+
     }
 }
