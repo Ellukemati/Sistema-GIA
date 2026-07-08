@@ -97,7 +97,7 @@ impl AuthHandler {
             Err(_) => {
                 return templates::response_mensaje_error(
                     "Datos inválidos",
-                    "Legajo inválido. Ingresá un número válido.",
+                    "El legajo debe contener únicamente números y ser valido.",
                 );
             }
         };
@@ -148,7 +148,7 @@ impl AuthHandler {
             Err(_) => {
                 return templates::response_mensaje_error(
                     "Formato incorrecto",
-                    "El legajo ingresado debe ser un valor numérico válido.",
+                    "El legajo debe contener únicamente números y ser valido.",
                 );
             }
         };
@@ -160,7 +160,7 @@ impl AuthHandler {
                 "¡Cuenta registrada!",
                 "Su cuenta fue registrada y habilitada, ya puede iniciar sesión.",
             ),
-            Err(e) => templates::response_mensaje_error("No se pudo completar el alta", &e),
+            Err(e) => templates::response_mensaje_error("No se pudo completar el registro", &e),
         }
     }
 

@@ -32,11 +32,13 @@
                 <input 
                     type="text" 
                     id="legajo" 
-                    name="legajo" 
+                    name="legajo"
+                    placeholder="Ej.: 108762"
                     inputmode="numeric" 
                     pattern="[0-9]*" 
+                    hol
                     required
-                    oninvalid="this.setCustomValidity('El legajo debe contener únicamente números')"
+                    oninvalid="this.setCustomValidity('El legajo debe contener únicamente números y ser válido')"
                     oninput="this.setCustomValidity('')"
                 >
             </div>

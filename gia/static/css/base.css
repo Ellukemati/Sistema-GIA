@@ -235,8 +235,8 @@ textarea:focus {
     width: 100%;
     min-height: 40px;
     padding: 0.65rem 1rem;
-    font-size: 0.95rem;
-    font-weight: 600;
+    font-size: 1rem;
+    font-weight: 700;
     color: var(--color-surface) !important;
     background-color: var(--color-primary);
     border-radius: var(--radius-sm);
@@ -258,8 +258,8 @@ textarea:focus {
     width: 100%;
     min-height: 40px;
     padding: 0.65rem 1rem;
-    font-size: 0.95rem;
-    font-weight: 600;
+    font-size: 1rem;
+    font-weight: 700;
     color: var(--color-muted) !important;
     background-color: var(--color-bg);
     border: 1.5px solid var(--color-border);
