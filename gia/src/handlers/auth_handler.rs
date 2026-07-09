@@ -76,41 +76,74 @@ impl AuthHandler {
     /// Cualquiera puede mandar la solicitud de registro, pero la cuenta es de tipo Docente
     /// y nace sin el aprobado, requiriendo aprobacion de un administrador
     pub fn procesar_registro(request: &Request, conn: &Connection) -> Response {
-        let mut body = String::new();
-        if let Some(mut reader) = request.data() {
-            let _ = reader.read_to_string(&mut body);
+        let mut data = match rouille::input::multipart::get_multipart_input(request) {
+            Ok(d) => d,
+            Err(_) => {
+                return templates::response_mensaje_error(
+                    "Error",
+                    "Formulario multipart inválido.",
+                );
+            }
+        };
+
+        let mut nombre = String::new();
+        let mut apellido = String::new();
+        let mut email = String::new();
+        let mut password = String::new();
+        let mut legajo_str = String::new();
+        let mut avatar_bytes: Option<Vec<u8>> = None;
+
+        while let Some(mut entry) = data.next() {
+            let name = entry.headers.name.clone();
+            if entry.headers.filename.is_some() {
+                if &*name == "avatar" {
+                    let mut bytes = Vec::new();
+                    if entry.data.read_to_end(&mut bytes).is_ok() && !bytes.is_empty() {
+                        avatar_bytes = Some(bytes);
+                    }
+                }
+            } else {
+                let mut text = String::new();
+                if entry.data.read_to_string(&mut text).is_ok() {
+                    match &*name {
+                        "nombre" => nombre = text.trim().to_string(),
+                        "apellido" => apellido = text.trim().to_string(),
+                        "email" => email = text.trim().to_string(),
+                        "password" => password = text,
+                        "legajo" => legajo_str = text.trim().to_string(),
+                        _ => {}
+                    }
+                }
+            }
         }
 
-        let datos_parseados = Self::parsear_formulario(&body);
-
-        let nombre = datos_parseados.get("nombre").cloned().unwrap_or_default();
-        let apellido = datos_parseados.get("apellido").cloned().unwrap_or_default();
-        let email = datos_parseados.get("email").cloned().unwrap_or_default();
-        let tipo = "P"; // Registros por ruta pública no pueden ser de tipo administrador, se asigna "P" por defecto
-        let password = datos_parseados.get("password").cloned().unwrap_or_default();
-        let legajo = match datos_parseados
-            .get("legajo")
-            .unwrap_or(&String::new())
-            .parse::<i32>()
-        {
+        let tipo = "P";
+        let legajo = match legajo_str.parse::<i32>() {
             Ok(val) => val,
             Err(_) => {
                 return templates::response_mensaje_error(
                     "Datos inválidos",
-                    "El legajo debe contener únicamente números y ser valido.",
+                    "El legajo debe contener únicamente números y ser válido.",
                 );
             }
         };
 
         match AuthService::registrar_cuenta(conn, legajo, nombre, apellido, email, tipo, &password)
         {
-            Ok(_usuario) => templates::response_mensaje_exito(
-                "Solicitud de registro enviada",
-                "Tu registro ha sido enviado.\n\
-                 Ahora un administrador debe habilitar tu cuenta antes de que puedas iniciar sesión.\n\
-                 Te vamos a enviar un correo con la respuesta a tu solicitud.",
-            ),
+            Ok(_) => {
+                if let Some(bytes) = avatar_bytes
+                    && let Ok((blob, mime)) = procesar_avatar(&bytes)
+                {
+                    let _ = ImageRepository::guardar_avatar(conn, legajo as i64, &blob, &mime);
+                }
 
+                templates::response_mensaje_exito(
+                    "Solicitud de registro enviada",
+                    "Tu registro ha sido enviado.\n\
+                     Ahora un administrador debe habilitar tu cuenta antes de que puedas iniciar sesión.\n\
+                     Te vamos a enviar un correo con la respuesta a tu solicitud.",
+                )
+            }
             Err(e) => templates::response_mensaje_error(
                 "No se pudo completar el registro",
                 &e.to_string(),
@@ -121,16 +154,46 @@ impl AuthHandler {
     /// Registro privado por invitación de un administrador
     /// Viene de un enlace por email. Como fue enviada por un administrador, se aprueba de inmediato
     pub fn procesar_registro_invitacion(request: &Request, conn: &Connection) -> Response {
-        let mut body = String::new();
-        if let Some(mut reader) = request.data() {
-            let _ = reader.read_to_string(&mut body);
-        }
+        let mut data = match rouille::input::multipart::get_multipart_input(request) {
+            Ok(d) => d,
+            Err(_) => {
+                return templates::response_mensaje_error(
+                    "Error",
+                    "Formulario multipart inválido.",
+                );
+            }
+        };
 
-        let datos_parseados = Self::parsear_formulario(&body);
-        let token = datos_parseados.get("token").cloned().unwrap_or_default();
-        let nombre = datos_parseados.get("nombre").cloned().unwrap_or_default();
-        let apellido = datos_parseados.get("apellido").cloned().unwrap_or_default();
-        let password = datos_parseados.get("password").cloned().unwrap_or_default();
+        let mut token = String::new();
+        let mut nombre = String::new();
+        let mut apellido = String::new();
+        let mut password = String::new();
+        let mut legajo_str = String::new();
+        let mut avatar_bytes: Option<Vec<u8>> = None;
+
+        while let Some(mut entry) = data.next() {
+            let name = entry.headers.name.clone();
+            if entry.headers.filename.is_some() {
+                if &*name == "avatar" {
+                    let mut bytes = Vec::new();
+                    if entry.data.read_to_end(&mut bytes).is_ok() && !bytes.is_empty() {
+                        avatar_bytes = Some(bytes);
+                    }
+                }
+            } else {
+                let mut text = String::new();
+                if entry.data.read_to_string(&mut text).is_ok() {
+                    match &*name {
+                        "token" => token = text.trim().to_string(),
+                        "nombre" => nombre = text.trim().to_string(),
+                        "apellido" => apellido = text.trim().to_string(),
+                        "password" => password = text,
+                        "legajo" => legajo_str = text.trim().to_string(),
+                        _ => {}
+                    }
+                }
+            }
+        }
 
         if token.is_empty() {
             return templates::response_mensaje_error(
@@ -139,16 +202,12 @@ impl AuthHandler {
             );
         }
 
-        let legajo = match datos_parseados
-            .get("legajo")
-            .unwrap_or(&String::new())
-            .parse::<i32>()
-        {
+        let legajo = match legajo_str.parse::<i32>() {
             Ok(val) => val,
             Err(_) => {
                 return templates::response_mensaje_error(
                     "Formato incorrecto",
-                    "El legajo debe contener únicamente números y ser valido.",
+                    "El legajo debe contener únicamente números y ser válido.",
                 );
             }
         };
@@ -156,10 +215,18 @@ impl AuthHandler {
         match AuthService::registrar_por_invitacion(
             conn, &token, nombre, apellido, legajo, &password,
         ) {
-            Ok(_) => templates::response_mensaje_exito(
-                "¡Cuenta registrada!",
-                "Su cuenta fue registrada y habilitada, ya puede iniciar sesión.",
-            ),
+            Ok(_) => {
+                if let Some(bytes) = avatar_bytes
+                    && let Ok((blob, mime)) = procesar_avatar(&bytes)
+                {
+                    let _ = ImageRepository::guardar_avatar(conn, legajo as i64, &blob, &mime);
+                }
+
+                templates::response_mensaje_exito(
+                    "Cuenta registrada",
+                    "Su cuenta fue registrada y habilitada, ya puede iniciar sesión.",
+                )
+            }
             Err(e) => templates::response_mensaje_error("No se pudo completar el registro", &e),
         }
     }

@@ -15,6 +15,7 @@
         <form hx-post="/registro" 
               hx-target="#resultado-alta" 
               hx-swap="innerHTML scroll:#resultado-alta:bottom" 
+              hx-encoding="multipart/form-data"
               class="auth-form">
               
             <div class="field-row">
@@ -39,12 +40,10 @@
                         type="text" 
                         id="legajo" 
                         name="legajo" 
-                        placeholder="Ej.: 108762"
+                        placeholder="Ej.: 110773"
                         inputmode="numeric" 
                         pattern="[0-9]*" 
                         required
-                        oninvalid="this.setCustomValidity('El legajo debe contener únicamente números y ser válido.')"
-                        oninput="this.setCustomValidity('')"
                     >
                 </div>
             </div>
@@ -52,6 +51,17 @@
             <div class="field-row">
                 {% include "partials/campo_password.html" %}
                 {% include "partials/campo_password_confirm.html" %}
+            </div>
+
+            <div class="field field-avatar">
+                <span class="field-label" style="text-align: center;">Foto de perfil (Opcional)</span>
+                <input 
+                    id="avatar" 
+                    type="file" 
+                    name="avatar" 
+                    accept="image/png, image/jpeg"
+                    onchange="validarDimensionesAvatar(this)"
+                >
             </div>
               
             <button type="submit" class="btn-primary">Crear cuenta</button>
@@ -65,6 +75,29 @@
         </footer>
     </section>
 </main>
+
+<script>
+function validarDimensionesAvatar(input) {
+    const archivo = input.files[0];
+    if (!archivo) {
+        input.setCustomValidity("");
+        return;
+    }
+
+    const img = new Image();
+    img.src = URL.createObjectURL(archivo);
+
+    img.onload = function() {
+        if (img.width !== img.height) {
+            input.setCustomValidity("La imagen debe ser perfectamente cuadrada (Ej.: 400x400px).");
+            input.reportValidity(); 
+            input.value = ""; 
+        } else {
+            input.setCustomValidity(""); 
+        }
+    };
+}
+</script>
 
 {% include "partials/script_validacion_password.html" %}
 {% endblock %}

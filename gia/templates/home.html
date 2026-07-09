@@ -3,75 +3,132 @@
 {% block title %}Inicio{% endblock %}
 
 {% block content %}
-<div class="logout-wrapper">
-    <a href="/perfil" class="profile-link">
-        <img src="/imagenes/avatares/{{ usuario_actual.legajo }}"
-            alt="Avatar"
-            class="profile-avatar"
-            onerror="this.onerror=null; this.src='/static/img/avatardefault.avif';">
-        <span class="profile-name">{{ usuario_actual.nombre }}</span>
-    </a>
-</div>
-
-<div class="home-container">
-    <div class="home-brand-wrapper">
-        <h1 style="margin: 0;">
-            <img src="/static/img/logo_gia_transparente.png" alt="GIA" class="home-logo">
-        </h1>
+<nav class="main-navbar">
+    <div class="darkmode-switch-wrapper" title="Cambiar tema visual">
+        <span class="switch-icon">☀️</span>
+        <label class="theme-switch" for="checkbox-theme">
+            <input type="checkbox" id="checkbox-theme" onclick="toggleDarkMode()">
+            <div class="slider round"></div>
+        </label>
+        <span class="switch-icon">🌙</span>
     </div>
-    <p class="home-subtitle">Gestión de Instrumental de Agrimensura</p>
+
+    <div class="nav-brand">
+        <img src="/static/img/logo_gia_transparente.png" alt="GIA" class="nav-logo-large">
+    </div>
     
-    <h3 style="margin-bottom: 30px; color: var(--color-muted);">¡Hola, {{ usuario_actual.nombre }}! ¿Qué querés hacer hoy?</h3>
-
-    <div class="grid-menu">
-        <a href="/modelo" class="menu-card">
-            <div class="menu-icon">🗂️</div>
-            <div class="menu-title">Catálogo</div>
-            <div class="menu-desc">Explorá todos los modelos de instrumentos disponibles.</div>
-        </a>
-
-        <a href="/reservas" class="menu-card">
-            <div class="menu-icon">📅</div>
-            <div class="menu-title">Reservar Equipos</div>
-            <div class="menu-desc">Consultá disponibilidad y solicitá instrumental para tus clases.</div>
-        </a>
-        
-        <a href="/mis-reservas" class="menu-card"> 
-            <div class="menu-icon">📋</div>
-            <div class="menu-title">Mis Reservas</div>
-            <div class="menu-desc">Revisá el estado de tus solicitudes o cancelalas.</div>
+    <div class="nav-user-zone">
+        <a href="/perfil" class="profile-action-card" title="Editar mi perfil">
+            <div class="profile-info-text">
+                <span class="profile-welcome">Hola, <strong>{{ usuario_actual.nombre }}</strong></span>
+                <span class="profile-role">{% if usuario_actual.tipo == "A" %}Administrador{% else %}Docente{% endif %}</span>
+            </div>
+            <div class="avatar-container">
+                <img src="/imagenes/avatares/{{ usuario_actual.legajo }}"
+                     alt="Avatar"
+                     class="profile-avatar"
+                     onerror="this.onerror=null; this.src='/static/img/avatardefault.avif';">
+                <span class="badge-edit-gear">⚙️</span>
+            </div>
         </a>
     </div>
+</nav>
 
-    {% if usuario_actual.tipo == "A" %}
-    <div class="admin-section">
-        <h2 class="admin-header">⚙️ Panel de Administración</h2>
-        <div class="grid-menu">
-            <a href="/admin/dashboard" class="menu-card admin">
-                <div class="menu-icon">🔔</div>
-                <div class="menu-title">Dashboard</div>
-                <div class="menu-desc">Aprobá o rechazá solicitudes y gestioná usuarios.</div>
+<main class="home-dashboard-container">
+    <header class="dashboard-welcome">
+        <h2>Gestión de Instrumental de Agrimensura</h2>
+    </header>
+
+    <section class="dashboard-group">
+        <h3 class="group-title">📋 Menú de Usuario</h3>
+        <div class="grid-menu-optimized grid-docente">
+            <a href="/modelo" class="menu-card-flat brand-edge">
+                <span class="card-flat-icon">🗂️</span>
+                <div class="card-flat-content">
+                    <h4>Catálogo</h4>
+                    <p>Mirá todo el instrumental del Departamento</p>
+                </div>
+            </a>
+
+            <a href="/reservas" class="menu-card-flat brand-edge">
+                <span class="card-flat-icon">📅</span>
+                <div class="card-flat-content">
+                    <h4>Reservar Instrumental</h4>
+                    <p>Realizá reservas</p>
+                </div>
             </a>
             
-            <a href="/modelo/registro" class="menu-card admin">
-                <div class="menu-icon">📦</div>
-                <div class="menu-title">Nuevo Modelo</div>
-                <div class="menu-desc">Agregá nuevos equipos al catálogo general.</div>
-            </a>
-            
-            <a href="/ejemplar/registro" class="menu-card admin">
-                <div class="menu-icon">🏷️</div>
-                <div class="menu-title">Nuevo Ejemplar</div>
-                <div class="menu-desc">Registrá unidades físicas de un modelo existente.</div>
-            </a>
-            
-            <a href="/admin/historial-reservas" class="menu-card admin">
-                <div class="menu-icon">📚</div>
-                <div class="menu-title">Historial de Reservas</div>
-                <div class="menu-desc">Consultá todas las reservas realizadas en el sistema.</div>
+            <a href="/mis-reservas" class="menu-card-flat brand-edge"> 
+                <span class="card-flat-icon">📋</span>
+                <div class="card-flat-content">
+                    <h4>Mis Reservas</h4>
+                    <p>Revisá todas tus solicitudes de reserva</p>
+                </div>
             </a>
         </div>
-    </div>
+    </section>
+
+    {% if usuario_actual.tipo == "A" %}
+    <section class="dashboard-group admin-group-wrapper">
+        <h3 class="group-title title-admin">⚙️ Panel de Control de Administrador</h3>
+        <div class="grid-menu-optimized grid-admin">
+            <a href="/admin/dashboard" class="menu-card-flat admin-edge">
+                <span class="card-flat-icon">🔔</span>
+                <div class="card-flat-content">
+                    <h4>Dashboard</h4>
+                    <p>Gestioná solicitudes y roles de usuario</p>
+                </div>
+            </a>
+            
+            <a href="/modelo/registro" class="menu-card-flat admin-edge">
+                <span class="card-flat-icon">📦</span>
+                <div class="card-flat-content">
+                    <h4>Nuevo Modelo</h4>
+                    <p>Agregá nuevos modelos al catálogo</p>
+                </div>
+            </a>
+            
+            <a href="/ejemplar/registro" class="menu-card-flat admin-edge">
+                <span class="card-flat-icon">🏷️</span>
+                <div class="card-flat-content">
+                    <h4>Nuevo Ejemplar</h4>
+                    <p>Registrá unidades físicas de los modelos</p>
+                </div>
+            </a>
+            
+            <a href="/admin/historial-reservas" class="menu-card-flat admin-edge">
+                <span class="card-flat-icon">📚</span>
+                <div class="card-flat-content">
+                    <h4>Historial de Reservas</h4>
+                    <p>Consultá todas las solicitudes de reserva históricas del sistema</p>
+                </div>
+            </a>
+        </div>
+    </section>
     {% endif %}
-</div>
+</main>
+
+<script>
+    function toggleDarkMode() {
+        const isChecked = document.getElementById('checkbox-theme').checked;
+        if (isChecked) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            document.documentElement.setAttribute('data-theme', 'light');
+            localStorage.setItem('theme', 'light');
+        }
+    }
+
+    (function() {
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        if (currentTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            const cb = document.getElementById('checkbox-theme');
+            if (cb) cb.checked = true;
+        }
+    })();
+</script>
+
+{% include "partials/footer_institucional.html" %}
 {% endblock %}
