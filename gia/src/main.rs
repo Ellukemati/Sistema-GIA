@@ -1,6 +1,7 @@
 use dotenvy::dotenv;
 use gia::{db, server};
 use std::env;
+pub mod logger;
 
 fn main() {
     dotenv().ok();
@@ -11,15 +12,19 @@ fn main() {
 
     let _conn = match db::init_db(&db_path) {
         Ok(c) => {
-            println!("✓ Base de datos inicializada correctamente en: {}", db_path);
+            crate::logger::info(&format!(
+                "Base de datos inicializada correctamente en: {}",
+                db_path
+            ));
             c
         }
         Err(e) => {
-            eprintln!("✗ Error al inicializar la base de datos: {}", e);
+            crate::logger::error(&format!("Error al inicializar la base de datos: {}", e));
             return;
         }
     };
 
+    crate::logger::info(&format!("Servidor GIA escuchando en: {}", address));
     let server = server::Server::new(&address, _conn);
     server.run();
 }
