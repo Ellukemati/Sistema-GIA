@@ -115,7 +115,7 @@ impl EjemplarService {
         Ok(ejemplar)
     }
 
-    /// Elimina (soft-delete) un ejemplar marcandolo como `eliminado`.
+    /// Elimina un ejemplar marcandolo como `eliminado`.
     /// Falla si el ejemplar no existe, si ya fue eliminado, o si tiene una
     /// reserva activa o pendiente.
     pub fn eliminar_ejemplar(conn: &Connection, id: i64) -> Result<(), String> {

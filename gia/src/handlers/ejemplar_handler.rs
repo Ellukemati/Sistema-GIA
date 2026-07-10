@@ -250,6 +250,20 @@ impl EjemplarHandler {
         }
     }
 
+    pub fn procesar_eliminacion(request: &Request, conn: &Connection, id: i64) -> Response {
+        if let Err(response) = Self::verificar_admin(request, conn) {
+            return response;
+        }
+
+        match EjemplarService::eliminar_ejemplar(conn, id) {
+            Ok(()) => templates::response_mensaje_exito(
+                "Ejemplar eliminado",
+                "El ejemplar fue eliminado correctamente.",
+            ),
+            Err(e) => templates::response_mensaje_error("No se pudo eliminar el ejemplar", &e),
+        }
+    }
+
     fn verificar_admin(request: &Request, conn: &Connection) -> Result<(), Response> {
         let usuario = usuario_actual(request, conn)?;
         if !usuario.es_admin() {
