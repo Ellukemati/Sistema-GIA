@@ -524,7 +524,8 @@ mod tests {
                 observaciones TEXT,
                 accesorios TEXT,
                 esta_disponible BOOLEAN DEFAULT TRUE,
-                ubicacion TEXT
+                ubicacion TEXT,
+                eliminado BOOLEAN NOT NULL DEFAULT 0
             )",
             [],
         )
@@ -561,6 +562,7 @@ mod tests {
             accesorios: None,
             esta_disponible: true,
             ubicacion: ubicacion.map(String::from),
+            eliminado: false,
         };
         EjemplarRepository::crear(conn, &ejemplar).unwrap()
     }
