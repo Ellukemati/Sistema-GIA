@@ -69,6 +69,7 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
             accesorios TEXT,
             esta_disponible BOOLEAN DEFAULT TRUE,
             ubicacion TEXT,
+            eliminado BOOLEAN NOT NULL DEFAULT 0,
             FOREIGN KEY (modelo_id) REFERENCES modelos(id) ON DELETE RESTRICT
         )",
         [],
