@@ -256,11 +256,20 @@ impl EjemplarHandler {
         }
 
         match EjemplarService::eliminar_ejemplar(conn, id) {
-            Ok(()) => templates::response_mensaje_exito(
-                "Ejemplar eliminado",
-                "El ejemplar fue eliminado correctamente.",
-            ),
-            Err(e) => templates::response_mensaje_error("No se pudo eliminar el ejemplar", &e),
+            Ok(()) => {
+                let mut ctx = Context::new();
+                ctx.insert("titulo", "Ejemplar eliminado");
+                ctx.insert("mensaje", "El ejemplar fue eliminado correctamente.");
+                ctx.insert("exito", &true);
+                templates::response_html(templates::render("ejemplar_eliminado.html", &ctx))
+            }
+            Err(e) => {
+                let mut ctx = Context::new();
+                ctx.insert("titulo", "No se pudo eliminar el ejemplar");
+                ctx.insert("mensaje", &e);
+                ctx.insert("exito", &false);
+                templates::response_html(templates::render("ejemplar_eliminado.html", &ctx))
+            }
         }
     }
 
