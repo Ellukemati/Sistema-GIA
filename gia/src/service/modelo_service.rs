@@ -59,6 +59,7 @@ impl ModeloService {
                 nombre_modelo: data.nombre_modelo,
                 categoria: data.categoria,
                 descripcion: data.descripcion,
+                eliminado: false,
             }),
             Err(e) => Err(format!(
                 "Error en la base de datos al actualizar modelo: {}",
@@ -78,6 +79,7 @@ impl ModeloService {
             nombre_modelo: data.nombre_modelo,
             categoria: data.categoria,
             descripcion: data.descripcion,
+            eliminado: false,
         };
 
         match ModeloRepository::crear(conn, &modelo_temporal) {
@@ -87,6 +89,32 @@ impl ModeloService {
             }),
             Err(e) => Err(format!("Error en la base de datos al crear modelo: {}", e)),
         }
+    }
+
+    /// Elimina un modelo marcandolo como `eliminado`.
+    /// Falla si el modelo no existe, si ya fue eliminado, o si tiene ejemplares
+    /// vinculados que no fueron eliminados.
+    pub fn eliminar_modelo(conn: &Connection, id: i64) -> Result<(), String> {
+        let modelo = ModeloRepository::buscar_por_id(conn, id)
+            .map_err(|e| format!("Error al buscar el modelo: {}", e))?
+            .ok_or_else(|| "El modelo no existe.".to_string())?;
+
+        if modelo.eliminado {
+            return Err("El modelo ya fue eliminado.".to_string());
+        }
+
+        if EjemplarRepository::tiene_ejemplares_activos(conn, id)
+            .map_err(|e| format!("Error al verificar ejemplares: {}", e))?
+        {
+            return Err(
+                "No se puede eliminar: el modelo tiene ejemplares vinculados.".to_string(),
+            );
+        }
+
+        ModeloRepository::marcar_eliminado(conn, id)
+            .map_err(|e| format!("Error en la base de datos al eliminar modelo: {}", e))?;
+
+        Ok(())
     }
 
     /// Construye un `ModeloCardDTO` a partir de un `Modelo`, resolviendo la URL
@@ -220,7 +248,8 @@ mod tests {
                 categoria TEXT,
                 descripcion TEXT,
                 manual_blob BLOB,
-                manual_mime TEXT
+                manual_mime TEXT,
+                eliminado BOOLEAN NOT NULL DEFAULT 0
             )",
             [],
         )
@@ -236,7 +265,33 @@ mod tests {
             [],
         )
         .unwrap();
+        conn.execute(
+            "CREATE TABLE ejemplares (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                modelo_id INTEGER NOT NULL,
+                numero_serie TEXT UNIQUE,
+                codigo_qr TEXT UNIQUE,
+                patrimonio TEXT UNIQUE,
+                observaciones TEXT,
+                accesorios TEXT,
+                esta_disponible BOOLEAN DEFAULT TRUE,
+                ubicacion TEXT,
+                eliminado BOOLEAN NOT NULL DEFAULT 0
+            )",
+            [],
+        )
+        .unwrap();
         conn
+    }
+
+    fn insertar_ejemplar(conn: &Connection, modelo_id: i64, eliminado: bool) -> i64 {
+        conn.execute(
+            "INSERT INTO ejemplares (modelo_id, esta_disponible, eliminado)
+             VALUES (?1, 1, ?2)",
+            rusqlite::params![modelo_id, eliminado as i32],
+        )
+        .unwrap();
+        conn.last_insert_rowid()
     }
 
     fn insertar_modelo(conn: &Connection, nombre: &str, categoria: Option<&str>) -> i64 {
@@ -246,6 +301,7 @@ mod tests {
             nombre_modelo: nombre.into(),
             categoria: categoria.map(String::from),
             descripcion: None,
+            eliminado: false,
         };
         ModeloRepository::crear(conn, &modelo).unwrap()
     }
@@ -257,6 +313,7 @@ mod tests {
             nombre_modelo: "Modelo X".into(),
             categoria: Some("Cuerdas".into()),
             descripcion: None,
+            eliminado: false,
         }
     }
 
@@ -418,5 +475,66 @@ mod tests {
 
         assert_eq!(cards.len(), 1);
         assert!(cards[0].categoria.is_none());
+    }
+
+    #[test]
+    fn eliminar_modelo_sin_ejemplares_lo_marca_eliminado() {
+        let conn = crear_db_test();
+        let id = insertar_modelo(&conn, "Violín", Some("Cuerdas"));
+
+        ModeloService::eliminar_modelo(&conn, id).unwrap();
+
+        let modelo = ModeloRepository::buscar_por_id(&conn, id).unwrap().unwrap();
+        assert!(modelo.eliminado);
+    }
+
+    #[test]
+    fn eliminar_modelo_inexistente_falla() {
+        let conn = crear_db_test();
+
+        assert!(ModeloService::eliminar_modelo(&conn, 999).is_err());
+    }
+
+    #[test]
+    fn eliminar_modelo_ya_eliminado_falla() {
+        let conn = crear_db_test();
+        let id = insertar_modelo(&conn, "Violín", Some("Cuerdas"));
+        ModeloService::eliminar_modelo(&conn, id).unwrap();
+
+        assert!(ModeloService::eliminar_modelo(&conn, id).is_err());
+    }
+
+    #[test]
+    fn eliminar_modelo_con_ejemplar_activo_falla() {
+        let conn = crear_db_test();
+        let id = insertar_modelo(&conn, "Violín", Some("Cuerdas"));
+        insertar_ejemplar(&conn, id, false);
+
+        assert!(ModeloService::eliminar_modelo(&conn, id).is_err());
+    }
+
+    #[test]
+    fn eliminar_modelo_permite_si_ejemplares_ya_eliminados() {
+        let conn = crear_db_test();
+        let id = insertar_modelo(&conn, "Violín", Some("Cuerdas"));
+        insertar_ejemplar(&conn, id, true);
+
+        ModeloService::eliminar_modelo(&conn, id).unwrap();
+
+        let modelo = ModeloRepository::buscar_por_id(&conn, id).unwrap().unwrap();
+        assert!(modelo.eliminado);
+    }
+
+    #[test]
+    fn listar_cards_no_incluye_modelos_eliminados() {
+        let conn = crear_db_test();
+        insertar_modelo(&conn, "Viola", Some("Cuerdas"));
+        let id_eliminado = insertar_modelo(&conn, "Violín", Some("Cuerdas"));
+        ModeloService::eliminar_modelo(&conn, id_eliminado).unwrap();
+
+        let cards = ModeloService::listar_cards(&conn).unwrap();
+
+        assert_eq!(cards.len(), 1);
+        assert_eq!(cards[0].nombre_modelo, "Viola");
     }
 }
