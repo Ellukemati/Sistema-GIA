@@ -1,62 +1,59 @@
 <tbody>
-{% for r in reservas %}
-<tr>
+    {% for r in reservas %}
+    <tr>
 
-    <td>
-        <strong>Reserva #{{ r.id }}</strong><br>
-        <small style="color: #666;">Creada: {{ r.creada }}</small>
-    </td>
+        <td>
+            <strong>Reserva #{{ r.id }}</strong><br>
+            <small style="color: #666;">Creada: {{ r.creada }}</small>
+        </td>
 
-    <td>
-        {{ r.fecha_inicio }}<br>al<br>{{ r.fecha_fin }}<br>
-        <div class="badge">⏱ {{ r.dias }} día(s)</div>
-    </td>
+        <td>
+            {{ r.fecha_inicio }}<br>al<br>{{ r.fecha_fin }}<br>
+            <div class="badge">⏱ {{ r.dias }} día(s)</div>
+        </td>
 
-    <td>
-        <span class="{{ r.clase_estado }}">
-            {{ r.texto_estado }}
-        </span>
-    </td>
+        <td>
+            <span class="{{ r.clase_estado }}">
+                {{ r.texto_estado }}
+            </span>
+        </td>
 
-    <td>
-        {{ r.motivo }}
-    </td>
+        <td>
+            {{ r.motivo }}
+        </td>
 
-    <td>
-        {{ r.equipos | length }} equipo(s)
+        <td>
+            {{ r.equipos | length }} equipo(s)
 
-        <details class="equipos-dropdown">
-            <summary>Ver detalles</summary>
-            <ul class="equipos-lista">
-                {% for e in r.equipos %}
+            <details class="equipos-dropdown">
+                <summary>Ver detalles</summary>
+                <ul class="equipos-lista">
+                    {% for e in r.equipos %}
                     <li>{{ e }}</li>
-                {% endfor %}
-            </ul>
-        </details>
-    </td>
+                    {% endfor %}
+                </ul>
+            </details>
+        </td>
 
-    <td>
-        <div style="display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap;">
-            {% if r.estado == "pendiente" %}
-                <button 
-                    hx-post="/mis-reservas/cancelar/{{ r.id }}" 
-                    hx-target="body" 
-                    hx-swap="innerHTML"
+        <td>
+            <div style="display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap;">
+                {% if r.estado == "pendiente" %}
+                <button hx-post="/mis-reservas/cancelar/{{ r.id }}" hx-target="body" hx-swap="innerHTML"
                     class="btn-cancelar">
                     Cancelar
                 </button>
-            {% elif r.estado == "activa" or r.estado == "concluida" %}
+                {% elif r.estado == "activa" or r.estado == "concluida" %}
                 <a href="/mis-reservas/comprobante/{{ r.id }}" target="_blank" class="btn-pdf">
                     📄 Descargar Comprobante
                 </a>
-            {% else %}
+                {% else %}
                 <span class="{{ r.clase_estado }}">
                     {{ r.texto_estado }}
                 </span>
-            {% endif %}
-        </div>
-    </td>
+                {% endif %}
+            </div>
+        </td>
 
-</tr>
-{% endfor %}
+    </tr>
+    {% endfor %}
 </tbody>

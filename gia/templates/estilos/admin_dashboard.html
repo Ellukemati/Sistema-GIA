@@ -1,8 +1,19 @@
 <style>
-    body { font-family: Arial, sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; }
-    
-    .dashboard-container { display: flex; flex-direction: column; gap: 20px; max-width: 1200px; margin: auto; }
-    
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f0f2f5;
+        margin: 0;
+        padding: 20px;
+    }
+
+    .dashboard-container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        max-width: 1200px;
+        margin: auto;
+    }
+
     .tabs-header {
         display: flex;
         gap: 10px;
@@ -40,7 +51,7 @@
         display: none;
         background: white;
         border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         padding: 20px;
     }
 
@@ -48,16 +59,66 @@
         display: block;
     }
 
-    table { width: 100%; border-collapse: collapse; margin-top: 5px; }
-    th, td { border-bottom: 1px solid #ddd; padding: 12px; text-align: left; vertical-align: middle; }
-    th { background-color: #f8f9fa; }
-    
-    .btn-aprobar { background-color: #28a745; color: white; border: none; padding: 8px 12px; cursor: pointer; border-radius: 4px; transition: 0.2s; }
-    .btn-rechazar { background-color: #dc3545; color: white; border: none; padding: 8px 12px; cursor: pointer; border-radius: 4px; transition: 0.2s; }
-    .btn-previsualizar { background-color: #6c757d; color: white; border: none; padding: 8px 12px; cursor: pointer; border-radius: 4px; margin-right: 5px; transition: 0.2s; }
-    .btn-aprobar:hover { background-color: #218838; }
-    .btn-rechazar:hover { background-color: #c82333; }
-    .btn-previsualizar:hover { background-color: #5a6268; }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 5px;
+    }
+
+    th,
+    td {
+        border-bottom: 1px solid #ddd;
+        padding: 12px;
+        text-align: left;
+        vertical-align: middle;
+    }
+
+    th {
+        background-color: #f8f9fa;
+    }
+
+    .btn-aprobar {
+        background-color: #28a745;
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: 0.2s;
+    }
+
+    .btn-rechazar {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: 0.2s;
+    }
+
+    .btn-previsualizar {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        cursor: pointer;
+        border-radius: 4px;
+        margin-right: 5px;
+        transition: 0.2s;
+    }
+
+    .btn-aprobar:hover {
+        background-color: #218838;
+    }
+
+    .btn-rechazar:hover {
+        background-color: #c82333;
+    }
+
+    .btn-previsualizar:hover {
+        background-color: #5a6268;
+    }
 
     .table-responsive {
         width: 100%;
@@ -67,7 +128,7 @@
 
     @media (max-width: 768px) {
         body {
-            padding: 10px; 
+            padding: 10px;
         }
 
         .tabs-header {
@@ -102,7 +163,7 @@
             border-radius: 12px;
             margin-bottom: 20px;
             padding: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
         }
 
         .table-responsive td {
@@ -138,8 +199,10 @@
         .table-responsive td.td-acciones::before {
             display: none;
         }
-        
-        .btn-aprobar, .btn-rechazar, .btn-previsualizar {
+
+        .btn-aprobar,
+        .btn-rechazar,
+        .btn-previsualizar {
             padding: 10px 15px;
             margin: 5px 2px;
             font-size: 1rem;

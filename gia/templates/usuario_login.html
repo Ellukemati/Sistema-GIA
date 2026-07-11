@@ -15,7 +15,8 @@
         <form class="auth-form" hx-post="/ingreso" hx-target="#resultado" hx-swap="innerHTML scroll:#resultado:top">
             <div class="field">
                 <label for="email">Email</label>
-                <input id="email" type="email" name="email" placeholder="usuario@fi.uba.ar" autocomplete="email" required>
+                <input id="email" type="email" name="email" placeholder="usuario@fi.uba.ar" autocomplete="email"
+                    required>
             </div>
 
             {% set password_autocomplete = "current-password" %}
@@ -29,7 +30,8 @@
             {% include "partials/resultado.html" %}
         </div>
 
-        <footer class="auth-footer" style="text-align: center; margin-top: 15px; display: flex; flex-direction: column; gap: var(--spacing-xs);">
+        <footer class="auth-footer"
+            style="text-align: center; margin-top: 15px; display: flex; flex-direction: column; gap: var(--spacing-xs);">
             <p style="margin: 0;">¿No tenés cuenta? <a href="/registro">Registrate</a></p>
             <p style="margin: 0; font-size: 1em;"><a href="/" class="back-link">Volver al portal de bienvenida</a></p>
         </footer>

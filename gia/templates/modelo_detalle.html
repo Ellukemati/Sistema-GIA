@@ -20,7 +20,8 @@
 
             <div class="detalle-meta">
                 <span class="detalle-badge"><span>Marca:</span> {{ modelo.marca }}</span>
-                <span class="detalle-badge"><span>Categoría:</span> {{ modelo.categoria | default(value='Sin categoría') }}</span>
+                <span class="detalle-badge"><span>Categoría:</span> {{ modelo.categoria | default(value='Sin categoría')
+                    }}</span>
             </div>
 
             <p class="detalle-descripcion-label">Descripción</p>
@@ -35,7 +36,8 @@
                 {% if tiene_manual %}
                 <a class="btn-manual" href="/manuales/{{ modelo.id }}">Manual</a>
                 {% else %}
-                <span class="btn-manual btn-manual--disabled" aria-disabled="true" title="Este modelo no tiene un manual cargado">Manual</span>
+                <span class="btn-manual btn-manual--disabled" aria-disabled="true"
+                    title="Este modelo no tiene un manual cargado">Manual</span>
                 {% endif %}
             </div>
         </div>

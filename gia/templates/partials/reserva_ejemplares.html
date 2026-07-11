@@ -7,17 +7,16 @@
         <div class="ejemplar-label">
             <label class="ejemplar-datos-wrapper">
                 {% if con_fechas %}
-                <input type="checkbox" name="ejemplar_id" value="{{ e.id }}"
-                       {% if e.en_carrito %}checked{% endif %}
-                       {% if not e.disponible %}disabled{% endif %}>
+                <input type="checkbox" name="ejemplar_id" value="{{ e.id }}" {% if e.en_carrito %}checked{% endif %} {%
+                    if not e.disponible %}disabled{% endif %}>
                 {% endif %}
                 <div class="ejemplar-media">
                     {% if e.imagen %}
-                    <button type="button" class="ejemplar-img-btn"
-                            data-imagen="{{ e.imagen }}"
-                            data-alt="Ejemplar {{ e.numero_serie }}"
-                            aria-label="Ver imagen ampliada del ejemplar {{ e.numero_serie }}">
-                        <img class="ejemplar-img" src="{{ e.imagen }}" alt="Ejemplar {{ e.numero_serie }}" loading="lazy">
+                    <button type="button" class="ejemplar-img-btn" data-imagen="{{ e.imagen }}"
+                        data-alt="Ejemplar {{ e.numero_serie }}"
+                        aria-label="Ver imagen ampliada del ejemplar {{ e.numero_serie }}">
+                        <img class="ejemplar-img" src="{{ e.imagen }}" alt="Ejemplar {{ e.numero_serie }}"
+                            loading="lazy">
                     </button>
                     {% else %}
                     <div class="ejemplar-sin-imagen">Sin imagen</div>
@@ -49,7 +48,7 @@
             <div class="ejemplar-acciones">
                 {% if e.tiene_reserva_bloqueante %}
                 <span class="btn-manual btn-manual--disabled" aria-disabled="true"
-                      title="No editable: reserva activa o pendiente">Editar</span>
+                    title="No editable: reserva activa o pendiente">Editar</span>
                 {% else %}
                 <a class="btn-manual" href="/ejemplar/{{ e.id }}/editar">Editar</a>
                 {% endif %}

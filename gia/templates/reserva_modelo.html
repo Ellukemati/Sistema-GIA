@@ -18,7 +18,8 @@
 
             <div class="detalle-meta">
                 <span class="detalle-badge"><span>Marca:</span> {{ modelo.marca }}</span>
-                <span class="detalle-badge"><span>Categoría:</span> {{ modelo.categoria | default(value='Sin categoría') }}</span>
+                <span class="detalle-badge"><span>Categoría:</span> {{ modelo.categoria | default(value='Sin categoría')
+                    }}</span>
             </div>
 
             <p class="detalle-descripcion-label">Descripción</p>
@@ -30,13 +31,15 @@
                 {% if tiene_manual %}
                 <a class="btn-manual" href="/manuales/{{ modelo.id }}">Manual</a>
                 {% else %}
-                <span class="btn-manual btn-manual--disabled" aria-disabled="true" title="Este modelo no tiene un manual cargado">Manual</span>
+                <span class="btn-manual btn-manual--disabled" aria-disabled="true"
+                    title="Este modelo no tiene un manual cargado">Manual</span>
                 {% endif %}
             </div>
         </div>
     </article>
 
-    <section class="ejemplares-seccion" style="background: white; padding: var(--spacing-lg); border-radius: var(--radius-md); border: 1px solid var(--color-border); box-shadow: var(--shadow-soft);">
+    <section class="ejemplares-seccion"
+        style="background: white; padding: var(--spacing-lg); border-radius: var(--radius-md); border: 1px solid var(--color-border); box-shadow: var(--shadow-soft);">
         {% if con_fechas %}
         <h2 class="ejemplares-titulo">Ejemplares disponibles</h2>
         <p class="ejemplares-fechas">
@@ -49,9 +52,11 @@
 
             {% include "partials/reserva_ejemplares.html" %}
 
-            <div class="ejemplares-acciones" style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+            <div class="ejemplares-acciones"
+                style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
                 <a class="btn-volver" href="/reservas" style="margin-bottom: 0;">&larr; Volver a modelos</a>
-                <button type="submit" class="btn-primary" style="width: auto; min-height: auto; padding: 10px 20px;">Agregar a la reserva</button>
+                <button type="submit" class="btn-primary"
+                    style="width: auto; min-height: auto; padding: 10px 20px;">Agregar a la reserva</button>
             </div>
         </form>
         {% else %}

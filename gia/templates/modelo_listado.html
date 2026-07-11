@@ -5,7 +5,7 @@
 {% block content %}
 <main class="catalogo-page">
     <a href="/inicio" class="btn-volver">⬅ Volver al inicio</a>
-    
+
     <header class="catalogo-header">
         <div class="auth-brand">
             <img src="/static/img/logo_gia_transparente.png" alt="GIA" class="auth-logo">
@@ -17,25 +17,27 @@
     {% if grupos | length == 0 %}
     <p class="catalogo-vacio">No hay modelos cargados.</p>
     {% else %}
-        {% for grupo in grupos %}
-        <section class="categoria-seccion">
-            <h2 class="categoria-titulo">{{ grupo.categoria }}</h2>
-            <div class="grid-menu">
-                {% for m in grupo.modelos %}
-                <a class="menu-card" href="/modelo/{{ m.id }}">
-                    <div class="modelo-card-media" style="width: 100%; height: 160px; margin-bottom: 15px; border-radius: var(--radius-sm); overflow: hidden;">
-                        {% if m.imagen %}
-                        <img src="{{ m.imagen }}" alt="{{ m.nombre_modelo }}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover;">
-                        {% else %}
-                        <div class="modelo-card-sin-imagen">Sin imagen</div>
-                        {% endif %}
-                    </div>
-                    <p class="menu-title" style="margin: 0; font-size: 1.1rem;">{{ m.nombre_modelo }}</p>
-                </a>
-                {% endfor %}
-            </div>
-        </section>
-        {% endfor %}
+    {% for grupo in grupos %}
+    <section class="categoria-seccion">
+        <h2 class="categoria-titulo">{{ grupo.categoria }}</h2>
+        <div class="grid-menu">
+            {% for m in grupo.modelos %}
+            <a class="menu-card" href="/modelo/{{ m.id }}">
+                <div class="modelo-card-media"
+                    style="width: 100%; height: 160px; margin-bottom: 15px; border-radius: var(--radius-sm); overflow: hidden;">
+                    {% if m.imagen %}
+                    <img src="{{ m.imagen }}" alt="{{ m.nombre_modelo }}" loading="lazy"
+                        style="width: 100%; height: 100%; object-fit: cover;">
+                    {% else %}
+                    <div class="modelo-card-sin-imagen">Sin imagen</div>
+                    {% endif %}
+                </div>
+                <p class="menu-title" style="margin: 0; font-size: 1.1rem;">{{ m.nombre_modelo }}</p>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endfor %}
     {% endif %}
 </main>
 {% endblock %}

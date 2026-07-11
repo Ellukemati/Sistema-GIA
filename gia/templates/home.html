@@ -16,18 +16,17 @@
     <div class="nav-brand">
         <img src="/static/img/logo_gia_transparente.png" alt="GIA" class="nav-logo-large">
     </div>
-    
+
     <div class="nav-user-zone">
         <a href="/perfil" class="profile-action-card" title="Editar mi perfil">
             <div class="profile-info-text">
                 <span class="profile-welcome">Hola, <strong>{{ usuario_actual.nombre }}</strong></span>
-                <span class="profile-role">{% if usuario_actual.tipo == "A" %}Administrador{% else %}Docente{% endif %}</span>
+                <span class="profile-role">{% if usuario_actual.tipo == "A" %}Administrador{% else %}Docente{% endif
+                    %}</span>
             </div>
             <div class="avatar-container">
-                <img src="/imagenes/avatares/{{ usuario_actual.legajo }}"
-                     alt="Avatar"
-                     class="profile-avatar"
-                     onerror="this.onerror=null; this.src='/static/img/avatardefault.avif';">
+                <img src="/imagenes/avatares/{{ usuario_actual.legajo }}" alt="Avatar" class="profile-avatar"
+                    onerror="this.onerror=null; this.src='/static/img/avatardefault.avif';">
                 <span class="badge-edit-gear">⚙️</span>
             </div>
         </a>
@@ -57,8 +56,8 @@
                     <p>Realizá reservas</p>
                 </div>
             </a>
-            
-            <a href="/mis-reservas" class="menu-card-flat brand-edge"> 
+
+            <a href="/mis-reservas" class="menu-card-flat brand-edge">
                 <span class="card-flat-icon">📋</span>
                 <div class="card-flat-content">
                     <h4>Mis Reservas</h4>
@@ -79,7 +78,7 @@
                     <p>Gestioná solicitudes y roles de usuario</p>
                 </div>
             </a>
-            
+
             <a href="/modelo/registro" class="menu-card-flat admin-edge">
                 <span class="card-flat-icon">📦</span>
                 <div class="card-flat-content">
@@ -87,7 +86,7 @@
                     <p>Agregá nuevos modelos al catálogo</p>
                 </div>
             </a>
-            
+
             <a href="/ejemplar/registro" class="menu-card-flat admin-edge">
                 <span class="card-flat-icon">🏷️</span>
                 <div class="card-flat-content">
@@ -95,7 +94,7 @@
                     <p>Registrá unidades físicas de los modelos</p>
                 </div>
             </a>
-            
+
             <a href="/admin/historial-reservas" class="menu-card-flat admin-edge">
                 <span class="card-flat-icon">📚</span>
                 <div class="card-flat-content">
@@ -120,7 +119,7 @@
         }
     }
 
-    (function() {
+    (function () {
         const currentTheme = localStorage.getItem('theme') || 'light';
         if (currentTheme === 'dark') {
             document.documentElement.setAttribute('data-theme', 'dark');

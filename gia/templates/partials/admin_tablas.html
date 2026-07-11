@@ -2,10 +2,14 @@
 
 <div class="tabs-container">
     <div class="tabs-header">
-        <button class="tab-btn {% if current_tab == '0' %}active{% endif %}" onclick="switchTab(0)">📋 Reservas Pendientes</button>
-        <button class="tab-btn {% if current_tab == '1' %}active{% endif %}" onclick="switchTab(1)">👨‍🏫 Docentes en Espera</button>
-        <button class="tab-btn {% if current_tab == '2' %}active{% endif %}" onclick="switchTab(2)">👑 Hacer Admin</button>
-        <button class="tab-btn {% if current_tab == '3' %}active{% endif %}" onclick="switchTab(3)">🔒 Quitar Admin</button>
+        <button class="tab-btn {% if current_tab == '0' %}active{% endif %}" onclick="switchTab(0)">📋 Reservas
+            Pendientes</button>
+        <button class="tab-btn {% if current_tab == '1' %}active{% endif %}" onclick="switchTab(1)">👨‍🏫 Docentes en
+            Espera</button>
+        <button class="tab-btn {% if current_tab == '2' %}active{% endif %}" onclick="switchTab(2)">👑 Hacer
+            Admin</button>
+        <button class="tab-btn {% if current_tab == '3' %}active{% endif %}" onclick="switchTab(3)">🔒 Quitar
+            Admin</button>
     </div>
 
     <div class="tab-content {% if current_tab == '0' %}active{% endif %}" id="tab-0">
@@ -31,27 +35,30 @@
                         <td data-label="Instrumental">
                             <ul style="margin: 0; padding-left: 0; list-style: none;">
                                 {% for cat in reserva.categorias %}
-                                    <li style="margin-bottom: 12px;">
-                                        <span style="font-weight: bold; color: #333; text-decoration: underline;">{{ cat.nombre_categoria }}</span>
-                                        
-                                        <ul style="margin: 5px 0 0 0; padding-left: 15px; list-style: none;">
-                                            {% for modelo in cat.modelos %}
-                                                <li style="margin-bottom: 8px;">
-                                                    <a href="/modelo/{{ modelo.modelo_id }}" style="text-decoration: none; font-weight: 600; color: #0091D5; display: inline-block;">
-                                                        🔹 {{ modelo.marca_modelo }}
-                                                    </a>
-                                                    
-                                                    <ul style="margin: 3px 0 0 0; padding-left: 35px; list-style-type: disc; color: #5a6a75; font-size: 0.95em;">
-                                                        {% for ej in modelo.ejemplares %}
-                                                            <li>
-                                                                {{ ej.identificador }}
-                                                            </li>
-                                                        {% endfor %}
-                                                    </ul>
+                                <li style="margin-bottom: 12px;">
+                                    <span style="font-weight: bold; color: #333; text-decoration: underline;">{{
+                                        cat.nombre_categoria }}</span>
+
+                                    <ul style="margin: 5px 0 0 0; padding-left: 15px; list-style: none;">
+                                        {% for modelo in cat.modelos %}
+                                        <li style="margin-bottom: 8px;">
+                                            <a href="/modelo/{{ modelo.modelo_id }}"
+                                                style="text-decoration: none; font-weight: 600; color: #0091D5; display: inline-block;">
+                                                🔹 {{ modelo.marca_modelo }}
+                                            </a>
+
+                                            <ul
+                                                style="margin: 3px 0 0 0; padding-left: 35px; list-style-type: disc; color: #5a6a75; font-size: 0.95em;">
+                                                {% for ej in modelo.ejemplares %}
+                                                <li>
+                                                    {{ ej.identificador }}
                                                 </li>
-                                            {% endfor %}
-                                        </ul>
-                                    </li>
+                                                {% endfor %}
+                                            </ul>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </li>
                                 {% endfor %}
                             </ul>
                         </td>
@@ -59,22 +66,26 @@
                             {{ reserva.motivo }}
                         </td>
                         <td data-label="Acciones" class="td-acciones">
-                            <button class="btn-previsualizar" 
-                                    data-id="{{ reserva.id }}" 
-                                    onclick="abrirModalPrevisualizacion(this.dataset.id)">
+                            <button class="btn-previsualizar" data-id="{{ reserva.id }}"
+                                onclick="abrirModalPrevisualizacion(this.dataset.id)">
                                 🔍 Previsualizar
                             </button>
-                            
-                            <button class="btn-aprobar" hx-post="/admin/reservas/aprobar/{{ reserva.id }}" hx-target="closest tr" hx-swap="outerHTML">
+
+                            <button class="btn-aprobar" hx-post="/admin/reservas/aprobar/{{ reserva.id }}"
+                                hx-target="closest tr" hx-swap="outerHTML">
                                 Aprobar
                             </button>
-                            <button class="btn-rechazar" hx-post="/admin/reservas/rechazar/{{ reserva.id }}" hx-target="closest tr" hx-swap="outerHTML">
+                            <button class="btn-rechazar" hx-post="/admin/reservas/rechazar/{{ reserva.id }}"
+                                hx-target="closest tr" hx-swap="outerHTML">
                                 Rechazar
                             </button>
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="5" style="text-align: center; padding: 20px;">No hay reservas pendientes en este momento.</td></tr>
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 20px;">No hay reservas pendientes en este
+                            momento.</td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -95,18 +106,24 @@
                     {% for profe in profesores %}
                     <tr>
                         <td data-label="Legajo">{{ profe.legajo }}</td>
-                        <td data-label="Nombre">{{ profe.nombre }} {{ profe.apellido }} <br><small style="color: #666;">{{ profe.email }}</small></td>
+                        <td data-label="Nombre">{{ profe.nombre }} {{ profe.apellido }} <br><small
+                                style="color: #666;">{{ profe.email }}</small></td>
                         <td data-label="Acciones" class="td-acciones">
-                            <button class="btn-aprobar" hx-post="/admin/profesores/aprobar/{{ profe.id }}" hx-target="closest tr" hx-swap="outerHTML">
+                            <button class="btn-aprobar" hx-post="/admin/profesores/aprobar/{{ profe.id }}"
+                                hx-target="closest tr" hx-swap="outerHTML">
                                 Habilitar
                             </button>
-                            <button class="btn-rechazar" hx-post="/admin/profesores/rechazar/{{ profe.id }}" hx-target="closest tr" hx-swap="outerHTML">
+                            <button class="btn-rechazar" hx-post="/admin/profesores/rechazar/{{ profe.id }}"
+                                hx-target="closest tr" hx-swap="outerHTML">
                                 Denegar
                             </button>
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="3" style="text-align: center; padding: 20px;">No hay docentes en espera de aprobación.</td></tr>
+                    <tr>
+                        <td colspan="3" style="text-align: center; padding: 20px;">No hay docentes en espera de
+                            aprobación.</td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -138,12 +155,8 @@
                         </td>
 
                         <td data-label="Acción" class="td-acciones">
-                            <button
-                                class="btn-aprobar"
-                                hx-post="/admin/usuarios/hacer-admin/{{ docente.id }}"
-                                hx-target="closest tr"
-                                hx-swap="outerHTML"
-                            >
+                            <button class="btn-aprobar" hx-post="/admin/usuarios/hacer-admin/{{ docente.id }}"
+                                hx-target="closest tr" hx-swap="outerHTML">
                                 Hacer Admin
                             </button>
                         </td>
@@ -186,12 +199,8 @@
                         </td>
 
                         <td data-label="Acción" class="td-acciones">
-                            <button
-                                class="btn-rechazar"
-                                hx-post="/admin/usuarios/quitar-admin/{{ admin.id }}"
-                                hx-target="closest tr"
-                                hx-swap="outerHTML"
-                            >
+                            <button class="btn-rechazar" hx-post="/admin/usuarios/quitar-admin/{{ admin.id }}"
+                                hx-target="closest tr" hx-swap="outerHTML">
                                 Quitar Admin
                             </button>
                         </td>

@@ -17,13 +17,15 @@
             <p class="auth-subtitle" style="margin-bottom: 0.5rem; font-weight: bold;">Assets actuales</p>
             <p>Manual: <strong>{% if tiene_manual %}Disponible{% else %}Sin manual cargado{% endif %}</strong></p>
             {% if imagen %}
-            <img src="{{ imagen }}" alt="{{ modelo.nombre_modelo }}" style="max-width: 100%; margin-top: 10px; border-radius: var(--radius-sm);">
+            <img src="{{ imagen }}" alt="{{ modelo.nombre_modelo }}"
+                style="max-width: 100%; margin-top: 10px; border-radius: var(--radius-sm);">
             {% else %}
             <p style="color: var(--color-muted);">Sin imagen</p>
             {% endif %}
         </div>
 
-        <form class="auth-form" hx-post="/modelo/{{ modelo.id }}/editar" hx-target="#resultado" hx-encoding="multipart/form-data">
+        <form class="auth-form" hx-post="/modelo/{{ modelo.id }}/editar" hx-target="#resultado"
+            hx-encoding="multipart/form-data">
             <div class="field-row" style="grid-template-columns: 1fr 1fr;">
                 <div class="field">
                     <label for="marca">Marca</label>
@@ -31,7 +33,8 @@
                 </div>
                 <div class="field">
                     <label for="nombre_modelo">Nombre del modelo</label>
-                    <input id="nombre_modelo" type="text" name="nombre_modelo" value="{{ modelo.nombre_modelo }}" required>
+                    <input id="nombre_modelo" type="text" name="nombre_modelo" value="{{ modelo.nombre_modelo }}"
+                        required>
                 </div>
             </div>
 
@@ -42,7 +45,8 @@
 
             <div class="field">
                 <label for="descripcion">Descripción</label>
-                <input id="descripcion" type="text" name="descripcion" value="{{ modelo.descripcion | default(value='') }}">
+                <input id="descripcion" type="text" name="descripcion"
+                    value="{{ modelo.descripcion | default(value='') }}">
             </div>
 
             <div class="field-row" style="grid-template-columns: 1fr 1fr;">

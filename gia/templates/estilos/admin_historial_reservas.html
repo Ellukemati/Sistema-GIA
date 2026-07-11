@@ -3,7 +3,8 @@
     .historial-container {
         max-width: 1200px;
         margin: auto;
-        padding: 20px 10px; /* Un poco de margen extra para pantallas chicas */
+        padding: 20px 10px;
+        /* Un poco de margen extra para pantallas chicas */
     }
 
     /* Formulario de filtros responsivo */
@@ -15,7 +16,8 @@
         align-items: center;
     }
 
-    .filtros input, .filtros select {
+    .filtros input,
+    .filtros select {
         padding: 8px 12px;
         border-radius: 6px;
         border: 1px solid #ccc;
@@ -44,8 +46,9 @@
         background: white;
         border-radius: 12px;
         padding: 15px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        overflow-x: auto; /* Permite scroll horizontal prolijo en móviles */
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        overflow-x: auto;
+        /* Permite scroll horizontal prolijo en móviles */
         -webkit-overflow-scrolling: touch;
     }
 
@@ -58,7 +61,8 @@
         background-color: #ffffff;
     }
 
-    #tabla-reservas th, #tabla-reservas td {
+    #tabla-reservas th,
+    #tabla-reservas td {
         border: 1px solid #e0e0e0;
         padding: 12px 14px;
         text-align: left;
@@ -91,17 +95,36 @@
         min-width: 95px;
     }
 
-    .estado-pendiente { background-color: #ffeeba; color: #856404; }
-    .estado-cancelada { background-color: #f8d7da; color: #721c24; }
-    .estado-aprobada { background-color: #d4edda; color: #155724; }
-    .estado-en-curso { background-color: #cce5ff; color: #004085; }
-    .estado-concluida { background-color: #e2e3e5; color: #383d41; }
+    .estado-pendiente {
+        background-color: #ffeeba;
+        color: #856404;
+    }
+
+    .estado-cancelada {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+
+    .estado-aprobada {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .estado-en-curso {
+        background-color: #cce5ff;
+        color: #004085;
+    }
+
+    .estado-concluida {
+        background-color: #e2e3e5;
+        color: #383d41;
+    }
 
     .texto-no-disponible {
         color: #777777 !important;
         font-size: 0.95rem !important;
         font-style: italic !important;
-        opacity: 0.7 !important; 
+        opacity: 0.7 !important;
         user-select: none;
         display: inline-block;
     }
@@ -119,7 +142,9 @@
         cursor: pointer;
     }
 
-    .btn-descargar-historial:hover { background-color: #218838; }
+    .btn-descargar-historial:hover {
+        background-color: #218838;
+    }
 
     /* Paginación inferior */
     .paginacion-container {
@@ -140,24 +165,39 @@
         font-size: 0.95rem;
     }
 
-    .btn-paginacion.disabled { background-color: #c7d2da; cursor: not-allowed; pointer-events: none; }
-    .paginacion-info { font-weight: bold; color: #5a6a75; font-size: 0.95rem; }
+    .btn-paginacion.disabled {
+        background-color: #c7d2da;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    .paginacion-info {
+        font-weight: bold;
+        color: #5a6a75;
+        font-size: 0.95rem;
+    }
 
     /* 🌟 MEDIA QUERIES PARA CELULARES (Pantallas menores a 768px) */
     @media (max-width: 768px) {
         .filtros {
-            flex-direction: column; /* Apila los inputs uno abajo del otro */
-            align-items: stretch;  /* Hace que ocupen todo el ancho del cel */
+            flex-direction: column;
+            /* Apila los inputs uno abajo del otro */
+            align-items: stretch;
+            /* Hace que ocupen todo el ancho del cel */
             gap: 10px;
         }
 
-        .filtros input, .filtros select, .filtros button {
-            width: 100%; /* Aprovecha el espacio táctil */
+        .filtros input,
+        .filtros select,
+        .filtros button {
+            width: 100%;
+            /* Aprovecha el espacio táctil */
             box-sizing: border-box;
         }
 
         /* Aire extra para que el scroll horizontal con el dedo sea cómodo */
-        #tabla-reservas th, #tabla-reservas td {
+        #tabla-reservas th,
+        #tabla-reservas td {
             padding: 10px 8px;
         }
     }

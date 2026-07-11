@@ -182,8 +182,8 @@
         transition: border-color 0.15s ease, background-color 0.15s ease;
     }
 
-    #accesorios_no:checked ~ .radio-group .radio-label[for="accesorios_no"],
-    #accesorios_si:checked ~ .radio-group .radio-label[for="accesorios_si"] {
+    #accesorios_no:checked~.radio-group .radio-label[for="accesorios_no"],
+    #accesorios_si:checked~.radio-group .radio-label[for="accesorios_si"] {
         border-color: var(--color-primary);
         background-color: rgba(0, 145, 213, 0.08);
         font-weight: 600;
@@ -195,7 +195,7 @@
         gap: var(--spacing-xs);
     }
 
-    #accesorios_si:checked ~ .accesorios-detalle {
+    #accesorios_si:checked~.accesorios-detalle {
         display: flex;
     }
 
@@ -313,7 +313,7 @@
         display: flex;
         align-items: center;
     }
-    
+
     .toggle-password {
         position: absolute;
         right: 0.75rem;

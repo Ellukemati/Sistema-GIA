@@ -12,12 +12,9 @@
             <h1>Registro de docentes</h1>
         </header>
 
-        <form hx-post="/registro" 
-              hx-target="#resultado-alta" 
-              hx-swap="innerHTML scroll:#resultado-alta:bottom" 
-              hx-encoding="multipart/form-data"
-              class="auth-form">
-              
+        <form hx-post="/registro" hx-target="#resultado-alta" hx-swap="innerHTML scroll:#resultado-alta:bottom"
+            hx-encoding="multipart/form-data" class="auth-form">
+
             <div class="field-row">
                 <div class="field">
                     <label for="nombre">Nombre</label>
@@ -32,19 +29,13 @@
             <div class="field-row">
                 <div class="field">
                     <label for="email">Email</label>
-                    <input type="email" id="email" name="email" placeholder="usuario@fi.uba.ar" autocomplete="email" required>
+                    <input type="email" id="email" name="email" placeholder="usuario@fi.uba.ar" autocomplete="email"
+                        required>
                 </div>
                 <div class="field">
                     <label for="legajo">Legajo</label>
-                    <input 
-                        type="text" 
-                        id="legajo" 
-                        name="legajo" 
-                        placeholder="Ej.: 110773"
-                        inputmode="numeric" 
-                        pattern="[0-9]*" 
-                        required
-                    >
+                    <input type="text" id="legajo" name="legajo" placeholder="Ej.: 110773" inputmode="numeric"
+                        pattern="[0-9]*" required>
                 </div>
             </div>
 
@@ -55,21 +46,17 @@
 
             <div class="field field-avatar">
                 <span class="field-label" style="text-align: center;">Foto de perfil (Opcional)</span>
-                <input 
-                    id="avatar" 
-                    type="file" 
-                    name="avatar" 
-                    accept="image/png, image/jpeg"
-                    onchange="validarDimensionesAvatar(this)"
-                >
+                <input id="avatar" type="file" name="avatar" accept="image/png, image/jpeg"
+                    onchange="validarDimensionesAvatar(this)">
             </div>
-              
+
             <button type="submit" class="btn-primary">Crear cuenta</button>
         </form>
 
         <div id="resultado-alta"></div>
 
-        <footer class="auth-footer" style="text-align: center; margin-top: 15px; display: flex; flex-direction: column; gap: var(--spacing-xs);">
+        <footer class="auth-footer"
+            style="text-align: center; margin-top: 15px; display: flex; flex-direction: column; gap: var(--spacing-xs);">
             <p style="margin: 0;">¿Ya tenés una cuenta habilitada? <a href="/ingreso">Iniciar sesión</a></p>
             <p style="margin: 0; font-size: 1em;"><a href="/" class="back-link">Volver al portal de bienvenida</a></p>
         </footer>
@@ -77,26 +64,26 @@
 </main>
 
 <script>
-function validarDimensionesAvatar(input) {
-    const archivo = input.files[0];
-    if (!archivo) {
-        input.setCustomValidity("");
-        return;
-    }
-
-    const img = new Image();
-    img.src = URL.createObjectURL(archivo);
-
-    img.onload = function() {
-        if (img.width !== img.height) {
-            input.setCustomValidity("La imagen debe ser perfectamente cuadrada (Ej.: 400x400px).");
-            input.reportValidity(); 
-            input.value = ""; 
-        } else {
-            input.setCustomValidity(""); 
+    function validarDimensionesAvatar(input) {
+        const archivo = input.files[0];
+        if (!archivo) {
+            input.setCustomValidity("");
+            return;
         }
-    };
-}
+
+        const img = new Image();
+        img.src = URL.createObjectURL(archivo);
+
+        img.onload = function () {
+            if (img.width !== img.height) {
+                input.setCustomValidity("La imagen debe ser perfectamente cuadrada (Ej.: 400x400px).");
+                input.reportValidity();
+                input.value = "";
+            } else {
+                input.setCustomValidity("");
+            }
+        };
+    }
 </script>
 
 {% include "partials/script_validacion_password.html" %}

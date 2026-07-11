@@ -3,12 +3,16 @@
 {% block title %}Mi Perfil{% endblock %}
 
 {% block content %}
-<div class="perfil-container" style="max-width: 700px; margin: 50px auto; background: white; padding: 40px; border-radius: var(--radius-md); border: 1px solid var(--color-border); box-shadow: var(--shadow-card);">
+<div class="perfil-container"
+    style="max-width: 700px; margin: 50px auto; background: white; padding: 40px; border-radius: var(--radius-md); border: 1px solid var(--color-border); box-shadow: var(--shadow-card);">
     <a href="/inicio" class="btn-volver">⬅ Volver al inicio</a>
-    
+
     <div class="perfil-header" style="text-align: center; margin-bottom: 40px;">
-        <img id="avatar-preview" src="/imagenes/avatares/{{ usuario_actual.legajo }}" class="profile-avatar" style="width: 130px; height: 130px; border: 4px solid #dbe7f0;" onerror="this.onerror=null; this.src='/static/img/avatardefault.avif';">
-        <div class="perfil-nombre" style="font-size: 1.8em; font-weight: bold; margin-top: 10px;">{{ usuario_actual.nombre }} {{ usuario_actual.apellido }}</div>
+        <img id="avatar-preview" src="/imagenes/avatares/{{ usuario_actual.legajo }}" class="profile-avatar"
+            style="width: 130px; height: 130px; border: 4px solid #dbe7f0;"
+            onerror="this.onerror=null; this.src='/static/img/avatardefault.avif';">
+        <div class="perfil-nombre" style="font-size: 1.8em; font-weight: bold; margin-top: 10px;">{{
+            usuario_actual.nombre }} {{ usuario_actual.apellido }}</div>
         <div class="perfil-email" style="color: var(--color-muted);">{{ usuario_actual.email }}</div>
     </div>
 
@@ -25,7 +29,8 @@
 
         <div class="field">
             <label>Email</label>
-            <input type="email" value="{{ usuario_actual.email }}" disabled style="background: #f1f5f9; cursor: not-allowed;">
+            <input type="email" value="{{ usuario_actual.email }}" disabled
+                style="background: #f1f5f9; cursor: not-allowed;">
         </div>
 
         <div class="field">
@@ -40,29 +45,31 @@
             </div>
             <div class="field">
                 <label for="password_repetida">Confirmar nueva contraseña</label>
-                <input type="password" name="password_repetida" id="password_repetida" placeholder="Repetir nueva contraseña">
+                <input type="password" name="password_repetida" id="password_repetida"
+                    placeholder="Repetir nueva contraseña">
             </div>
         </div>
-        
+
         <div id="error-password" style="color: var(--color-admin); font-weight: bold; margin-bottom: 10px;"></div>
 
         <button type="submit" class="btn-primary">Guardar cambios</button>
     </form>
 
-    <a href="/cerrar-sesion" class="btn-secondary" style="margin-top: 25px; background: var(--color-admin); color: white; border: none;">Cerrar sesión</a>
+    <a href="/cerrar-sesion" class="btn-secondary"
+        style="margin-top: 25px; background: var(--color-admin); color: white; border: none;">Cerrar sesión</a>
 </div>
 
 <script>
-document.getElementById("perfil-form").addEventListener("submit", function(e) {
-    const p1 = document.getElementById("password").value;
-    const p2 = document.getElementById("password_repetida").value;
-    const error = document.getElementById("error-password");
-    error.textContent = "";
+    document.getElementById("perfil-form").addEventListener("submit", function (e) {
+        const p1 = document.getElementById("password").value;
+        const p2 = document.getElementById("password_repetida").value;
+        const error = document.getElementById("error-password");
+        error.textContent = "";
 
-    if (p1 !== "" && p1 !== p2) {
-        e.preventDefault();
-        error.textContent = "⚠ Las contraseñas no coinciden";
-    }
-});
+        if (p1 !== "" && p1 !== p2) {
+            e.preventDefault();
+            error.textContent = "⚠ Las contraseñas no coinciden";
+        }
+    });
 </script>
 {% endblock %}
