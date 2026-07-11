@@ -1,5 +1,5 @@
 use crate::models::ejemplar::Ejemplar;
-use rusqlite::{Connection, Result as SqlResult};
+use rusqlite::{Connection, OptionalExtension, Result as SqlResult};
 
 pub struct EjemplarRepository;
 
@@ -83,5 +83,16 @@ impl EjemplarRepository {
             "UPDATE ejemplares SET eliminado = 1 WHERE id = ?1",
             rusqlite::params![id],
         )
+    }
+
+    /// Indica si el modelo tiene al menos un ejemplar no eliminado vinculado.
+    pub fn tiene_ejemplares_activos(conn: &Connection, modelo_id: i64) -> SqlResult<bool> {
+        conn.query_row(
+            "SELECT 1 FROM ejemplares WHERE modelo_id = ?1 AND eliminado = 0 LIMIT 1",
+            rusqlite::params![modelo_id],
+            |_| Ok(()),
+        )
+        .optional()
+        .map(|o| o.is_some())
     }
 }
