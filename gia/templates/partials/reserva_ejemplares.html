@@ -53,6 +53,12 @@
                 {% else %}
                 <a class="btn-manual" href="/ejemplar/{{ e.id }}/editar">Editar</a>
                 {% endif %}
+                <form class="ejemplar-eliminar-form" method="post"
+                      action="/ejemplar/{{ e.id }}/eliminar"
+                      data-bloqueante="{% if e.tiene_reserva_bloqueante %}true{% else %}false{% endif %}"
+                      onsubmit="return confirmarEliminacionEjemplar(this);">
+                    <button type="submit" class="btn-manual btn-manual--peligro">Eliminar</button>
+                </form>
             </div>
             {% endif %}
         </div>
@@ -66,6 +72,14 @@
 </dialog>
 
 <script>
+    function confirmarEliminacionEjemplar(form) {
+        if (form.dataset.bloqueante === 'true') {
+            alert('Este ejemplar tiene una reserva activa o pendiente y no puede eliminarse.');
+            return false;
+        }
+        return confirm('¿Seguro que querés eliminar este ejemplar? Esta acción no se puede deshacer.');
+    }
+
     (function () {
         if (window.ejemplarImagenLightboxInit) return;
         window.ejemplarImagenLightboxInit = true;
