@@ -1,4 +1,5 @@
 use crate::errors::ManualStorageError;
+use crate::repository::ejemplar_repository::EjemplarRepository;
 use crate::repository::image_repository::ImageRepository;
 use crate::repository::modelo_repository::ModeloRepository;
 use crate::service::ejemplar_service::EjemplarService;
@@ -122,8 +123,8 @@ impl ModeloHandler {
         }
 
         let modelo = match ModeloRepository::buscar_por_id(conn, id) {
-            Ok(Some(m)) => m,
-            Ok(None) => {
+            Ok(Some(m)) if !m.eliminado => m,
+            Ok(Some(_)) | Ok(None) => {
                 return templates::response_mensaje_error_con_status(
                     "Modelo no encontrado",
                     "El modelo solicitado no existe.",
@@ -240,8 +241,8 @@ impl ModeloHandler {
 
     pub fn mostrar_detalle(request: &Request, conn: &Connection, id: i64) -> Response {
         let modelo = match ModeloRepository::buscar_por_id(conn, id) {
-            Ok(Some(m)) => m,
-            Ok(None) => {
+            Ok(Some(m)) if !m.eliminado => m,
+            Ok(Some(_)) | Ok(None) => {
                 return templates::response_mensaje_error_con_status(
                     "Modelo no encontrado",
                     "El modelo solicitado no existe.",
@@ -284,6 +285,12 @@ impl ModeloHandler {
             }
         };
 
+        let tiene_ejemplares_activos = if es_admin {
+            EjemplarRepository::tiene_ejemplares_activos(conn, id).unwrap_or(true)
+        } else {
+            false
+        };
+
         let mut ctx = Context::new();
         ctx.insert("modelo", &modelo);
         ctx.insert("imagen", &imagen);
@@ -292,7 +299,40 @@ impl ModeloHandler {
         ctx.insert("con_fechas", &false);
         ctx.insert("es_admin", &es_admin);
         ctx.insert("mostrar_edicion", &es_admin);
+        ctx.insert("tiene_ejemplares_activos", &tiene_ejemplares_activos);
         templates::response_html(templates::render("modelo_detalle.html", &ctx))
+    }
+
+    pub fn procesar_eliminacion(request: &Request, conn: &Connection, id: i64) -> Response {
+        let usuario = match usuario_actual(request, conn) {
+            Ok(u) => u,
+            Err(response) => return response,
+        };
+
+        if !usuario.es_admin() {
+            return templates::response_mensaje_error_con_status(
+                "Acceso denegado",
+                "Esta acción requiere permisos de administrador.",
+                403,
+            );
+        }
+
+        match ModeloService::eliminar_modelo(conn, id) {
+            Ok(()) => {
+                let mut ctx = Context::new();
+                ctx.insert("titulo", "Modelo eliminado");
+                ctx.insert("mensaje", "El modelo fue eliminado correctamente.");
+                ctx.insert("exito", &true);
+                templates::response_html(templates::render("modelo_eliminado.html", &ctx))
+            }
+            Err(e) => {
+                let mut ctx = Context::new();
+                ctx.insert("titulo", "No se pudo eliminar el modelo");
+                ctx.insert("mensaje", &e);
+                ctx.insert("exito", &false);
+                templates::response_html(templates::render("modelo_eliminado.html", &ctx))
+            }
+        }
     }
 
     fn parsear_formulario_modelo(request: &Request) -> Result<DatosFormularioModelo, Response> {
