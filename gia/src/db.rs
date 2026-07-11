@@ -39,7 +39,8 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
             categoria TEXT,
             descripcion TEXT,
             manual_blob BLOB,
-            manual_mime TEXT
+            manual_mime TEXT,
+            eliminado BOOLEAN NOT NULL DEFAULT 0
         )",
         [],
     )?;
