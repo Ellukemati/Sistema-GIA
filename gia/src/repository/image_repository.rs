@@ -39,6 +39,18 @@ impl ImageRepository {
         .optional()
     }
 
+    /// Devuelve los `orden` de las imagenes de un modelo, ascendente, sin traer
+    /// los blobs. Util para armar una galeria sin cargar los bytes en memoria.
+    pub fn listar_ordenes_modelo(conn: &Connection, modelo_id: i64) -> SqlResult<Vec<i32>> {
+        let mut stmt = conn.prepare(
+            "SELECT orden FROM modelo_imagen WHERE modelo_id = ?1 ORDER BY orden ASC",
+        )?;
+        let ordenes = stmt
+            .query_map(params![modelo_id], |row| row.get::<_, i32>(0))?
+            .collect::<SqlResult<Vec<i32>>>()?;
+        Ok(ordenes)
+    }
+
     pub fn eliminar_por_ejemplar(conn: &Connection, ejemplar_id: i64) -> SqlResult<()> {
         conn.execute(
             "DELETE FROM ejemplar_imagen WHERE ejemplar_id = ?1",
@@ -118,5 +130,58 @@ impl ImageRepository {
         )
         .optional()
         .map(|o| o.is_some())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn crear_db_test() -> Connection {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute(
+            "CREATE TABLE modelo_imagen (
+                modelo_id INTEGER NOT NULL,
+                orden INTEGER NOT NULL,
+                imagen_blob BLOB NOT NULL,
+                imagen_mime TEXT NOT NULL,
+                PRIMARY KEY (modelo_id, orden)
+            )",
+            [],
+        )
+        .unwrap();
+        conn
+    }
+
+    #[test]
+    fn listar_ordenes_modelo_sin_imagenes_retorna_vacio() {
+        let conn = crear_db_test();
+        let ordenes = ImageRepository::listar_ordenes_modelo(&conn, 1).unwrap();
+        assert!(ordenes.is_empty());
+    }
+
+    #[test]
+    fn listar_ordenes_modelo_retorna_ordenes_ascendentes() {
+        let conn = crear_db_test();
+        // Insertados desordenados a proposito.
+        ImageRepository::guardar_modelo(&conn, 1, 2, b"c", "image/jpeg").unwrap();
+        ImageRepository::guardar_modelo(&conn, 1, 0, b"a", "image/jpeg").unwrap();
+        ImageRepository::guardar_modelo(&conn, 1, 1, b"b", "image/jpeg").unwrap();
+
+        let ordenes = ImageRepository::listar_ordenes_modelo(&conn, 1).unwrap();
+
+        assert_eq!(ordenes, vec![0, 1, 2]);
+    }
+
+    #[test]
+    fn listar_ordenes_modelo_no_mezcla_otros_modelos() {
+        let conn = crear_db_test();
+        ImageRepository::guardar_modelo(&conn, 1, 0, b"a", "image/jpeg").unwrap();
+        ImageRepository::guardar_modelo(&conn, 2, 0, b"b", "image/jpeg").unwrap();
+        ImageRepository::guardar_modelo(&conn, 2, 1, b"c", "image/jpeg").unwrap();
+
+        let ordenes = ImageRepository::listar_ordenes_modelo(&conn, 2).unwrap();
+
+        assert_eq!(ordenes, vec![0, 1]);
     }
 }
