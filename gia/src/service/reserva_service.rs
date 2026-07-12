@@ -519,7 +519,8 @@ mod tests {
                 categoria TEXT,
                 descripcion TEXT,
                 manual_blob BLOB,
-                manual_mime TEXT
+                manual_mime TEXT,
+                eliminado BOOLEAN NOT NULL DEFAULT 0
             )",
             [],
         )
@@ -534,7 +535,8 @@ mod tests {
                 observaciones TEXT,
                 accesorios TEXT,
                 esta_disponible BOOLEAN DEFAULT TRUE,
-                ubicacion TEXT
+                ubicacion TEXT,
+                eliminado BOOLEAN NOT NULL DEFAULT 0
             )",
             [],
         )
@@ -549,6 +551,7 @@ mod tests {
             nombre_modelo: nombre.into(),
             categoria: None,
             descripcion: None,
+            eliminado: false,
         };
         ModeloRepository::crear(conn, &modelo).unwrap()
     }
@@ -571,6 +574,7 @@ mod tests {
             accesorios: None,
             esta_disponible: true,
             ubicacion: ubicacion.map(String::from),
+            eliminado: false,
         };
         EjemplarRepository::crear(conn, &ejemplar).unwrap()
     }

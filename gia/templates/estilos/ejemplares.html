@@ -111,8 +111,30 @@
     }
 
     .ejemplar-acciones {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: stretch;
+        gap: var(--spacing-sm);
         flex-shrink: 0;
         align-self: center;
+    }
+
+    .ejemplar-acciones .btn-manual {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+    }
+
+    .ejemplar-eliminar-form {
+        display: inline-flex;
+        align-items: stretch;
+        margin: 0;
+    }
+
+    .ejemplar-eliminar-form .btn-manual {
+        height: 100%;
     }
 
     .ejemplar-datos {
@@ -198,5 +220,82 @@
 
     .ejemplar-imagen-lightbox-cerrar:hover {
         background: #fff;
+    }
+
+    .ejemplar-confirm-dialog {
+        padding: 0;
+        border: none;
+        border-radius: var(--radius-md);
+        background: transparent;
+        max-width: min(92vw, 420px);
+        width: 100%;
+    }
+
+    .ejemplar-confirm-dialog::backdrop {
+        background: rgba(15, 23, 42, 0.55);
+    }
+
+    .ejemplar-confirm-card {
+        background-color: var(--color-surface);
+        border: 2px solid var(--color-primary);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-card);
+        padding: var(--spacing-lg);
+    }
+
+    .ejemplar-confirm-titulo {
+        margin: 0 0 var(--spacing-sm);
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--color-text);
+    }
+
+    .ejemplar-confirm-mensaje {
+        margin: 0 0 var(--spacing-lg);
+        font-size: 0.95rem;
+        color: var(--color-muted);
+        line-height: 1.5;
+    }
+
+    .ejemplar-confirm-acciones {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: var(--spacing-sm);
+    }
+
+    .ejemplar-confirm-acciones .btn-manual[hidden] {
+        display: none !important;
+    }
+
+    @media (max-width: 639px) {
+        .ejemplar-acciones {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .ejemplar-acciones .btn-manual {
+            width: 100%;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        .ejemplar-eliminar-form {
+            width: 100%;
+        }
+
+        .ejemplar-acciones .btn-manual--icono {
+            width: 100%;
+        }
+
+        .ejemplar-confirm-acciones {
+            flex-direction: column-reverse;
+        }
+
+        .ejemplar-confirm-acciones .btn-manual {
+            width: 100%;
+            text-align: center;
+            box-sizing: border-box;
+        }
     }
 </style>

@@ -35,6 +35,11 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
             ModeloHandler::procesar_edicion(request, &conn_guard, id)
         },
 
+        (POST) (/modelo/{id: i64}/eliminar) => {
+            let conn_guard = conn.lock().unwrap();
+            ModeloHandler::procesar_eliminacion(request, &conn_guard, id)
+        },
+
         _ => Response::empty_404()
     )
 }

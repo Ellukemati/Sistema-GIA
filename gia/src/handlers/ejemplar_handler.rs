@@ -250,6 +250,29 @@ impl EjemplarHandler {
         }
     }
 
+    pub fn procesar_eliminacion(request: &Request, conn: &Connection, id: i64) -> Response {
+        if let Err(response) = Self::verificar_admin(request, conn) {
+            return response;
+        }
+
+        match EjemplarService::eliminar_ejemplar(conn, id) {
+            Ok(()) => {
+                let mut ctx = Context::new();
+                ctx.insert("titulo", "Ejemplar eliminado");
+                ctx.insert("mensaje", "El ejemplar fue eliminado correctamente.");
+                ctx.insert("exito", &true);
+                templates::response_html(templates::render("ejemplar_eliminado.html", &ctx))
+            }
+            Err(e) => {
+                let mut ctx = Context::new();
+                ctx.insert("titulo", "No se pudo eliminar el ejemplar");
+                ctx.insert("mensaje", &e);
+                ctx.insert("exito", &false);
+                templates::response_html(templates::render("ejemplar_eliminado.html", &ctx))
+            }
+        }
+    }
+
     fn verificar_admin(request: &Request, conn: &Connection) -> Result<(), Response> {
         let usuario = usuario_actual(request, conn)?;
         if !usuario.es_admin() {

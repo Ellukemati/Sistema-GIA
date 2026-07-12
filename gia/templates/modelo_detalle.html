@@ -6,6 +6,12 @@
     {% include "estilos/auth.html" %}
     {% include "estilos/detalle.html" %}
     {% include "estilos/ejemplares.html" %}
+    <style>
+        .modelo-eliminar-form {
+            display: inline-flex;
+            margin: 0;
+        }
+    </style>
 {% endblock %}
 
 {% block content %}
@@ -47,6 +53,24 @@
                 {% else %}
                 <span class="btn-manual btn-manual--disabled" aria-disabled="true" title="Este modelo no tiene un manual cargado">Manual</span>
                 {% endif %}
+                {% if es_admin %}
+                <form class="modelo-eliminar-form" method="post"
+                      action="/modelo/{{ modelo.id }}/eliminar"
+                      data-bloqueante="{% if tiene_ejemplares_activos %}true{% else %}false{% endif %}"
+                      onsubmit="return confirmarEliminacionModelo(this);">
+                    <button type="submit" class="btn-manual btn-manual--peligro btn-manual--icono"
+                            aria-label="Eliminar modelo" title="Eliminar modelo">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                             stroke-linejoin="round" aria-hidden="true">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            <line x1="10" y1="11" x2="10" y2="17"></line>
+                            <line x1="14" y1="11" x2="14" y2="17"></line>
+                        </svg>
+                    </button>
+                </form>
+                {% endif %}
             </div>
         </div>
     </article>
@@ -60,4 +84,100 @@
         <a href="/modelo">&larr; Volver al catálogo</a>
     </footer>
 </main>
+
+{% if es_admin %}
+<dialog id="modelo-confirm-dialog" class="ejemplar-confirm-dialog" aria-labelledby="modelo-confirm-titulo">
+    <div class="ejemplar-confirm-card">
+        <h3 class="ejemplar-confirm-titulo" id="modelo-confirm-titulo">Eliminar modelo</h3>
+        <p class="ejemplar-confirm-mensaje" id="modelo-confirm-mensaje"></p>
+        <div class="ejemplar-confirm-acciones">
+            <button type="button" class="btn-manual btn-manual--secundario" id="modelo-confirm-cancelar">
+                Cancelar
+            </button>
+            <button type="button" class="btn-manual btn-manual--peligro" id="modelo-confirm-aceptar">
+                Eliminar
+            </button>
+        </div>
+    </div>
+</dialog>
+
+<script>
+    function confirmarEliminacionModelo(form) {
+        if (form.dataset.confirmed === 'true') {
+            return true;
+        }
+
+        const dialog = document.getElementById('modelo-confirm-dialog');
+        if (!dialog) {
+            return false;
+        }
+
+        const titulo = document.getElementById('modelo-confirm-titulo');
+        const mensaje = document.getElementById('modelo-confirm-mensaje');
+        const cancelar = document.getElementById('modelo-confirm-cancelar');
+        const aceptar = document.getElementById('modelo-confirm-aceptar');
+        const bloqueante = form.dataset.bloqueante === 'true';
+
+        dialog.dataset.modo = bloqueante ? 'aviso' : 'confirmar';
+        dialog._formPendiente = bloqueante ? null : form;
+
+        if (bloqueante) {
+            titulo.textContent = 'No se puede eliminar';
+            mensaje.textContent = 'Este modelo tiene ejemplares vinculados y no puede eliminarse.';
+            cancelar.hidden = true;
+            aceptar.textContent = 'Entendido';
+            aceptar.className = 'btn-manual';
+        } else {
+            titulo.textContent = 'Eliminar modelo';
+            mensaje.textContent = '¿Seguro que desea eliminar este modelo? Esta acción no se puede deshacer.';
+            cancelar.hidden = false;
+            aceptar.textContent = 'Eliminar';
+            aceptar.className = 'btn-manual btn-manual--peligro';
+        }
+
+        dialog.showModal();
+        return false;
+    }
+
+    (function () {
+        if (window.modeloConfirmDialogInit) return;
+        window.modeloConfirmDialogInit = true;
+
+        const dialog = document.getElementById('modelo-confirm-dialog');
+        if (!dialog) return;
+
+        const cancelar = document.getElementById('modelo-confirm-cancelar');
+        const aceptar = document.getElementById('modelo-confirm-aceptar');
+
+        function cerrarDialogo() {
+            dialog._formPendiente = null;
+            dialog.close();
+        }
+
+        cancelar.addEventListener('click', cerrarDialogo);
+
+        aceptar.addEventListener('click', function () {
+            const form = dialog._formPendiente;
+            if (dialog.dataset.modo === 'confirmar' && form) {
+                form.dataset.confirmed = 'true';
+                dialog._formPendiente = null;
+                dialog.close();
+                form.submit();
+                return;
+            }
+            cerrarDialogo();
+        });
+
+        dialog.addEventListener('click', function (event) {
+            if (event.target === dialog) {
+                cerrarDialogo();
+            }
+        });
+
+        dialog.addEventListener('cancel', function () {
+            dialog._formPendiente = null;
+        });
+    })();
+</script>
+{% endif %}
 {% endblock %}
