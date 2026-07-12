@@ -17,6 +17,9 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
         },
 
         // EJEMPLARES
+        (GET) (/imagenes/ejemplares/{ejemplar_id: i64}) => {
+            ImageHandler::listar_ejemplar(ejemplar_id, Arc::clone(&conn))
+        },
         (GET) (/imagenes/ejemplares/{ejemplar_id: i64}/{orden: i32}) => {
             ImageHandler::servir_ejemplar(ejemplar_id, orden, Arc::clone(&conn))
         },

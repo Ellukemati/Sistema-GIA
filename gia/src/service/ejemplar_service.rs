@@ -24,6 +24,7 @@ pub struct EjemplarDTO {
     pub accesorios: Option<String>,
     pub tiene_reserva_bloqueante: bool,
     pub imagen: Option<String>,
+    pub cantidad_imagenes: usize,
 }
 
 pub struct CrearEjemplarData {
@@ -159,6 +160,9 @@ impl EjemplarService {
             let disponible = ReservaRepository::ejemplar_disponible(conn, ejemplar.id, inicio, fin)
                 .map_err(|e| e.to_string())?;
 
+            let (imagen, cantidad_imagenes) =
+                Self::imagen_principal_y_cantidad(conn, ejemplar.id);
+
             dtos.push(EjemplarDTO {
                 id: ejemplar.id,
                 numero_serie: ejemplar
@@ -177,7 +181,8 @@ impl EjemplarService {
                 observaciones: Self::texto_opcional(ejemplar.observaciones),
                 accesorios: Self::texto_opcional(ejemplar.accesorios),
                 tiene_reserva_bloqueante: false,
-                imagen: Self::url_imagen_principal(conn, ejemplar.id),
+                imagen,
+                cantidad_imagenes,
             });
         }
 
@@ -219,6 +224,9 @@ impl EjemplarService {
                 false
             };
 
+            let (imagen, cantidad_imagenes) =
+                Self::imagen_principal_y_cantidad(conn, ejemplar.id);
+
             dtos.push(EjemplarDTO {
                 id: ejemplar.id,
                 numero_serie: ejemplar
@@ -237,18 +245,25 @@ impl EjemplarService {
                 observaciones: Self::texto_opcional(ejemplar.observaciones),
                 accesorios: Self::texto_opcional(ejemplar.accesorios),
                 tiene_reserva_bloqueante,
-                imagen: Self::url_imagen_principal(conn, ejemplar.id),
+                imagen,
+                cantidad_imagenes,
             });
         }
 
         Ok(dtos)
     }
 
-    fn url_imagen_principal(conn: &Connection, ejemplar_id: i64) -> Option<String> {
-        match ImageRepository::existe_imagen_principal_ejemplar(conn, ejemplar_id) {
-            Ok(true) => Some(format!("/imagenes/ejemplares/{}/0", ejemplar_id)),
-            _ => None,
-        }
+    /// Devuelve la URL de la imagen principal (orden 0) del ejemplar, si existe,
+    /// junto con la cantidad total de imagenes. Usa una sola consulta.
+    fn imagen_principal_y_cantidad(conn: &Connection, ejemplar_id: i64) -> (Option<String>, usize) {
+        let ordenes =
+            ImageRepository::listar_ordenes_ejemplar(conn, ejemplar_id).unwrap_or_default();
+        let imagen = if ordenes.contains(&0) {
+            Some(format!("/imagenes/ejemplares/{}/0", ejemplar_id))
+        } else {
+            None
+        };
+        (imagen, ordenes.len())
     }
 
     fn texto_opcional(valor: Option<String>) -> Option<String> {

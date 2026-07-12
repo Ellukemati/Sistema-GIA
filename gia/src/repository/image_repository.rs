@@ -87,6 +87,18 @@ impl ImageRepository {
         .optional()
     }
 
+    /// Devuelve los `orden` de las imagenes de un ejemplar, ascendente, sin traer
+    /// los blobs. Util para armar una galeria sin cargar los bytes en memoria.
+    pub fn listar_ordenes_ejemplar(conn: &Connection, ejemplar_id: i64) -> SqlResult<Vec<i32>> {
+        let mut stmt = conn.prepare(
+            "SELECT orden FROM ejemplar_imagen WHERE ejemplar_id = ?1 ORDER BY orden ASC",
+        )?;
+        let ordenes = stmt
+            .query_map(params![ejemplar_id], |row| row.get::<_, i32>(0))?
+            .collect::<SqlResult<Vec<i32>>>()?;
+        Ok(ordenes)
+    }
+
     pub fn guardar_avatar(
         conn: &Connection,
         legajo: i64,
@@ -150,6 +162,17 @@ mod tests {
             [],
         )
         .unwrap();
+        conn.execute(
+            "CREATE TABLE ejemplar_imagen (
+                ejemplar_id INTEGER NOT NULL,
+                orden INTEGER NOT NULL,
+                imagen_blob BLOB NOT NULL,
+                imagen_mime TEXT NOT NULL,
+                PRIMARY KEY (ejemplar_id, orden)
+            )",
+            [],
+        )
+        .unwrap();
         conn
     }
 
@@ -181,6 +204,38 @@ mod tests {
         ImageRepository::guardar_modelo(&conn, 2, 1, b"c", "image/jpeg").unwrap();
 
         let ordenes = ImageRepository::listar_ordenes_modelo(&conn, 2).unwrap();
+
+        assert_eq!(ordenes, vec![0, 1]);
+    }
+
+    #[test]
+    fn listar_ordenes_ejemplar_sin_imagenes_retorna_vacio() {
+        let conn = crear_db_test();
+        let ordenes = ImageRepository::listar_ordenes_ejemplar(&conn, 1).unwrap();
+        assert!(ordenes.is_empty());
+    }
+
+    #[test]
+    fn listar_ordenes_ejemplar_retorna_ordenes_ascendentes() {
+        let conn = crear_db_test();
+        // Insertados desordenados a proposito.
+        ImageRepository::guardar_ejemplar(&conn, 1, 2, b"c", "image/jpeg").unwrap();
+        ImageRepository::guardar_ejemplar(&conn, 1, 0, b"a", "image/jpeg").unwrap();
+        ImageRepository::guardar_ejemplar(&conn, 1, 1, b"b", "image/jpeg").unwrap();
+
+        let ordenes = ImageRepository::listar_ordenes_ejemplar(&conn, 1).unwrap();
+
+        assert_eq!(ordenes, vec![0, 1, 2]);
+    }
+
+    #[test]
+    fn listar_ordenes_ejemplar_no_mezcla_otros_ejemplares() {
+        let conn = crear_db_test();
+        ImageRepository::guardar_ejemplar(&conn, 1, 0, b"a", "image/jpeg").unwrap();
+        ImageRepository::guardar_ejemplar(&conn, 2, 0, b"b", "image/jpeg").unwrap();
+        ImageRepository::guardar_ejemplar(&conn, 2, 1, b"c", "image/jpeg").unwrap();
+
+        let ordenes = ImageRepository::listar_ordenes_ejemplar(&conn, 2).unwrap();
 
         assert_eq!(ordenes, vec![0, 1]);
     }

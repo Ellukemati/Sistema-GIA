@@ -139,6 +139,28 @@ impl ImageHandler {
         }
     }
 
+    /// Responde un JSON con las URLs de todas las imagenes del ejemplar (sin
+    /// blobs), para armar la galeria bajo demanda.
+    pub fn listar_ejemplar(ejemplar_id: i64, conn: Arc<Mutex<Connection>>) -> Response {
+        let ordenes = match conn.lock() {
+            Ok(guard) => match ImageRepository::listar_ordenes_ejemplar(&guard, ejemplar_id) {
+                Ok(ordenes) => ordenes,
+                Err(e) => return Response::text(e.to_string()).with_status_code(500),
+            },
+            Err(_) => return Response::text("Mutex envenenado").with_status_code(500),
+        };
+
+        let urls = ordenes
+            .iter()
+            .map(|orden| format!("\"/imagenes/ejemplares/{}/{}\"", ejemplar_id, orden))
+            .collect::<Vec<String>>()
+            .join(",");
+        let cuerpo = format!("{{\"imagenes\":[{}]}}", urls);
+
+        Response::from_data("application/json", cuerpo.into_bytes())
+            .with_additional_header("Cache-Control", "no-store")
+    }
+
     pub fn subir_avatar(request: &Request, legajo: i64, conn: Arc<Mutex<Connection>>) -> Response {
         let bytes = match Self::read_body_bytes(request) {
             Ok(b) => b,
