@@ -44,45 +44,22 @@
             </div>
 
             <div class="field field-avatar">
-                <span class="field-label" style="text-align: center;">Foto de perfil (Opcional)</span>
+                <span class="field-label field-label--centered">Foto de perfil (Opcional)</span>
                 <input id="avatar" type="file" name="avatar" accept="image/png, image/jpeg"
                     onchange="validarDimensionesAvatar(this)">
             </div>
 
-            <button type="submit" class="btn-primary" style="margin-top: 0rem;">Crear cuenta</button>
+            <button type="submit" class="btn-primary">Crear cuenta</button>
         </form>
 
         <div id="resultado-alta"></div>
 
-        <footer class="auth-footer"
-            style="text-align: center; margin-top: 15px; display: flex; flex-direction: column; gap: var(--spacing-xs);">
-            <p style="margin: 0;">¿Ya te registraste? <a href="/ingreso">Iniciar sesión</a></p>
+        <footer class="auth-footer">
+            <p>¿Ya te registraste? <a href="/ingreso">Iniciar sesión</a></p>
         </footer>
     </section>
 </main>
 
-<script>
-    function validarDimensionesAvatar(input) {
-        const archivo = input.files[0];
-        if (!archivo) {
-            input.setCustomValidity("");
-            return;
-        }
-
-        const img = new Image();
-        img.src = URL.createObjectURL(archivo);
-
-        img.onload = function () {
-            if (img.width !== img.height) {
-                input.setCustomValidity("La imagen debe ser perfectamente cuadrada (Ej.: 400x400px).");
-                input.reportValidity();
-                input.value = "";
-            } else {
-                input.setCustomValidity("");
-            }
-        };
-    }
-</script>
-
-{% include "partials/script_validacion_password.html" %}
+{% include "scripts/script_validacion_avatar.html" %}
+{% include "scripts/script_validacion_password.html" %}
 {% endblock %}

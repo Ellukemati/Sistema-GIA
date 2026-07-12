@@ -33,9 +33,10 @@
     </div>
 </nav>
 
-<main class="home-dashboard-container">
+<main class="home-dashboard-container{% if usuario_actual.tipo != 'A' %} home-dashboard-container--docente{% endif %}">
+
     <header class="dashboard-welcome">
-        <h2>Gestión de Instrumental de Agrimensura</h2>
+        <p class="welcome-subtitle-main">Gestión de Instrumental de Agrimensura</p>
     </header>
 
     <section class="dashboard-group">
