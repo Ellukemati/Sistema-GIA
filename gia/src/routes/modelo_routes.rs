@@ -7,7 +7,7 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
     router!(request,
         (GET) (/modelo) => {
             let conn_guard = conn.lock().unwrap();
-            ModeloHandler::listar_modelos(&conn_guard)
+            ModeloHandler::listar_modelos(request, &conn_guard)
         },
 
         (GET) (/modelo/registro) => {

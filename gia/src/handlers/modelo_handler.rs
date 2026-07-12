@@ -227,17 +227,27 @@ impl ModeloHandler {
         }
     }
 
-    pub fn listar_modelos(conn: &Connection) -> Response {
-        match ModeloService::listar_cards_agrupadas(conn) {
+    pub fn listar_modelos(request: &Request, conn: &Connection) -> Response {
+        let busqueda = request.get_param("buscar").unwrap_or_default();
+
+        let grupos = if busqueda.trim().is_empty() {
+            ModeloService::listar_cards_agrupadas(conn)
+        } else {
+            ModeloService::listar_cards_filtradas(conn, &busqueda)
+        };
+
+        match grupos {
             Ok(grupos) => {
                 let mut ctx = Context::new();
                 ctx.insert("grupos", &grupos);
+                ctx.insert("busqueda", &busqueda);
+
                 templates::response_html(templates::render("modelo_listado.html", &ctx))
             }
+
             Err(e) => templates::response_mensaje_error("No se pudieron cargar los modelos", &e),
         }
     }
-
     pub fn mostrar_detalle(request: &Request, conn: &Connection, id: i64) -> Response {
         let modelo = match ModeloRepository::buscar_por_id(conn, id) {
             Ok(Some(m)) => m,

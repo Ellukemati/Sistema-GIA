@@ -18,7 +18,37 @@
         <h1>Catálogo de modelos</h1>
         <p class="auth-subtitle">Modelos de instrumentos disponibles</p>
     </header>
+    <form method="GET" action="" class="catalogo-search">
+<input
+    id="buscar-modelo"
+    type="text"
+    name="buscar"
+    value="{{ busqueda }}"
+    placeholder="Buscar por nombre de modelo"
+    class="catalogo-search-input"
 
+    hx-get="/reservas/modelos/busqueda"
+    hx-trigger="keyup delay:300ms"
+    hx-target="#lista-modelos"
+    hx-swap="innerHTML"
+    hx-include="closest form">
+
+        <button type="submit" class="btn-buscar">
+            Buscar
+        </button>
+
+        {% if busqueda != "" %}
+        <a href="/modelos" class="btn-limpiar">
+            Limpiar
+        </a>
+        {% endif %}
+    </form>
+
+    {% if busqueda != "" %}
+    <p class="catalogo-resultados">
+        Resultados para <strong>"{{ busqueda }}"</strong>
+    </p>
+    {% endif %}
     {% if grupos | length == 0 %}
     <p class="catalogo-vacio">No hay modelos cargados.</p>
     {% else %}

@@ -161,11 +161,16 @@ impl ModeloService {
     /// ejemplar disponible en el rango de fechas indicado.
     pub fn listar_cards_disponibles_agrupadas(
         conn: &Connection,
-        inicio: &str,
-        fin: &str,
+        fecha_inicio: &str,
+        fecha_fin: &str,
+        buscar: &str,
     ) -> Result<Vec<GrupoCategoriaDTO>, String> {
-        let modelos = ModeloRepository::listar_todos(conn)
-            .map_err(|e| format!("Error al listar los modelos: {}", e))?;
+        let modelos = if buscar.trim().is_empty() {
+            ModeloRepository::listar_todos(conn)
+        } else {
+            ModeloRepository::buscar_por_nombre(conn, buscar)
+        }
+        .map_err(|e| format!("Error al listar los modelos: {}", e))?;
 
         let mut cards = Vec::new();
         for modelo in modelos {
@@ -176,8 +181,13 @@ impl ModeloService {
 
             let mut hay_disponible = false;
             for ejemplar in &ejemplares {
-                if ReservaRepository::ejemplar_disponible(conn, ejemplar.id, inicio, fin)
-                    .map_err(|e| e.to_string())?
+                if ReservaRepository::ejemplar_disponible(
+                    conn,
+                    ejemplar.id,
+                    fecha_inicio,
+                    fecha_fin,
+                )
+                .map_err(|e| e.to_string())?
                 {
                     hay_disponible = true;
                     break;
@@ -187,6 +197,21 @@ impl ModeloService {
             if hay_disponible {
                 cards.push(Self::card_de_modelo(conn, modelo)?);
             }
+        }
+
+        Ok(Self::agrupar_por_categoria(cards))
+    }
+    pub fn listar_cards_filtradas(
+        conn: &Connection,
+        texto: &str,
+    ) -> Result<Vec<GrupoCategoriaDTO>, String> {
+        let modelos = ModeloRepository::buscar_por_nombre(conn, texto)
+            .map_err(|e| format!("Error al buscar modelos: {}", e))?;
+
+        let mut cards = Vec::with_capacity(modelos.len());
+
+        for modelo in modelos {
+            cards.push(Self::card_de_modelo(conn, modelo)?);
         }
 
         Ok(Self::agrupar_por_categoria(cards))

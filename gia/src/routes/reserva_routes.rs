@@ -35,6 +35,17 @@ pub fn router(
             )
         },
 
+        (GET) (/reservas/modelos/busqueda) => {
+
+            let conn_guard =
+                conn.lock().unwrap();
+
+            ReservaHandler::buscar_modelos(
+                request,
+                &conn_guard
+            )
+        },
+
         (GET) (/reservas/carrito) => {
 
             let conn_guard =
