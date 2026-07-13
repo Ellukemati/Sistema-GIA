@@ -81,94 +81,56 @@ impl AdminHandler {
     }
 
     fn obtener_reservas_detalladas(conn: &Connection) -> Vec<ReservaVista> {
-        let reservas_db =
-            ReservaRepository::listar_por_estado(conn, "pendiente").unwrap_or_default();
-        let mut reservas_vista = Vec::new();
+        let reservas_db = ReservaRepository::listar_por_estado(conn, "pendiente").unwrap_or_default();
+        reservas_db.into_iter().map(|r| Self::mapear_reserva_admin(conn, r)).collect()
+    }
 
-        for r in reservas_db {
-            let profe_nombre = match UsuarioRepository::buscar_por_id(conn, r.id_usuario) {
-                Ok(Some(u)) => format!("{} {}", u.nombre, u.apellido),
-                _ => "Usuario Desconocido".to_string(),
+    fn mapear_reserva_admin(conn: &Connection, r: crate::models::reserva::Reserva) -> ReservaVista {
+        let profe_nombre = match UsuarioRepository::buscar_por_id(conn, r.id_usuario) {
+            Ok(Some(u)) => format!("{} {}", u.nombre, u.apellido),
+            _ => "Usuario Desconocido".to_string(),
+        };
+        let inicio_fmt = NaiveDate::parse_from_str(&r.fecha_inicio, "%Y-%m-%d")
+            .map(|d| d.format("%d/%m").to_string()).unwrap_or_else(|_| r.fecha_inicio.clone());
+        let fin_fmt = NaiveDate::parse_from_str(&r.fecha_fin, "%Y-%m-%d")
+            .map(|d| d.format("%d/%m").to_string()).unwrap_or_else(|_| r.fecha_fin.clone());
+            
+        let equipos_raw = ReservaRepository::obtener_equipos_por_reserva(conn, r.id).unwrap_or_default();
+
+        ReservaVista {
+            id: r.id,
+            profe_nombre,
+            fecha_inicio: inicio_fmt,
+            fecha_fin: fin_fmt,
+            motivo: r.motivo.unwrap_or_else(|| "Sin motivo especificado".to_string()),
+            categorias: Self::agrupar_equipos_por_categoria(equipos_raw),
+        }
+    }
+
+    fn agrupar_equipos_por_categoria(equipos: Vec<crate::repository::reserva_repository::EquipoRaw>) -> Vec<CategoriaAgrupada> {
+        let mut categorias: Vec<CategoriaAgrupada> = Vec::new();
+        
+        for item in equipos {
+            let cat_str = item.categoria.clone().unwrap_or_else(|| "Instrumentos Varios".to_string());
+            let identificador = if let Some(qr) = item.codigo_qr.filter(|s| !s.is_empty()) { format!("QR: {}", qr) } 
+                else if let Some(ns) = item.numero_serie.filter(|s| !s.is_empty()) { format!("N/S: {}", ns) } 
+                else if let Some(pat) = item.patrimonio.filter(|s| !s.is_empty()) { format!("Pat: {}", pat) } 
+                else { format!("ID Interno: {}", item.ejemplar_id) };
+
+            let cat_agrupada = match categorias.iter_mut().find(|c| c.nombre_categoria == cat_str) {
+                Some(c) => c,
+                None => { categorias.push(CategoriaAgrupada { nombre_categoria: cat_str, modelos: Vec::new() }); categorias.last_mut().unwrap() }
             };
 
-            let inicio_fmt = NaiveDate::parse_from_str(&r.fecha_inicio, "%Y-%m-%d")
-                .map(|d| d.format("%d/%m").to_string())
-                .unwrap_or_else(|_| r.fecha_inicio.clone());
-
-            let fin_fmt = NaiveDate::parse_from_str(&r.fecha_fin, "%Y-%m-%d")
-                .map(|d| d.format("%d/%m").to_string())
-                .unwrap_or_else(|_| r.fecha_fin.clone());
-
-            let equipos_raw =
-                ReservaRepository::obtener_equipos_por_reserva(conn, r.id).unwrap_or_default();
-            let mut categorias_agrupadas: Vec<CategoriaAgrupada> = Vec::new();
-
-            for item in equipos_raw {
-                let cat_str = item
-                    .categoria
-                    .unwrap_or_else(|| "Instrumentos Varios".to_string());
-                let marca_mod = format!("{} {}", item.marca, item.nombre_modelo);
-
-                let identificador = if let Some(qr) = item.codigo_qr.filter(|s| !s.is_empty()) {
-                    format!("QR: {}", qr)
-                } else if let Some(ns) = item.numero_serie.filter(|s| !s.is_empty()) {
-                    format!("N/S: {}", ns)
-                } else if let Some(pat) = item.patrimonio.filter(|s| !s.is_empty()) {
-                    format!("Pat: {}", pat)
-                } else {
-                    format!("ID Interno: {}", item.ejemplar_id)
-                };
-
-                let ejemplar_vista = EjemplarVista {
-                    id: item.ejemplar_id,
-                    identificador,
-                };
-
-                let cat_agrupada = match categorias_agrupadas
-                    .iter_mut()
-                    .find(|c| c.nombre_categoria == cat_str)
-                {
-                    Some(c) => c,
-                    None => {
-                        categorias_agrupadas.push(CategoriaAgrupada {
-                            nombre_categoria: cat_str.clone(),
-                            modelos: Vec::new(),
-                        });
-                        categorias_agrupadas.last_mut().unwrap()
-                    }
-                };
-
-                let mod_agrupado = match cat_agrupada
-                    .modelos
-                    .iter_mut()
-                    .find(|m| m.modelo_id == item.modelo_id)
-                {
-                    Some(m) => m,
-                    None => {
-                        cat_agrupada.modelos.push(ModeloAgrupado {
-                            modelo_id: item.modelo_id,
-                            marca_modelo: marca_mod,
-                            ejemplares: Vec::new(),
-                        });
-                        cat_agrupada.modelos.last_mut().unwrap()
-                    }
-                };
-
-                mod_agrupado.ejemplares.push(ejemplar_vista);
-            }
-
-            reservas_vista.push(ReservaVista {
-                id: r.id,
-                profe_nombre,
-                fecha_inicio: inicio_fmt,
-                fecha_fin: fin_fmt,
-                motivo: r
-                    .motivo
-                    .unwrap_or_else(|| "Sin motivo especificado".to_string()),
-                categorias: categorias_agrupadas,
-            });
+            let marca_mod = format!("{} {}", item.marca, item.nombre_modelo);
+            let mod_agrupado = match cat_agrupada.modelos.iter_mut().find(|m| m.modelo_id == item.modelo_id) {
+                Some(m) => m,
+                None => { cat_agrupada.modelos.push(ModeloAgrupado { modelo_id: item.modelo_id, marca_modelo: marca_mod, ejemplares: Vec::new() }); cat_agrupada.modelos.last_mut().unwrap() }
+            };
+            
+            mod_agrupado.ejemplares.push(EjemplarVista { id: item.ejemplar_id, identificador });
         }
-        reservas_vista
+        categorias
     }
 
     pub fn mostrar_dashboard(request: &Request, conn: &Connection) -> Response {
@@ -473,119 +435,66 @@ impl AdminHandler {
 
     #[allow(clippy::too_many_arguments)]
     fn obtener_historial_reservas_filtrado(
-        conn: &Connection,
-        docente: &str,
-        estado: &str,
-        fecha_desde: &str,
-        fecha_hasta: &str,
-        motivo: &str,
-        ordenar_por: &str,
-        direccion: &str,
+        conn: &Connection, docente: &str, estado: &str, fecha_desde: &str, 
+        fecha_hasta: &str, motivo: &str, ordenar_por: &str, direccion: &str,
     ) -> Vec<HistorialReservaVista> {
         let reservas = ReservaRepository::listar_todas(conn).unwrap_or_default();
-        let mut resultado = Vec::new();
         let ahora_local = chrono::Local::now().date_naive();
+        let mut resultado = Vec::new();
 
         for r in reservas {
             let (profesor, legajo) = match UsuarioRepository::buscar_por_id(conn, r.id_usuario) {
                 Ok(Some(u)) => (format!("{} {}", u.nombre, u.apellido), u.legajo),
                 _ => ("Usuario desconocido".to_string(), 0),
             };
-
-            if !docente.is_empty() && !profesor.to_lowercase().contains(&docente.to_lowercase()) {
-                continue;
-            }
-
-            if !estado.is_empty() && r.estado != estado {
-                continue;
-            }
-
-            if !fecha_desde.is_empty() && r.fecha_inicio.as_str() < fecha_desde {
-                continue;
-            }
-
-            if !fecha_hasta.is_empty() && r.fecha_fin.as_str() > fecha_hasta {
-                continue;
-            }
-
             let motivo_reserva = r.motivo.clone().unwrap_or_else(|| "Sin motivo".to_string());
-            if !motivo.is_empty()
-                && !motivo_reserva
-                    .to_lowercase()
-                    .contains(&motivo.to_lowercase())
-            {
-                continue;
-            }
 
-            let inicio_parsed = NaiveDate::parse_from_str(&r.fecha_inicio, "%Y-%m-%d");
-            let fin_parsed = NaiveDate::parse_from_str(&r.fecha_fin, "%Y-%m-%d");
-
-            let mut texto_estado = r.estado.clone();
-            let mut clase_estado = format!("estado-{}", r.estado);
-
-            if r.estado == "activa" {
-                if let (Ok(ini), Ok(fin)) = (inicio_parsed, fin_parsed) {
-                    if ahora_local < ini {
-                        texto_estado = "Aprobada".to_string();
-                        clase_estado = "estado-aprobada".to_string();
-                    } else if ahora_local >= ini && ahora_local <= fin {
-                        texto_estado = "En Curso".to_string();
-                        clase_estado = "estado-en-curso".to_string();
-                    } else {
-                        texto_estado = "Concluida".to_string();
-                        clase_estado = "estado-concluida".to_string();
-                    }
-                }
-            } else if r.estado == "pendiente" {
-                texto_estado = "Pendiente".to_string();
-            } else if r.estado == "cancelada" {
-                texto_estado = "Cancelada".to_string();
-            } else if r.estado == "concluida" {
-                texto_estado = "Concluida".to_string();
-            }
-
-            let confirmacion_txt = r
-                .momento_confirmacion
-                .clone()
-                .unwrap_or_else(|| "---".to_string());
-
-            resultado.push(HistorialReservaVista {
-                id: r.id,
-                profesor,
-                legajo: legajo.into(),
-                fecha_inicio: r.fecha_inicio,
-                fecha_fin: r.fecha_fin,
-                estado: r.estado,
-                texto_estado,
-                clase_estado,
-                motivo: motivo_reserva,
-                momento_creacion: r.momento_creacion,
-                momento_confirmacion: confirmacion_txt,
-            });
-        }
-
-        match ordenar_por {
-            "docente" => {
-                resultado.sort_by(|a, b| a.profesor.to_lowercase().cmp(&b.profesor.to_lowercase()));
-            }
-            "fecha_inicio" => {
-                resultado.sort_by(|a, b| a.fecha_inicio.cmp(&b.fecha_inicio));
-            }
-            "fecha_fin" => {
-                resultado.sort_by(|a, b| a.fecha_fin.cmp(&b.fecha_fin));
-            }
-            "estado" => {
-                resultado.sort_by(|a, b| a.estado.cmp(&b.estado));
-            }
-            _ => {
-                resultado.sort_by(|a, b| a.momento_creacion.cmp(&b.momento_creacion));
+            if Self::cumple_filtros(&r, &profesor, docente, estado, fecha_desde, fecha_hasta, motivo, &motivo_reserva) {
+                resultado.push(Self::mapear_historial_reserva(r, profesor, legajo, motivo_reserva, ahora_local));
             }
         }
-
-        if direccion == "desc" {
-            resultado.reverse();
-        }
+        Self::ordenar_historial(&mut resultado, ordenar_por, direccion);
         resultado
+    }
+
+    fn cumple_filtros(r: &crate::models::reserva::Reserva, profe: &str, f_doc: &str, f_est: &str, f_d: &str, f_h: &str, f_mot: &str, mot_real: &str) -> bool {
+        if !f_doc.is_empty() && !profe.to_lowercase().contains(&f_doc.to_lowercase()) { return false; }
+        if !f_est.is_empty() && r.estado != f_est { return false; }
+        if !f_d.is_empty() && r.fecha_inicio.as_str() < f_d { return false; }
+        if !f_h.is_empty() && r.fecha_fin.as_str() > f_h { return false; }
+        if !f_mot.is_empty() && !mot_real.to_lowercase().contains(&f_mot.to_lowercase()) { return false; }
+        true
+    }
+
+    fn mapear_historial_reserva(r: crate::models::reserva::Reserva, profesor: String, legajo: i32, motivo: String, ahora_local: chrono::NaiveDate) -> HistorialReservaVista {
+        let (mut texto_estado, mut clase_estado) = (r.estado.clone(), format!("estado-{}", r.estado));
+
+        if r.estado == "activa" {
+            if let (Ok(ini), Ok(fin)) = (chrono::NaiveDate::parse_from_str(&r.fecha_inicio, "%Y-%m-%d"), chrono::NaiveDate::parse_from_str(&r.fecha_fin, "%Y-%m-%d")) {
+                if ahora_local < ini { texto_estado = "Aprobada".into(); clase_estado = "estado-aprobada".into(); }
+                else if ahora_local >= ini && ahora_local <= fin { texto_estado = "En Curso".into(); clase_estado = "estado-en-curso".into(); }
+                else { texto_estado = "Concluida".into(); clase_estado = "estado-concluida".into(); }
+            }
+        } else {
+            texto_estado = match r.estado.as_str() { "pendiente" => "Pendiente", "cancelada" => "Cancelada", "concluida" => "Concluida", _ => &r.estado }.to_string();
+        }
+
+        HistorialReservaVista {
+            id: r.id, profesor, legajo: legajo.into(), fecha_inicio: r.fecha_inicio, fecha_fin: r.fecha_fin,
+            estado: r.estado, texto_estado, clase_estado, motivo, momento_creacion: r.momento_creacion,
+            momento_confirmacion: r.momento_confirmacion.unwrap_or_else(|| "---".to_string())
+        }
+    }
+
+    fn ordenar_historial(resultado: &mut [HistorialReservaVista], ordenar_por: &str, direccion: &str) {
+        match ordenar_por {
+            "docente" => resultado.sort_by(|a, b| a.profesor.to_lowercase().cmp(&b.profesor.to_lowercase())),
+            "fecha_inicio" => resultado.sort_by(|a, b| a.fecha_inicio.cmp(&b.fecha_inicio)),
+            "fecha_fin" => resultado.sort_by(|a, b| a.fecha_fin.cmp(&b.fecha_fin)),
+            "estado" => resultado.sort_by(|a, b| a.estado.cmp(&b.estado)),
+            _ => resultado.sort_by(|a, b| a.momento_creacion.cmp(&b.momento_creacion)),
+        }
+        if direccion == "desc" { resultado.reverse(); }
     }
 
     pub fn mostrar_historial_reservas(request: &Request, conn: &Connection) -> Response {

@@ -191,88 +191,45 @@ impl AuthHandler {
 
         templates::response_html(templates::render("perfil.html", &ctx))
     }
+    
     pub fn actualizar_perfil(request: &Request, conn: &Connection) -> Response {
-        let usuario = match usuario_actual(request, conn) {
-            Ok(u) => u,
-
-            Err(r) => return r,
-        };
-
+        let usuario = match usuario_actual(request, conn) { Ok(u) => u, Err(r) => return r };
         let mut data = match rouille::input::multipart::get_multipart_input(request) {
-            Ok(d) => d,
-
-            Err(_) => {
-                return templates::response_mensaje_error("Error", "Formulario inválido");
-            }
+            Ok(d) => d, Err(_) => return templates::response_mensaje_error("Error", "Formulario inválido")
         };
 
-        let mut nombre = usuario.nombre.clone();
-        let mut apellido = usuario.apellido.clone();
-        let mut password = String::new();
-        let mut password_repetida = String::new();
+        let (mut nombre, mut apellido, mut password, mut password_repetida) = (usuario.nombre.clone(), usuario.apellido.clone(), String::new(), String::new());
         let mut avatar_bytes: Option<Vec<u8>> = None;
 
-        use std::io::Read;
-
         while let Some(mut entry) = data.next() {
-            let headers = entry.headers.clone();
-            let name = headers.name.clone();
-
-            if headers.filename.is_some() {
-                if &*name == "avatar" {
-                    let mut bytes = Vec::new();
-
-                    if entry.data.read_to_end(&mut bytes).is_ok() && !bytes.is_empty() {
-                        avatar_bytes = Some(bytes);
-                    }
-                }
+            let name = entry.headers.name.to_string();
+            if entry.headers.filename.is_some() && name == "avatar" {
+                let mut bytes = Vec::new();
+                if entry.data.read_to_end(&mut bytes).is_ok() && !bytes.is_empty() { avatar_bytes = Some(bytes); }
             } else {
                 let mut text = String::new();
-
                 if entry.data.read_to_string(&mut text).is_ok() {
-                    match &*name {
-                        "nombre" => {
-                            nombre = text;
-                        }
-
-                        "apellido" => {
-                            apellido = text;
-                        }
-                        "password" => {
-                            password = text;
-                        }
-
-                        "password_repetida" => {
-                            password_repetida = text;
-                        }
-
+                    match name.as_str() {
+                        "nombre" => nombre = text, "apellido" => apellido = text,
+                        "password" => password = text, "password_repetida" => password_repetida = text,
                         _ => {}
                     }
                 }
             }
         }
-        if !password.is_empty() && password != password_repetida {
-            return templates::response_mensaje_error("Error", "Las contraseñas no coinciden");
-        }
-        if let Err(e) = UsuarioRepository::actualizar_perfil(conn, usuario.id, &nombre, &apellido) {
-            return templates::response_mensaje_error("Error actualizando perfil", &e.to_string());
-        }
-        if !password.is_empty() {
-            if password != password_repetida {
-                return templates::response_mensaje_error("Error", "Las contraseñas no coinciden");
-            }
+        Self::guardar_cambios_perfil(conn, &usuario, nombre, apellido, password, password_repetida, avatar_bytes)
+    }
 
-            if let Err(e) = AuthService::cambiar_password_usuario(conn, usuario.id, &password) {
-                return templates::response_mensaje_error("Error", &e);
-            }
+    fn guardar_cambios_perfil(conn: &Connection, usuario: &crate::models::usuario::Usuario, nombre: String, apellido: String, pass: String, pass_rep: String, avatar: Option<Vec<u8>>) -> Response {
+        if !pass.is_empty() && pass != pass_rep { return templates::response_mensaje_error("Error", "Las contraseñas no coinciden"); }
+        if let Err(e) = UsuarioRepository::actualizar_perfil(conn, usuario.id, &nombre, &apellido) { return templates::response_mensaje_error("Error", &e.to_string()); }
+        
+        if !pass.is_empty() {
+            if let Err(e) = AuthService::cambiar_password_usuario(conn, usuario.id, &pass) { return templates::response_mensaje_error("Error", &e); }
         }
-
-        if let Some(bytes) = avatar_bytes
-            && let Ok((blob, mime)) = procesar_avatar(&bytes)
-        {
-            let _ = ImageRepository::guardar_avatar(conn, usuario.legajo as i64, &blob, &mime);
+        if let Some(bytes) = avatar {
+            if let Ok((blob, mime)) = procesar_avatar(&bytes) { let _ = ImageRepository::guardar_avatar(conn, usuario.legajo as i64, &blob, &mime); }
         }
-
         Response::redirect_302("/perfil")
     }
 
