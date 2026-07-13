@@ -351,14 +351,9 @@ impl AuthHandler {
             }
         };
 
-        let mut nombre = usuario.nombre.clone();
-        let mut apellido = usuario.apellido.clone();
-        let mut password = String::new();
-        let mut password_repetida = String::new();
+        let (mut nombre, mut apellido, mut password, mut password_repetida) = (usuario.nombre.clone(), usuario.apellido.clone(), String::new(), String::new());
         let mut avatar_bytes: Option<Vec<u8>> = None;
         let mut flag_eliminar_avatar = String::new();
-
-        use std::io::Read;
 
         while let Some(mut entry) = data.next() {
             let headers = entry.headers.clone();

@@ -146,38 +146,29 @@ impl ReservaHandler {
 
         let grupos = match grupos_res {
             Ok(g) => g,
-            Err(e) => {
-                return templates::response_mensaje_error("No se pudieron cargar los modelos", &e);
-            }
+            Err(e) => return templates::response_mensaje_error("Error", &e),
         };
 
+        match Self::renderizar_parciales_htmx(&grupos, &buscar) {
+            Ok(html) => Response::html(html).with_additional_header("Set-Cookie", cookie_carrito(&carrito)),
+            Err(response) => response,
+        }
+    }
+
+    fn renderizar_parciales_htmx(grupos: &[crate::service::modelo_service::GrupoCategoriaDTO], buscar: &str) -> Result<String, Response> {
         let mut ctx_modelos = Context::new();
-        ctx_modelos.insert("grupos", &grupos);
-        ctx_modelos.insert("busqueda", &buscar);
-
-        let modelos_html = match templates::render("partials/reserva_modelos.html", &ctx_modelos) {
-            Ok(h) => h,
-            Err(e) => {
-                return Response::text(format!("Error renderizando plantilla: {}", e))
-                    .with_status_code(500);
-            }
-        };
+        ctx_modelos.insert("grupos", grupos);
+        ctx_modelos.insert("busqueda", buscar);
+        let m_html = templates::render("partials/reserva_modelos.html", &ctx_modelos)
+            .map_err(|e| Response::text(format!("Error: {}", e)).with_status_code(500))?;
 
         let mut ctx_resumen = Context::new();
         ctx_resumen.insert("carrito_cantidad", &0usize);
-        ctx_resumen.insert("motivo", &carrito.motivo.clone().unwrap_or_default());
         ctx_resumen.insert("oob", &true);
+        let r_html = templates::render("partials/carrito_resumen.html", &ctx_resumen)
+            .map_err(|e| Response::text(format!("Error: {}", e)).with_status_code(500))?;
 
-        let resumen_html = match templates::render("partials/carrito_resumen.html", &ctx_resumen) {
-            Ok(h) => h,
-            Err(e) => {
-                return Response::text(format!("Error renderizando plantilla: {}", e))
-                    .with_status_code(500);
-            }
-        };
-
-        Response::html(format!("{}{}", modelos_html, resumen_html))
-            .with_additional_header("Set-Cookie", cookie_carrito(&carrito))
+        Ok(format!("{}{}", m_html, r_html))
     }
 
     pub fn buscar_modelos(request: &Request, conn: &Connection) -> Response {
@@ -661,19 +652,19 @@ impl ReservaHandler {
                 .format("%d-%m-%Y")
                 .to_string();
 
-            reservas_vista.push(ReservaView {
-                id: reserva.id,
-                fecha_inicio,
-                fecha_fin,
-                estado: reserva.estado.clone(),
-                texto_estado: texto_estado.to_string(),
-                clase_estado: clase_estado.to_string(),
-                motivo: reserva.motivo.unwrap_or("Sin motivo".to_string()),
-                equipos,
-                dias,
-                creada: creada_txt,
-            });
-        }
+                reservas_vista.push(ReservaView {
+                    id: reserva.id,
+                    fecha_inicio,
+                    fecha_fin,
+                    estado: reserva.estado.clone(),
+                    texto_estado: texto_estado.to_string(),
+                    clase_estado: clase_estado.to_string(),
+                    motivo: reserva.motivo.unwrap_or("Sin motivo".to_string()),
+                    equipos,
+                    dias,
+                    creada: creada_txt,
+                });
+            }
 
         let mut ctx = Context::new();
         ctx.insert("reservas", &reservas_vista);

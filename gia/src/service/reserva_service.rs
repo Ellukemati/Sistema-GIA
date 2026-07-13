@@ -390,6 +390,8 @@ impl ReservaService {
         ReservaRepository::cambiar_estado(conn, reserva_id, ESTADO_CANCELADA)
             .map_err(|e| format!("Error al actualizar el estado: {}", e))?;
 
+        crate::logger::info(&format!("La reserva ID: {} fue rechazada por la administración.", reserva_id));
+
         let id_reserva_str = reserva_id.to_string();
         std::thread::spawn(move || {
             let _ = MailService::enviar_notificacion_reserva_rechazada(
@@ -499,6 +501,8 @@ impl ReservaService {
         if filas == 0 {
             return Err("La reserva no existe o ya fue cancelada".to_string());
         }
+
+        crate::logger::info(&format!("Reserva ID: {} cancelada por el usuario ID: {}", reserva_id, usuario_id));
         Ok(())
     }
 
