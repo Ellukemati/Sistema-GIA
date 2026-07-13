@@ -118,9 +118,10 @@ impl ModeloRepository {
         let patron = format!("%{}%", texto);
 
         let mut stmt = conn.prepare(
-            "SELECT id, marca, nombre_modelo, categoria, descripcion
+            "SELECT id, marca, nombre_modelo, categoria, descripcion, eliminado
             FROM modelos
-            WHERE LOWER(nombre_modelo) LIKE LOWER(?1)
+            WHERE eliminado = 0
+            AND LOWER(nombre_modelo) LIKE LOWER(?1)
             ORDER BY nombre_modelo",
         )?;
 
