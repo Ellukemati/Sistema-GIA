@@ -5,6 +5,7 @@ use crate::repository::modelo_repository::ModeloRepository;
 use crate::repository::reserva_repository::ReservaRepository;
 use rusqlite::Connection;
 use serde::Serialize;
+use std::collections::HashMap;
 pub struct ModeloService;
 
 pub struct CrearModeloData {
@@ -142,10 +143,30 @@ impl ModeloService {
         })
     }
 
+    /// Clave de comparacion: minusculas y sin diacriticos (tildes, dieresis, etc.).
+    fn clave_categoria(s: &str) -> String {
+        s.to_lowercase()
+            .chars()
+            .map(|c| match c {
+                'á' | 'à' | 'ä' | 'â' => 'a',
+                'é' | 'è' | 'ë' | 'ê' => 'e',
+                'í' | 'ì' | 'ï' | 'î' => 'i',
+                'ó' | 'ò' | 'ö' | 'ô' => 'o',
+                'ú' | 'ù' | 'ü' | 'û' => 'u',
+                'ñ' => 'n',
+                other => other,
+            })
+            .collect()
+    }
+
     /// Agrupa las tarjetas por categoria, conservando el orden de aparicion.
-    /// Los modelos sin categoria quedan como "Sin categoria".
+    /// La comparacion ignora mayusculas/minusculas y tildes; se conserva el
+    /// nombre de la primera aparicion. Los modelos sin categoria quedan como
+    /// "Sin categoria".
     fn agrupar_por_categoria(cards: Vec<ModeloCardDTO>) -> Vec<GrupoCategoriaDTO> {
         let mut grupos: Vec<GrupoCategoriaDTO> = Vec::new();
+        let mut indice: HashMap<String, usize> = HashMap::new();
+
         for card in cards {
             let categoria = card
                 .categoria
@@ -153,12 +174,16 @@ impl ModeloService {
                 .filter(|c| !c.trim().is_empty())
                 .unwrap_or_else(|| "Sin categoria".to_string());
 
-            match grupos.iter_mut().find(|g| g.categoria == categoria) {
-                Some(grupo) => grupo.modelos.push(card),
-                None => grupos.push(GrupoCategoriaDTO {
-                    categoria,
-                    modelos: vec![card],
-                }),
+            let clave = Self::clave_categoria(&categoria);
+            match indice.get(&clave) {
+                Some(&i) => grupos[i].modelos.push(card),
+                None => {
+                    indice.insert(clave, grupos.len());
+                    grupos.push(GrupoCategoriaDTO {
+                        categoria,
+                        modelos: vec![card],
+                    });
+                }
             }
         }
 
@@ -370,6 +395,38 @@ mod tests {
         assert_eq!(grupos[0].modelos.len(), 2);
         assert_eq!(grupos[0].modelos[0].id, 1);
         assert_eq!(grupos[0].modelos[1].id, 2);
+    }
+
+    #[test]
+    fn agrupar_por_categoria_ignora_mayusculas_minusculas() {
+        let grupos = ModeloService::agrupar_por_categoria(vec![
+            card(1, "Violín", Some("Cuerdas")),
+            card(2, "Viola", Some("cuerdas")),
+            card(3, "Cello", Some("CUERDAS")),
+        ]);
+
+        assert_eq!(grupos.len(), 1);
+        assert_eq!(grupos[0].categoria, "Cuerdas");
+        assert_eq!(grupos[0].modelos.len(), 3);
+        assert_eq!(grupos[0].modelos[0].id, 1);
+        assert_eq!(grupos[0].modelos[1].id, 2);
+        assert_eq!(grupos[0].modelos[2].id, 3);
+    }
+
+    #[test]
+    fn agrupar_por_categoria_ignora_tildes() {
+        let grupos = ModeloService::agrupar_por_categoria(vec![
+            card(1, "Cámara", Some("Fotografía")),
+            card(2, "Lente", Some("fotografia")),
+            card(3, "Flash", Some("FOTOGRAFIA")),
+        ]);
+
+        assert_eq!(grupos.len(), 1);
+        assert_eq!(grupos[0].categoria, "Fotografía");
+        assert_eq!(grupos[0].modelos.len(), 3);
+        assert_eq!(grupos[0].modelos[0].id, 1);
+        assert_eq!(grupos[0].modelos[1].id, 2);
+        assert_eq!(grupos[0].modelos[2].id, 3);
     }
 
     #[test]

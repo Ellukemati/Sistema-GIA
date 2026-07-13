@@ -273,6 +273,10 @@ impl ModeloHandler {
             _ => None,
         };
 
+        let cantidad_imagenes = ImageRepository::listar_ordenes_modelo(conn, id)
+            .map(|ordenes| ordenes.len())
+            .unwrap_or(0);
+
         let tiene_manual = ModeloRepository::tiene_manual(conn, id).unwrap_or(false);
 
         let es_admin = usuario_actual(request, conn)
@@ -304,6 +308,7 @@ impl ModeloHandler {
         let mut ctx = Context::new();
         ctx.insert("modelo", &modelo);
         ctx.insert("imagen", &imagen);
+        ctx.insert("cantidad_imagenes", &cantidad_imagenes);
         ctx.insert("tiene_manual", &tiene_manual);
         ctx.insert("ejemplares", &ejemplares);
         ctx.insert("con_fechas", &false);
