@@ -54,10 +54,13 @@ impl EjemplarService {
         };
 
         match EjemplarRepository::crear(conn, &ejemplar_temporal) {
-            Ok(id_real) => Ok(Ejemplar {
-                id: id_real,
-                ..ejemplar_temporal
-            }),
+            Ok(id_real) => {
+                crate::logger::info(&format!("Nuevo ejemplar ingresado al sistema (ID: {} / Modelo ID: {})", id_real, data.modelo_id));
+                Ok(Ejemplar {
+                    id: id_real,
+                    ..ejemplar_temporal
+                })
+            },
             Err(e) => Err(format!(
                 "Error en la base de datos al crear ejemplar: {}",
                 e

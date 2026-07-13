@@ -29,6 +29,17 @@ El proyecto cuenta con la infraestructura necesaria para ser desplegado fácilme
 * Docker instalado.
 * Docker Compose instalado.
 
+### 💡 Nota para usuarios de Linux (Ubuntu/Debian)
+
+Si al ejecutar los comandos de Docker obtenés un error de "Permiso denegado" (`permission denied`) o el sistema te obliga a usar `sudo` en cada paso, te recomendamos agregar tu usuario al grupo de Docker para facilitar el uso del sistema:
+
+   ```bash
+   sudo systemctl enable --now docker
+   sudo usermod -aG docker $USER
+   ```
+
+Nota: Después de ejecutar este último comando, tenés que cerrar sesión en Ubuntu y volver a entrar (o reiniciar) para que los permisos se apliquen.
+
 ### Comandos de administración
 
 1. **Construir e iniciar el ambiente por primera vez (o al haber cambios en el código):**

@@ -286,135 +286,38 @@ impl EjemplarHandler {
     }
 
     fn parsear_formulario_ejemplar(request: &Request) -> Result<DatosFormularioEjemplar, Response> {
-        let mut multipart = match multipart::get_multipart_input(request) {
-            Ok(m) => m,
-            Err(_) => {
-                return Err(templates::response_mensaje_error_con_status(
-                    "Error de solicitud",
-                    "El formulario no tiene el formato multipart correcto.",
-                    400,
-                ));
-            }
-        };
-
-        let mut modelo_id_raw = String::new();
-        let mut numero_serie: Option<String> = None;
-        let mut codigo_qr: Option<String> = None;
-        let mut patrimonio: Option<String> = None;
-        let mut observaciones: Option<String> = None;
-        let mut tiene_accesorios = String::new();
-        let mut accesorios: Option<String> = None;
-        let mut esta_disponible = String::new();
-        let mut ubicacion: Option<String> = None;
-        let mut lista_imagenes_bytes: Vec<Vec<u8>> = Vec::new();
+        let mut multipart = multipart::get_multipart_input(request).map_err(|_| templates::response_mensaje_error_con_status("Error", "Fallo multipart", 400))?;
+        let (mut modelo_id_raw, mut numero_serie, mut codigo_qr, mut patrimonio) = (String::new(), None, None, None);
+        let (mut observaciones, mut tiene_accesorios, mut accesorios) = (None, String::new(), None);
+        let (mut esta_disponible, mut ubicacion, mut lista_imagenes_bytes) = (String::new(), None, Vec::new());
 
         while let Some(mut field) = multipart.next() {
             let name = field.headers.name.to_string();
-
-            match name.as_str() {
-                "modelo_id" => {
-                    if field.is_text() {
-                        let _ = field.data.read_to_string(&mut modelo_id_raw);
-                    }
+            if field.is_text() {
+                let mut val = String::new();
+                let _ = field.data.read_to_string(&mut val);
+                match name.as_str() {
+                    "modelo_id" => modelo_id_raw = val,
+                    "numero_serie" => numero_serie = Self::campo_opcional_texto(val),
+                    "codigo_qr" => codigo_qr = Self::campo_opcional_texto(val),
+                    "patrimonio" => patrimonio = Self::campo_opcional_texto(val),
+                    "observaciones" => observaciones = Self::campo_opcional_texto(val),
+                    "tiene_accesorios" => tiene_accesorios = val,
+                    "accesorios" => accesorios = Self::campo_opcional_texto(val),
+                    "esta_disponible" => esta_disponible = val,
+                    "ubicacion" => ubicacion = Self::campo_opcional_texto(val),
+                    _ => {}
                 }
-                "numero_serie" => {
-                    if field.is_text() {
-                        let mut valor = String::new();
-                        let _ = field.data.read_to_string(&mut valor);
-                        numero_serie = Self::campo_opcional_texto(valor);
-                    }
-                }
-                "codigo_qr" => {
-                    if field.is_text() {
-                        let mut valor = String::new();
-                        let _ = field.data.read_to_string(&mut valor);
-                        codigo_qr = Self::campo_opcional_texto(valor);
-                    }
-                }
-                "patrimonio" => {
-                    if field.is_text() {
-                        let mut valor = String::new();
-                        let _ = field.data.read_to_string(&mut valor);
-                        patrimonio = Self::campo_opcional_texto(valor);
-                    }
-                }
-                "observaciones" => {
-                    if field.is_text() {
-                        let mut valor = String::new();
-                        let _ = field.data.read_to_string(&mut valor);
-                        observaciones = Self::campo_opcional_texto(valor);
-                    }
-                }
-                "tiene_accesorios" => {
-                    if field.is_text() {
-                        let _ = field.data.read_to_string(&mut tiene_accesorios);
-                    }
-                }
-                "accesorios" => {
-                    if field.is_text() {
-                        let mut valor = String::new();
-                        let _ = field.data.read_to_string(&mut valor);
-                        accesorios = Self::campo_opcional_texto(valor);
-                    }
-                }
-                "esta_disponible" => {
-                    if field.is_text() {
-                        esta_disponible.clear();
-                        let _ = field.data.read_to_string(&mut esta_disponible);
-                    }
-                }
-                "ubicacion" => {
-                    if field.is_text() {
-                        let mut valor = String::new();
-                        let _ = field.data.read_to_string(&mut valor);
-                        ubicacion = Self::campo_opcional_texto(valor);
-                    }
-                }
-                "imagenes[]" if field.headers.filename.is_some() => {
-                    let mut foto_bytes = Vec::new();
-                    if field.data.read_to_end(&mut foto_bytes).is_ok() && !foto_bytes.is_empty() {
-                        lista_imagenes_bytes.push(foto_bytes);
-                    }
-                }
-                _ => {}
+            } else if name == "imagenes[]" && field.headers.filename.is_some() {
+                let mut foto = Vec::new();
+                if field.data.read_to_end(&mut foto).is_ok() && !foto.is_empty() { lista_imagenes_bytes.push(foto); }
             }
         }
 
-        let modelo_id = match modelo_id_raw.parse::<i64>() {
-            Ok(id) => id,
-            Err(_) => {
-                return Err(templates::response_mensaje_error_con_status(
-                    "Datos inválidos",
-                    "Debe seleccionar un modelo válido.",
-                    400,
-                ));
-            }
-        };
-
-        let accesorios = match tiene_accesorios.as_str() {
-            "si" => match accesorios {
-                Some(valor) => Some(valor),
-                None => {
-                    return Err(templates::response_mensaje_error(
-                        "Datos inválidos",
-                        "Indique los accesorios o seleccione No.",
-                    ));
-                }
-            },
-            _ => None,
-        };
-
-        Ok(DatosFormularioEjemplar {
-            modelo_id,
-            numero_serie,
-            codigo_qr,
-            patrimonio,
-            observaciones,
-            accesorios,
-            esta_disponible: parsear_esta_disponible(&esta_disponible),
-            ubicacion,
-            lista_imagenes_bytes,
-        })
+        let modelo_id = modelo_id_raw.parse::<i64>().map_err(|_| templates::response_mensaje_error_con_status("Error", "Modelo inválido", 400))?;
+        let accesorios = if tiene_accesorios == "si" { if accesorios.is_none() { return Err(templates::response_mensaje_error("Error", "Indique accesorios")); } accesorios } else { None };
+        
+        Ok(DatosFormularioEjemplar { modelo_id, numero_serie, codigo_qr, patrimonio, observaciones, accesorios, esta_disponible: parsear_esta_disponible(&esta_disponible), ubicacion, lista_imagenes_bytes })
     }
 
     fn crear_ejemplar_data_desde_formulario(
