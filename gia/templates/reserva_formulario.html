@@ -35,24 +35,22 @@
             <div class="field">
                 <label for="fecha_inicio">Desde</label>
                 <input id="fecha_inicio" type="date" name="fecha_inicio" min="{{ fecha_minima }}"
-                    max="{{ fecha_maxima }}" value="{{ fecha_inicio }}" hx-get="/reservas/modelos" hx-trigger="change"
-                    hx-target="#lista-modelos" hx-swap="innerHTML" hx-include=".reserva-fechas-grid,.catalogo-search">
+                    max="{{ fecha_maxima }}" value="{{ fecha_inicio }}">
             </div>
 
             <div class="field">
                 <label for="fecha_fin">Hasta</label>
                 <input id="fecha_fin" type="date" name="fecha_fin" min="{{ fecha_minima }}" max="{{ fecha_maxima }}"
-                    value="{{ fecha_fin }}" hx-get="/reservas/modelos" hx-trigger="change" hx-target="#lista-modelos"
-                    hx-swap="innerHTML" hx-include=".reserva-fechas-grid,.catalogo-search">
+                    value="{{ fecha_fin }}">
             </div>
 
         </form>
 
         <div class="reserva-fechas-hint">
             ℹ️ La reserva puede comenzar entre el
-            <strong>{{ fecha_minima }}</strong>
+            <strong>{{ fecha_minima_display }}</strong>
             y el
-            <strong>{{ fecha_maxima }}</strong>.
+            <strong>{{ fecha_maxima_display }}</strong>.
             Si modificás las fechas, los ejemplares seleccionados se eliminarán del carrito.
         </div>
 

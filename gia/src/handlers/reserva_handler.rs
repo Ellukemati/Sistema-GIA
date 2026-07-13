@@ -33,17 +33,12 @@ impl ReservaHandler {
         }
 
         let usuario_opt = usuario_actual(request, conn).ok();
-
-        let fecha_minima = (Local::now().date_naive() + Duration::days(5))
-            .format("%Y-%m-%d")
-            .to_string();
-
-        let fecha_maxima = (Local::now().date_naive() + Duration::days(180))
-            .format("%Y-%m-%d")
-            .to_string();
-
+        let hoy = Local::now().date_naive();
+        let fecha_minima = (hoy + Duration::days(5)).format("%Y-%m-%d").to_string();
+        let fecha_maxima = (hoy + Duration::days(120)).format("%Y-%m-%d").to_string();
+        let fecha_minima_display = (hoy + Duration::days(5)).format("%d-%m-%Y").to_string();
+        let fecha_maxima_display = (hoy + Duration::days(120)).format("%d-%m-%Y").to_string();
         let carrito = leer_carrito(request);
-
         let buscar = request.get_param("buscar").unwrap_or_default();
         let categoria = request.get_param("categoria").unwrap_or_default();
         let orden = request.get_param("orden").unwrap_or_default();
@@ -77,6 +72,9 @@ impl ReservaHandler {
 
         ctx.insert("fecha_minima", &fecha_minima);
         ctx.insert("fecha_maxima", &fecha_maxima);
+        ctx.insert("fecha_minima_display", &fecha_minima_display);
+        ctx.insert("fecha_maxima_display", &fecha_maxima_display);
+
         ctx.insert("grupos", &grupos);
 
         ctx.insert(
