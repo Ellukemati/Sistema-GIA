@@ -1,0 +1,44 @@
+<nav class="main-navbar">
+
+    <div class="nav-left-zone"
+        style="display: flex; align-items: center; gap: var(--spacing-md); min-width: 240px; z-index: 10;">
+        {% if modo_perfil %}
+        <a href="/inicio" class="btn-volver"
+            style="font-weight: 700; text-decoration: none; padding: 8px 16px; border: 1.5px solid var(--color-primary); border-radius: var(--radius-sm); font-size: 0.95rem; background-color: var(--color-surface); white-space: nowrap;">
+            Ir al Inicio
+        </a>
+        {% else %}
+        <a href="/perfil" class="profile-action-card" title="Editar mi perfil">
+            <div class="avatar-container">
+                <img src="/imagenes/avatares/{{ usuario_actual.legajo }}?v={{ avatar_cache_buster | default(value=0) }}" alt="Avatar" class="profile-avatar"
+                    onerror="this.onerror=null; this.src='/static/img/avatardefault.avif';">
+                <span class="badge-edit-gear">⚙️</span>
+            </div>
+            <div class="profile-info-text">
+                <span class="profile-welcome">Hola, <strong>{{ usuario_actual.nombre }}</strong></span>
+                <span class="profile-role">{% if usuario_actual.tipo == "A" %}Administrador{% else %}Docente{% endif
+                    %}</span>
+            </div>
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="nav-brand"
+        style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 5;">
+        <img src="/static/img/logo_gia_transparente.png" alt="GIA" class="nav-logo-large"
+            style="height: 65px; width: auto; object-fit: contain; display: block;">
+    </div>
+
+    <div class="nav-user-zone"
+        style="display: flex; align-items: center; justify-content: flex-end; min-width: 240px; z-index: 10; margin-left: auto;">
+        <div class="darkmode-switch-wrapper" title="Cambiar tema visual">
+            <span class="switch-icon">☀️</span>
+            <label class="theme-switch" for="checkbox-theme">
+                <input type="checkbox" id="checkbox-theme" onclick="toggleDarkMode()">
+                <div class="slider round"></div>
+            </label>
+            <span class="switch-icon">🌙</span>
+        </div>
+    </div>
+
+</nav>

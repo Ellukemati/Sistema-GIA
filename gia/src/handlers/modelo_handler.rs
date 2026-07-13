@@ -228,17 +228,27 @@ impl ModeloHandler {
         }
     }
 
-    pub fn listar_modelos(conn: &Connection) -> Response {
-        match ModeloService::listar_cards_agrupadas(conn) {
+    pub fn listar_modelos(request: &Request, conn: &Connection) -> Response {
+        let busqueda = request.get_param("buscar").unwrap_or_default();
+
+        let grupos = if busqueda.trim().is_empty() {
+            ModeloService::listar_cards_agrupadas(conn)
+        } else {
+            ModeloService::listar_cards_filtradas(conn, &busqueda)
+        };
+
+        match grupos {
             Ok(grupos) => {
                 let mut ctx = Context::new();
                 ctx.insert("grupos", &grupos);
+                ctx.insert("busqueda", &busqueda);
+
                 templates::response_html(templates::render("modelo_listado.html", &ctx))
             }
+
             Err(e) => templates::response_mensaje_error("No se pudieron cargar los modelos", &e),
         }
     }
-
     pub fn mostrar_detalle(request: &Request, conn: &Connection, id: i64) -> Response {
         let modelo = match ModeloRepository::buscar_por_id(conn, id) {
             Ok(Some(m)) if !m.eliminado => m,
@@ -262,6 +272,10 @@ impl ModeloHandler {
             Ok(true) => Some(format!("/imagenes/modelos/{}/0", id)),
             _ => None,
         };
+
+        let cantidad_imagenes = ImageRepository::listar_ordenes_modelo(conn, id)
+            .map(|ordenes| ordenes.len())
+            .unwrap_or(0);
 
         let tiene_manual = ModeloRepository::tiene_manual(conn, id).unwrap_or(false);
 
@@ -294,6 +308,7 @@ impl ModeloHandler {
         let mut ctx = Context::new();
         ctx.insert("modelo", &modelo);
         ctx.insert("imagen", &imagen);
+        ctx.insert("cantidad_imagenes", &cantidad_imagenes);
         ctx.insert("tiene_manual", &tiene_manual);
         ctx.insert("ejemplares", &ejemplares);
         ctx.insert("con_fechas", &false);

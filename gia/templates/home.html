@@ -7,35 +7,8 @@
 {% endblock %}
 
 {% block content %}
-<nav class="main-navbar">
-    <div class="darkmode-switch-wrapper" title="Cambiar tema visual">
-        <span class="switch-icon">☀️</span>
-        <label class="theme-switch" for="checkbox-theme">
-            <input type="checkbox" id="checkbox-theme" onclick="toggleDarkMode()">
-            <div class="slider round"></div>
-        </label>
-        <span class="switch-icon">🌙</span>
-    </div>
-
-    <div class="nav-brand">
-        <img src="/static/img/logo_gia_transparente.png" alt="GIA" class="nav-logo-large">
-    </div>
-
-    <div class="nav-user-zone">
-        <a href="/perfil" class="profile-action-card" title="Editar mi perfil">
-            <div class="profile-info-text">
-                <span class="profile-welcome">Hola, <strong>{{ usuario_actual.nombre }}</strong></span>
-                <span class="profile-role">{% if usuario_actual.tipo == "A" %}Administrador{% else %}Docente{% endif
-                    %}</span>
-            </div>
-            <div class="avatar-container">
-                <img src="/imagenes/avatares/{{ usuario_actual.legajo }}" alt="Avatar" class="profile-avatar"
-                    onerror="this.onerror=null; this.src='/static/img/avatardefault.avif';">
-                <span class="badge-edit-gear">⚙️</span>
-            </div>
-        </a>
-    </div>
-</nav>
+{% set ocultar_volver = true %}
+{% include "partials/header.html" %}
 
 <main class="home-dashboard-container{% if usuario_actual.tipo != 'A' %} home-dashboard-container--docente{% endif %}">
 

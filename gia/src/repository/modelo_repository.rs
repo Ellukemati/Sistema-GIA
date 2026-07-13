@@ -114,6 +114,28 @@ impl ModeloRepository {
         .optional()
     }
 
+    pub fn buscar_por_nombre(conn: &Connection, texto: &str) -> SqlResult<Vec<Modelo>> {
+        let patron = format!("%{}%", texto);
+
+        let mut stmt = conn.prepare(
+            "SELECT id, marca, nombre_modelo, categoria, descripcion, eliminado
+            FROM modelos
+            WHERE eliminado = 0
+            AND LOWER(nombre_modelo) LIKE LOWER(?1)
+            ORDER BY nombre_modelo",
+        )?;
+
+        let filas = stmt.query_map(params![patron], Modelo::from_row)?;
+
+        let mut modelos = Vec::new();
+
+        for modelo in filas {
+            modelos.push(modelo?);
+        }
+
+        Ok(modelos)
+    }
+
     pub fn marcar_eliminado(conn: &Connection, id: i64) -> SqlResult<usize> {
         conn.execute(
             "UPDATE modelos SET eliminado = 1 WHERE id = ?1",

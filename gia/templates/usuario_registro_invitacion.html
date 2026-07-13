@@ -44,6 +44,10 @@
             </div>
 
             <div class="field-row">
+                {% set password_autocomplete = "" %}
+                {% set password_required = true %}
+                {% set confirm_required = true %}
+
                 {% include "partials/campo_password.html" %}
                 {% include "partials/campo_password_confirm.html" %}
             </div>

@@ -11,7 +11,7 @@
 
         img.onload = function () {
             if (img.width !== img.height) {
-                input.setCustomValidity("La imagen debe ser perfectamente cuadrada (Ej.: 400x400px).");
+                input.setCustomValidity("La imagen debe ser perfectamente cuadrada (Ej.: 400x400 píxeles).");
                 input.reportValidity();
                 input.value = "";
             } else {

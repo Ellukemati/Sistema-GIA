@@ -5,7 +5,7 @@
     background-color: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(8px);
     border-bottom: 2px solid var(--color-border);
-    padding: var(--spacing-xs) var(--spacing-lg);
+    padding: 0 var(--spacing-lg);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -13,6 +13,26 @@
     top: 0;
     z-index: 1000;
     box-shadow: var(--shadow-soft);
+    min-height: 80px;
+    box-sizing: border-box;
+}
+
+.nav-left-zone,
+.nav-user-zone {
+    display: flex;
+    align-items: center;
+    flex: 1 1 0;
+    min-width: 0 !important;
+    box-sizing: border-box;
+}
+
+.nav-left-zone {
+    justify-content: flex-start;
+}
+
+.nav-user-zone {
+    justify-content: flex-end;
+    padding-right: 12px; 
 }
 
 .nav-brand {
@@ -21,9 +41,9 @@
     top: 50%;
     transform: translate(-50%, -50%);
     z-index: 5;
+    height: 70px;
     display: flex;
     align-items: center;
-    justify-content: center;
 }
 
 .nav-logo-large {
@@ -42,18 +62,21 @@
     border: 1.5px solid transparent;
     transition: all 0.2s ease;
     background-color: var(--color-bg);
+    text-decoration: none
 }
 
 .profile-action-card:hover {
     border-color: var(--color-primary);
     background-color: var(--color-surface);
     box-shadow: var(--shadow-soft);
+    text-decoration: none
 }
 
 .profile-info-text {
     display: flex;
     flex-direction: column;
-    text-align: right;
+    text-align: left;
+    justify-content: center;
 }
 
 .profile-welcome {
@@ -332,8 +355,32 @@
    ========================================================================== */
 @media (max-width: 768px) {
     .main-navbar {
-        padding: var(--spacing-sm);
-        min-height: 50px;
+        padding: 0 var(--spacing-md);
+        min-height: 70px;
+        height: 70px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+
+    .nav-left-zone,
+    .nav-user-zone {
+        display: flex;
+        align-items: center;
+        flex: 1 1 0;
+        min-width: 0 !important;
+        box-sizing: border-box;
+    }
+
+    .nav-left-zone {
+        justify-content: flex-start;
+    }
+
+    .nav-user-zone {
+        justify-content: flex-end;
+        padding-right: 0;
     }
 
     .main-navbar .profile-action-card .profile-info-text {
@@ -347,15 +394,25 @@
         box-shadow: none;
     }
 
+    .main-navbar .btn-volver {
+        padding: 6px 12px;
+        font-size: 0.85rem;
+    }
+
     .nav-brand {
         position: absolute;
         left: 50%;
         top: 50%;
         transform: translate(-50%, -50%);
+        z-index: 5;
+        height: 50px;
+        display: flex;
+        align-items: center;
     }
 
     .nav-logo-large {
-        height: 50px;
+        height: 48px;
+        width: auto;
     }
 
     .home-dashboard-container--docente {

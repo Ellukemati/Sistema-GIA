@@ -24,7 +24,25 @@
     <article class="detalle-card">
         <div class="detalle-media">
             {% if imagen %}
-            <img class="detalle-img" src="{{ imagen }}" alt="{{ modelo.nombre_modelo }}">
+            <button type="button" class="detalle-img-btn" id="detalle-galeria-btn"
+                    data-modelo-id="{{ modelo.id }}"
+                    data-cantidad="{{ cantidad_imagenes }}"
+                    data-alt="{{ modelo.nombre_modelo }}"
+                    aria-label="Ver imágenes del modelo {{ modelo.nombre_modelo }}">
+                <img class="detalle-img" src="{{ imagen }}" alt="{{ modelo.nombre_modelo }}">
+                {% if cantidad_imagenes > 1 %}
+                <span class="detalle-img-contador" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                         stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                    {{ cantidad_imagenes }}
+                </span>
+                {% endif %}
+            </button>
             {% else %}
             <div class="detalle-sin-imagen">Sin imagen</div>
             {% endif %}
@@ -82,6 +100,89 @@
         {% include "partials/reserva_ejemplares.html" %}
     </section>
 </main>
+
+{% if imagen %}
+<dialog id="modelo-galeria-lightbox" class="detalle-galeria-lightbox" aria-label="Galería de imágenes del modelo">
+    <button type="button" class="detalle-galeria-cerrar" aria-label="Cerrar">&times;</button>
+    <button type="button" class="detalle-galeria-nav detalle-galeria-nav--prev" data-dir="-1" aria-label="Imagen anterior" hidden>&#8249;</button>
+    <img class="detalle-galeria-img" src="" alt="">
+    <button type="button" class="detalle-galeria-nav detalle-galeria-nav--next" data-dir="1" aria-label="Imagen siguiente" hidden>&#8250;</button>
+    <span class="detalle-galeria-contador" hidden></span>
+</dialog>
+
+<script>
+    (function () {
+        if (window.modeloGaleriaInit) return;
+        window.modeloGaleriaInit = true;
+
+        const btn = document.getElementById('detalle-galeria-btn');
+        const dialog = document.getElementById('modelo-galeria-lightbox');
+        if (!btn || !dialog) return;
+
+        const img = dialog.querySelector('.detalle-galeria-img');
+        const cerrar = dialog.querySelector('.detalle-galeria-cerrar');
+        const prev = dialog.querySelector('.detalle-galeria-nav--prev');
+        const next = dialog.querySelector('.detalle-galeria-nav--next');
+        const contador = dialog.querySelector('.detalle-galeria-contador');
+        const alt = btn.dataset.alt || '';
+
+        let imagenes = null;
+        let indice = 0;
+
+        function mostrar(i) {
+            if (!imagenes || imagenes.length === 0) return;
+            indice = (i + imagenes.length) % imagenes.length;
+            img.src = imagenes[indice];
+            img.alt = imagenes.length > 1 ? alt + ' (' + (indice + 1) + ' de ' + imagenes.length + ')' : alt;
+
+            const hayVarias = imagenes.length > 1;
+            prev.hidden = !hayVarias;
+            next.hidden = !hayVarias;
+            contador.hidden = !hayVarias;
+            if (hayVarias) {
+                contador.textContent = (indice + 1) + ' / ' + imagenes.length;
+            }
+        }
+
+        async function abrir() {
+            if (!imagenes) {
+                // La lista se pide una sola vez, recien al primer clic.
+                try {
+                    const resp = await fetch('/imagenes/modelos/' + btn.dataset.modeloId);
+                    if (!resp.ok) throw new Error('respuesta no OK');
+                    const data = await resp.json();
+                    imagenes = Array.isArray(data.imagenes) ? data.imagenes : [];
+                } catch (e) {
+                    // Fallback: al menos mostrar la principal ya cargada.
+                    const principal = btn.querySelector('img');
+                    imagenes = principal ? [principal.getAttribute('src')] : [];
+                }
+            }
+            if (imagenes.length === 0) return;
+            mostrar(0);
+            dialog.showModal();
+        }
+
+        btn.addEventListener('click', abrir);
+
+        prev.addEventListener('click', function () { mostrar(indice - 1); });
+        next.addEventListener('click', function () { mostrar(indice + 1); });
+        cerrar.addEventListener('click', function () { dialog.close(); });
+
+        dialog.addEventListener('click', function (event) {
+            if (event.target === dialog) {
+                dialog.close();
+            }
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (!dialog.open) return;
+            if (event.key === 'ArrowLeft') mostrar(indice - 1);
+            else if (event.key === 'ArrowRight') mostrar(indice + 1);
+        });
+    })();
+</script>
+{% endif %}
 
 {% if es_admin %}
 <dialog id="modelo-confirm-dialog" class="ejemplar-confirm-dialog" aria-labelledby="modelo-confirm-titulo">

@@ -24,7 +24,7 @@
     <table class="auditoria-bloque">
         <tr>
             <td class="fechas-contenedor">
-                <div><strong>Fecha y hora de confirmación y firma del comprobante original:</strong> {{
+                <div><strong>Fecha y hora de aprobación y firma del comprobante original:</strong> {{
                     fecha_hora_confirmacion }}</div>
                 <div><strong>Fecha y hora de generación de este archivo:</strong> {{ fecha_hora_actual }}</div>
             </td>
@@ -74,7 +74,7 @@
     </table>
 
     <div class="seccion-detalles">
-        <div class="titulo-detalles">Accesorios, Observaciones e Imágenes del Instrumental Solicitado:</div>
+        <div class="titulo-detalles">Accesorios, observaciones e imágenes del instrumental solicitado</div>
         {% for item in items %}
         {% if item.observaciones or item.accesorios or (item.imagenes_b64 and item.imagenes_b64 | length > 0) %}
         <div class="bloque-ejemplar-detalle">

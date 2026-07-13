@@ -6,6 +6,9 @@ use std::sync::{Arc, Mutex};
 pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
     router!(request,
         // MODELOS
+        (GET) (/imagenes/modelos/{modelo_id: i64}) => {
+            ImageHandler::listar_modelo(modelo_id, Arc::clone(&conn))
+        },
         (GET) (/imagenes/modelos/{modelo_id: i64}/{orden: i32}) => {
             ImageHandler::servir_modelo(modelo_id, orden, Arc::clone(&conn))
         },
@@ -14,6 +17,9 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
         },
 
         // EJEMPLARES
+        (GET) (/imagenes/ejemplares/{ejemplar_id: i64}) => {
+            ImageHandler::listar_ejemplar(ejemplar_id, Arc::clone(&conn))
+        },
         (GET) (/imagenes/ejemplares/{ejemplar_id: i64}/{orden: i32}) => {
             ImageHandler::servir_ejemplar(ejemplar_id, orden, Arc::clone(&conn))
         },

@@ -67,6 +67,11 @@ impl AuthHandler {
         {
             let mut ctx = Context::new();
             ctx.insert("usuario_actual", &usuario);
+            let cache_buster = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|duracion| duracion.as_secs())
+                .unwrap_or(0);
+            ctx.insert("avatar_cache_buster", &cache_buster);
             return templates::response_html(templates::render("home.html", &ctx));
         }
         Response::redirect_302("/ingreso")
@@ -299,6 +304,7 @@ impl AuthHandler {
             ),
         }
     }
+
     pub fn mostrar_perfil(request: &Request, conn: &Connection) -> Response {
         let usuario = match usuario_actual(request, conn) {
             Ok(u) => u,
@@ -308,19 +314,23 @@ impl AuthHandler {
         let mut ctx = Context::new();
 
         ctx.insert("usuario_actual", &usuario);
+        let cache_buster = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duracion| duracion.as_secs())
+            .unwrap_or(0);
+        ctx.insert("avatar_cache_buster", &cache_buster);
 
         templates::response_html(templates::render("perfil.html", &ctx))
     }
+
     pub fn actualizar_perfil(request: &Request, conn: &Connection) -> Response {
         let usuario = match usuario_actual(request, conn) {
             Ok(u) => u,
-
             Err(r) => return r,
         };
 
         let mut data = match rouille::input::multipart::get_multipart_input(request) {
             Ok(d) => d,
-
             Err(_) => {
                 return templates::response_mensaje_error("Error", "Formulario inválido");
             }
@@ -331,6 +341,7 @@ impl AuthHandler {
         let mut password = String::new();
         let mut password_repetida = String::new();
         let mut avatar_bytes: Option<Vec<u8>> = None;
+        let mut flag_eliminar_avatar = String::new();
 
         use std::io::Read;
 
@@ -341,59 +352,94 @@ impl AuthHandler {
             if headers.filename.is_some() {
                 if &*name == "avatar" {
                     let mut bytes = Vec::new();
-
                     if entry.data.read_to_end(&mut bytes).is_ok() && !bytes.is_empty() {
                         avatar_bytes = Some(bytes);
                     }
                 }
             } else {
                 let mut text = String::new();
-
                 if entry.data.read_to_string(&mut text).is_ok() {
                     match &*name {
                         "nombre" => {
                             nombre = text;
                         }
-
                         "apellido" => {
                             apellido = text;
                         }
                         "password" => {
                             password = text;
                         }
-
-                        "password_repetida" => {
+                        "password_confirm" => {
                             password_repetida = text;
                         }
-
+                        "eliminar_avatar" => {
+                            flag_eliminar_avatar = text;
+                        }
                         _ => {}
                     }
                 }
             }
         }
-        if !password.is_empty() && password != password_repetida {
-            return templates::response_mensaje_error("Error", "Las contraseñas no coinciden");
+
+        let mut detalle_cambios = Vec::new();
+
+        // Cambio de Nombre y Apellido
+        if nombre != usuario.nombre || apellido != usuario.apellido {
+            if let Err(e) =
+                UsuarioRepository::actualizar_perfil(conn, usuario.id, &nombre, &apellido)
+            {
+                return templates::response_mensaje_error(
+                    "Error actualizando perfil",
+                    &e.to_string(),
+                );
+            }
+            if nombre != usuario.nombre {
+                detalle_cambios.push("- Cambio de nombre");
+            }
+            if apellido != usuario.apellido {
+                detalle_cambios.push("- Cambio de apellido");
+            }
         }
-        if let Err(e) = UsuarioRepository::actualizar_perfil(conn, usuario.id, &nombre, &apellido) {
-            return templates::response_mensaje_error("Error actualizando perfil", &e.to_string());
-        }
-        if !password.is_empty() {
-            if password != password_repetida {
+
+        // Cambio de contraseña
+        let quiere_cambiar_password = !password.is_empty() || !password_repetida.is_empty();
+        if quiere_cambiar_password {
+            if password.is_empty() || password_repetida.is_empty() || password != password_repetida
+            {
                 return templates::response_mensaje_error("Error", "Las contraseñas no coinciden");
             }
-
             if let Err(e) = AuthService::cambiar_password_usuario(conn, usuario.id, &password) {
                 return templates::response_mensaje_error("Error", &e);
             }
+            detalle_cambios.push("- Cambio de contraseña");
         }
 
-        if let Some(bytes) = avatar_bytes
+        // Eliminacion o cambio de avatar
+        if flag_eliminar_avatar.trim() == "true" {
+            let _ = conn.execute(
+                "UPDATE usuarios SET avatar_blob = NULL, avatar_mime = NULL WHERE id = ?",
+                [usuario.id],
+            );
+            detalle_cambios.push("- Eliminación de foto de perfil");
+        } else if let Some(bytes) = avatar_bytes
             && let Ok((blob, mime)) = procesar_avatar(&bytes)
         {
             let _ = ImageRepository::guardar_avatar(conn, usuario.legajo as i64, &blob, &mime);
+            detalle_cambios.push("- Cambio de foto de perfil");
         }
 
-        Response::redirect_302("/perfil")
+        if detalle_cambios.is_empty() {
+            return Response::empty_204();
+        }
+
+        let mensaje_final = detalle_cambios.join("\n");
+
+        let html_respuesta = format!(
+            "{} <div hx-get='/perfil' hx-target='body' hx-trigger='load delay:3000ms' style='display:none;'></div>",
+            templates::render_mensaje_exito("Cambios guardados", &mensaje_final).unwrap()
+        );
+
+        Response::html(html_respuesta)
     }
 
     pub fn procesar_cambio_password(request: &Request, conn: &Connection) -> Response {
