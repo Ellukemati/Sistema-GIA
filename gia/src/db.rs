@@ -162,14 +162,23 @@ pub fn init_db(db_path: &str) -> SqlResult<Connection> {
     )?;
 
     if admin_count == 0 {
-        let admin_hash = bcrypt::hash("admin123", 4).unwrap_or_default();
+        let admin_email =
+            std::env::var("ADMIN_INICIAL_EMAIL").unwrap_or_else(|_| "admin@fi.uba.ar".to_string());
+        let admin_pass =
+            std::env::var("ADMIN_INICIAL_PASSWORD").unwrap_or_else(|_| "admin123".to_string());
+
+        let admin_hash = bcrypt::hash(&admin_pass, 4).unwrap_or_default();
 
         conn.execute(
             "INSERT INTO usuarios (nombre, apellido, email, legajo, tipo, password_hash, aprobado)
-             VALUES ('Admin', 'Maestro', 'admin@fi.uba.ar', 0, ?1, ?2, 1)",
-            rusqlite::params![TIPO_ADMIN, admin_hash],
+             VALUES ('Admin', 'Maestro', ?1, 0, ?2, ?3, 1)",
+            rusqlite::params![admin_email, TIPO_ADMIN, admin_hash],
         )?;
-        println!("✓ Admin maestro creado exitosamente (Email: admin@fi.uba.ar | Clave: admin123)");
+
+        crate::logger::info(&format!(
+            "Admin maestro creado exitosamente (Email: {} | Clave: {})",
+            admin_email, admin_pass
+        ));
     }
 
     Ok(conn)
