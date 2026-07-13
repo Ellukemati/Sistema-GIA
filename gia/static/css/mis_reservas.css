@@ -1,0 +1,133 @@
+.contenedor {
+    max-width: 1200px;
+    margin: auto;
+}
+
+h1 {
+    margin-bottom: 5px;
+}
+
+.subtitulo {
+    color: #666;
+    margin-bottom: 25px;
+}
+
+details.columna {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+details>summary {
+    padding: 15px 20px;
+    font-size: 1.2em;
+    font-weight: bold;
+    background-color: #f8f9fa;
+    cursor: pointer;
+    list-style: none;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.detalles-contenido {
+    padding: 20px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th,
+td {
+    border-bottom: 1px solid #ddd;
+    padding: 14px;
+    text-align: left;
+    vertical-align: top;
+}
+
+th {
+    background-color: #f8f9fa;
+}
+
+/* Estados de la reserva específicos */
+.estado-pendiente {
+    color: var(--color-accent, #ff9800);
+    font-weight: bold;
+}
+
+.estado-aprobada {
+    color: var(--color-success, #28a745);
+    font-weight: bold;
+}
+
+.estado-cancelada {
+    color: var(--color-error, #dc3545);
+    font-weight: bold;
+}
+
+.btn-cancelar {
+    background-color: var(--color-error, #dc3545);
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.15s ease;
+}
+
+.btn-cancelar:hover {
+    background-color: #c82333;
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: var(--color-bg, #f1f3f5);
+    font-size: 0.9em;
+    margin-top: 8px;
+}
+
+.alerta-info {
+    background: #eef4ff;
+    border: 1px solid #d0e2ff;
+    padding: 12px;
+    border-radius: 6px;
+    color: #2457c5;
+    margin-bottom: 18px;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Desplegable de instrumentales vinculados */
+details.equipos-dropdown {
+    margin-top: 8px;
+}
+
+details.equipos-dropdown summary {
+    cursor: pointer;
+    padding: 8px 10px;
+    background: var(--color-bg, #f8f9fa);
+    border-radius: 6px;
+    display: inline-block;
+    border: 1px solid var(--color-border, #ddd);
+}
+
+.equipos-lista {
+    margin-top: 10px;
+    background: white;
+    border: 1px solid var(--color-border, #ddd);
+    border-radius: 6px;
+    padding: 10px 15px;
+    list-style-type: disc;
+}
+
+.equipos-lista li {
+    margin-bottom: 8px;
+    color: var(--color-text);
+}

@@ -1,5 +1,5 @@
 use crate::models::ejemplar::Ejemplar;
-use rusqlite::{Connection, Result as SqlResult};
+use rusqlite::{Connection, OptionalExtension, Result as SqlResult};
 
 pub struct EjemplarRepository;
 
@@ -24,25 +24,9 @@ impl EjemplarRepository {
         Ok(conn.last_insert_rowid())
     }
 
-    pub fn listar_todos(conn: &Connection) -> SqlResult<Vec<Ejemplar>> {
-        let mut stmt = conn.prepare(
-            "SELECT id, modelo_id, numero_serie, codigo_qr, patrimonio, observaciones, accesorios, esta_disponible, ubicacion
-             FROM ejemplares",
-        )?;
-
-        let filas = stmt.query_map([], Ejemplar::from_row)?;
-        let mut ejemplares = Vec::new();
-
-        for ejemplar in filas {
-            ejemplares.push(ejemplar?);
-        }
-
-        Ok(ejemplares)
-    }
-
     pub fn buscar_por_id(conn: &Connection, id: i64) -> SqlResult<Option<Ejemplar>> {
         let mut stmt = conn.prepare(
-            "SELECT id, modelo_id, numero_serie, codigo_qr, patrimonio, observaciones, accesorios, esta_disponible, ubicacion
+            "SELECT id, modelo_id, numero_serie, codigo_qr, patrimonio, observaciones, accesorios, esta_disponible, ubicacion, eliminado
              FROM ejemplares
              WHERE id = ?1",
         )?;
@@ -77,10 +61,11 @@ impl EjemplarRepository {
     }
 
     pub fn listar_por_modelo(conn: &Connection, modelo_id: i64) -> SqlResult<Vec<Ejemplar>> {
+        // Se listan los ejemplares que no han sido eliminados.
         let mut stmt = conn.prepare(
-            "SELECT id, modelo_id, numero_serie, codigo_qr, patrimonio, observaciones, accesorios, esta_disponible, ubicacion
+            "SELECT id, modelo_id, numero_serie, codigo_qr, patrimonio, observaciones, accesorios, esta_disponible, ubicacion, eliminado
              FROM ejemplares
-             WHERE modelo_id = ?1",
+             WHERE modelo_id = ?1 AND eliminado = 0",
         )?;
 
         let filas = stmt.query_map([modelo_id], Ejemplar::from_row)?;
@@ -91,5 +76,23 @@ impl EjemplarRepository {
         }
 
         Ok(ejemplares)
+    }
+
+    pub fn marcar_eliminado(conn: &Connection, id: i64) -> SqlResult<usize> {
+        conn.execute(
+            "UPDATE ejemplares SET eliminado = 1 WHERE id = ?1",
+            rusqlite::params![id],
+        )
+    }
+
+    /// Indica si el modelo tiene al menos un ejemplar no eliminado vinculado.
+    pub fn tiene_ejemplares_activos(conn: &Connection, modelo_id: i64) -> SqlResult<bool> {
+        conn.query_row(
+            "SELECT 1 FROM ejemplares WHERE modelo_id = ?1 AND eliminado = 0 LIMIT 1",
+            rusqlite::params![modelo_id],
+            |_| Ok(()),
+        )
+        .optional()
+        .map(|o| o.is_some())
     }
 }

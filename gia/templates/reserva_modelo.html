@@ -2,6 +2,11 @@
 
 {% block title %}{{ modelo.nombre_modelo }}{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/detalle.css">
+<link rel="stylesheet" href="/static/css/ejemplares.css">
+{% endblock %}
+
 {% block content %}
 <main class="detalle-page">
     <article class="detalle-card">

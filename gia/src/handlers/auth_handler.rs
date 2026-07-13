@@ -139,9 +139,8 @@ impl AuthHandler {
 
                 templates::response_mensaje_exito(
                     "Solicitud de registro enviada",
-                    "Tu registro ha sido enviado.\n\
-                     Ahora un administrador debe habilitar tu cuenta antes de que puedas iniciar sesión.\n\
-                     Te vamos a enviar un correo con la respuesta a tu solicitud.",
+                    "Tu registro ha sido enviado y tu cuenta debe ser habilitada por un administrador antes de que puedas iniciar sesión.\n\
+                     Te enviaremos un correo con la respuesta a tu solicitud.",
                 )
             }
             Err(e) => templates::response_mensaje_error(

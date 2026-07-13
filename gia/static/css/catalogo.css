@@ -1,0 +1,109 @@
+.catalogo-page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: var(--spacing-xl) var(--spacing-md);
+}
+
+.catalogo-header {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+}
+
+.catalogo-header h1 {
+    margin: 0 0 var(--spacing-xs);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.catalogo-vacio {
+    text-align: center;
+    color: var(--color-muted);
+}
+
+.categoria-seccion {
+    margin-bottom: var(--spacing-xl);
+}
+
+.categoria-titulo {
+    margin: 0 0 var(--spacing-md);
+    padding-bottom: var(--spacing-xs);
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    border-bottom: 2px solid var(--color-border);
+}
+
+.cards-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-lg);
+}
+
+.modelo-card {
+    display: flex;
+    flex-direction: column;
+    width: 200px;
+    background-color: var(--color-surface);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+    text-decoration: none;
+    color: var(--color-text);
+    transition: border-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.modelo-card:hover {
+    border-color: var(--color-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(0, 145, 213, 0.18);
+}
+
+.modelo-card:focus-visible {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.modelo-card-media {
+    width: 100%;
+    height: 160px;
+    background-color: var(--color-bg);
+}
+
+.modelo-card-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.modelo-card-sin-imagen {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    color: var(--color-muted);
+}
+
+.modelo-card-nombre {
+    margin: 0;
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+@media (max-width: 479px) {
+    .cards-grid {
+        justify-content: center;
+    }
+
+    .modelo-card {
+        width: 100%;
+        max-width: 320px;
+    }
+}

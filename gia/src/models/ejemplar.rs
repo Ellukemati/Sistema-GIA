@@ -13,12 +13,14 @@ pub struct Ejemplar {
     pub accesorios: Option<String>,
     pub esta_disponible: bool,
     pub ubicacion: Option<String>,
+    pub eliminado: bool,
 }
 
 impl Ejemplar {
     pub fn from_row(row: &Row) -> SqlResult<Self> {
         // La columna `esta_disponible` es 0 o 1 al ser boolean en la BDD, por eso se convierte a bool
         let disponible: i32 = row.get("esta_disponible")?;
+        let eliminado: i32 = row.get("eliminado")?;
         Ok(Ejemplar {
             id: row.get("id")?,
             modelo_id: row.get("modelo_id")?,
@@ -29,6 +31,7 @@ impl Ejemplar {
             accesorios: row.get("accesorios")?,
             esta_disponible: disponible != 0,
             ubicacion: row.get("ubicacion")?,
+            eliminado: eliminado != 0,
         })
     }
 }

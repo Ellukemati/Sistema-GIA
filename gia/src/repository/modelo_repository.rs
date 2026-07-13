@@ -20,9 +20,11 @@ impl ModeloRepository {
     }
 
     pub fn listar_todos(conn: &Connection) -> SqlResult<Vec<Modelo>> {
+        // Se listan los modelos que no han sido eliminados.
         let mut stmt = conn.prepare(
-            "SELECT id, marca, nombre_modelo, categoria, descripcion 
+            "SELECT id, marca, nombre_modelo, categoria, descripcion, eliminado
              FROM modelos 
+             WHERE eliminado = 0
              ORDER BY nombre_modelo",
         )?;
         let filas = stmt.query_map([], Modelo::from_row)?;
@@ -52,8 +54,9 @@ impl ModeloRepository {
     }
 
     pub fn buscar_por_id(conn: &Connection, id: i64) -> SqlResult<Option<Modelo>> {
+        // No filtra por `eliminado`: permite validar si ya fue eliminado.
         let mut stmt = conn.prepare(
-            "SELECT id, marca, nombre_modelo, categoria, descripcion 
+            "SELECT id, marca, nombre_modelo, categoria, descripcion, eliminado
              FROM modelos 
              WHERE id = ?1",
         )?;
@@ -109,5 +112,12 @@ impl ModeloRepository {
             },
         )
         .optional()
+    }
+
+    pub fn marcar_eliminado(conn: &Connection, id: i64) -> SqlResult<usize> {
+        conn.execute(
+            "UPDATE modelos SET eliminado = 1 WHERE id = ?1",
+            params![id],
+        )
     }
 }

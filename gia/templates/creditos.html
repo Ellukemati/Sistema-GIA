@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Créditos{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/home.css">
+{% endblock %}
+
+{% block content %}
+<nav class="main-navbar">
+    <div class="darkmode-switch-wrapper" title="Cambiar tema visual">
+        <span class="switch-icon">☀️</span>
+        <label class="theme-switch" for="checkbox-theme">
+            <input type="checkbox" id="checkbox-theme" onclick="toggleDarkMode()">
+            <div class="slider round"></div>
+        </label>
+        <span class="switch-icon">🌙</span>
+    </div>
+
+    <div class="nav-brand">
+        <img src="/static/img/logo_gia_transparente.png" alt="GIA" class="nav-logo-large">
+    </div>
+
+    <div class="nav-user-zone">
+        <a href="/perfil" class="profile-action-card" title="Editar mi perfil">
+            <div class="avatar-container">
+                <img src="/imagenes/avatares/{{ usuario_actual.legajo }}" alt="Avatar" class="profile-avatar"
+                    onerror="this.onerror=null; this.src='/static/img/avatardefault.avif';">
+                <span class="badge-edit-gear">⚙️</span>
+            </div>
+        </a>
+    </div>
+</nav>
+
+<main class="home-dashboard-container" style="max-width: 800px; margin: var(--spacing-xl) auto;">
+    <a href="/inicio" class="btn-volver">← Volver al inicio</a>
+
+    <section class="dashboard-group" style="text-align: center; padding: var(--spacing-xl);">
+        <h2 style="color: var(--color-primary); margin-bottom: var(--spacing-xs);">Bugbusters</h2>
+        <p class="dashboard-lead" style="margin-bottom: var(--spacing-lg);">Desarrollo de Software — Taller de
+            Programación</p>
+
+        <div
+            style="border-top: 1px dashed var(--color-border); padding-top: var(--spacing-lg); margin-top: var(--spacing-md);">
+            <p style="font-size: 1.1rem; margin-bottom: var(--spacing-md); font-weight: 600;">Equipo de Desarrollo:</p>
+
+            <ul
+                style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--spacing-xs); font-size: 1.05rem;">
+                <li>🚀 Integrante 1 (Legajo o Rol)</li>
+                <li>💻 Integrante 2 (Legajo o Rol)</li>
+                <li>📐 Integrante 3 (Legajo o Rol)</li>
+                <li>⚡ Integrante 4 (Legajo o Rol)</li>
+            </ul>
+        </div>
+
+        <p style="margin-top: var(--spacing-xl); font-size: 0.85rem; color: var(--color-muted);">
+            Proyecto 5 — Ingeniería en Informática / Agrimensura <br>
+            Universidad de Buenos Aires (FIUBA)
+        </p>
+    </section>
+</main>
+
+{% include "partials/footer_institucional.html" %}
+
+<script>
+    function toggleDarkMode() {
+        const isChecked = document.getElementById('checkbox-theme').checked;
+        if (isChecked) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            document.documentElement.setAttribute('data-theme', 'light');
+            localStorage.setItem('theme', 'light');
+        }
+    }
+
+    (function () {
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        if (currentTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            const cb = document.getElementById('checkbox-theme');
+            if (cb) cb.checked = true;
+        }
+    })();
+</script>
+{% endblock %}

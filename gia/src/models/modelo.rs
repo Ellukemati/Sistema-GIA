@@ -9,6 +9,7 @@ pub struct Modelo {
     pub nombre_modelo: String,
     pub categoria: Option<String>,
     pub descripcion: Option<String>,
+    pub eliminado: bool,
 }
 
 impl Modelo {
@@ -19,6 +20,7 @@ impl Modelo {
             nombre_modelo: row.get("nombre_modelo")?,
             categoria: row.get("categoria")?,
             descripcion: row.get("descripcion")?,
+            eliminado: row.get::<_, i32>("eliminado")? != 0,
         })
     }
 }

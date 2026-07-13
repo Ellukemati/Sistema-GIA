@@ -1,0 +1,210 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f2f5;
+    margin: 0;
+    padding: 20px;
+}
+
+.dashboard-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 1200px;
+    margin: auto;
+}
+
+.tabs-header {
+    display: flex;
+    gap: 10px;
+    border-bottom: 2px solid #c5d9e8;
+    margin-bottom: 20px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    padding: 12px 20px;
+    font-size: 1.05em;
+    font-weight: 600;
+    color: #5a6a75;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.tab-btn:hover {
+    color: #0091D5;
+    background-color: rgba(0, 145, 213, 0.05);
+    border-radius: 8px 8px 0 0;
+}
+
+.tab-btn.active {
+    color: #0091D5;
+    border-bottom-color: #0091D5;
+}
+
+.tab-content {
+    display: none;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 5px;
+}
+
+th,
+td {
+    border-bottom: 1px solid #ddd;
+    padding: 12px;
+    text-align: left;
+    vertical-align: middle;
+}
+
+th {
+    background-color: #f8f9fa;
+}
+
+.btn-aprobar {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: 0.2s;
+}
+
+.btn-rechazar {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: 0.2s;
+}
+
+.btn-previsualizar {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    margin-right: 5px;
+    transition: 0.2s;
+}
+
+.btn-aprobar:hover {
+    background-color: #218838;
+}
+
+.btn-rechazar:hover {
+    background-color: #c82333;
+}
+
+.btn-previsualizar:hover {
+    background-color: #5a6268;
+}
+
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    .tabs-header {
+        gap: 0;
+    }
+
+    .tab-btn {
+        flex: 1;
+        padding: 10px 5px;
+        font-size: 0.9rem;
+        white-space: normal;
+        line-height: 1.3;
+        text-align: center;
+    }
+
+    .table-responsive table,
+    .table-responsive tbody,
+    .table-responsive tr,
+    .table-responsive td {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .table-responsive thead {
+        display: none;
+    }
+
+    .table-responsive tr {
+        background-color: #fff;
+        border: 2px solid #c5d9e8;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        padding: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .table-responsive td {
+        border-bottom: 1px solid #f0f2f5;
+        text-align: right;
+        padding: 12px 10px 12px 45%;
+        position: relative;
+        min-height: 40px;
+        box-sizing: border-box;
+    }
+
+    .table-responsive td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 10px;
+        width: 40%;
+        text-align: left;
+        font-weight: bold;
+        color: #0091D5;
+    }
+
+    .table-responsive td ul {
+        text-align: right;
+        list-style-position: inside;
+    }
+
+    .table-responsive td.td-acciones {
+        border-bottom: none;
+        text-align: center;
+        padding: 15px 10px 5px 10px;
+    }
+
+    .table-responsive td.td-acciones::before {
+        display: none;
+    }
+
+    .btn-aprobar,
+    .btn-rechazar,
+    .btn-previsualizar {
+        padding: 10px 15px;
+        margin: 5px 2px;
+        font-size: 1rem;
+        display: inline-block;
+    }
+}

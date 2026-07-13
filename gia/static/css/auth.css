@@ -1,0 +1,458 @@
+/* ==========================================================================
+   VARIABLES GLOBALES Y TEMIFICACIÓN INSTITUCIONAL (FIUBA - IDÉNTICO)
+   ========================================================================== */
+:root {
+    --color-primary: #0091D5;
+    --color-primary-hover: #007bb5;
+    --color-accent: #F58220;
+    --color-accent-hover: #d96f15;
+    --color-admin: #dc3545;
+    --color-admin-hover: #bd2130;
+    --color-text: #1a1a1a;
+    --color-muted: #5a6a75;
+    --color-border: #c5d9e8;
+    --color-focus-ring: rgba(0, 145, 213, 0.2);
+    --color-error: #b91c1c;
+    --color-success: #15803d;
+    --color-surface: #ffffff;
+    --color-bg: #f0f6fa;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --shadow-card: 0 8px 24px rgba(0, 145, 213, 0.1);
+    --shadow-soft: 0 4px 6px rgba(0, 145, 213, 0.05);
+    --spacing-xs: 0.5rem;
+    --spacing-sm: 0.75rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+}
+
+/* ==========================================================================
+   FORMULARIOS, INPUTS Y AUTENTICACIÓN (ALTAS Y LOGIN)
+   ========================================================================== */
+.auth-page {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-md);
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 720px;
+    background-color: var(--color-surface);
+    border: 2px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
+    padding: var(--spacing-lg);
+    box-sizing: border-box;
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.auth-logo {
+    max-width: 180px;
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+}
+
+.auth-header h1 {
+    margin: 0 0 var(--spacing-xs);
+    font-size: 1.65rem;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.auth-subtitle {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--color-muted);
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    width: 100%;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    margin-bottom: 0rem;
+}
+
+.field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+}
+
+.field label,
+.field-label {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="date"],
+input[type="number"],
+select,
+textarea {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    font-size: 1rem;
+    color: var(--color-text);
+    background-color: var(--color-surface);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    box-sizing: border-box;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="date"],
+input[type="number"],
+select {
+    min-height: 40px;
+}
+
+textarea {
+    min-height: 5rem;
+    resize: vertical;
+    font-family: inherit;
+    line-height: 1.4;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.field-avatar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    width: 100%;
+}
+
+.field-avatar label,
+.field-avatar .field-label,
+.field-label--centered {
+    display: block;
+    width: 100%;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text);
+    user-select: none;
+    text-align: center;
+}
+
+.field-avatar input[type="file"] {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--color-muted);
+    cursor: pointer;
+    width: max-content;
+    max-width: 100%;
+    margin: 0 auto; /* 🌟 Centrado perfecto del componente nativo del sistema */
+    padding: 2px 0 var(--spacing-xs) 0;
+}
+
+/* Botones con las mismas dimensiones (40px) */
+.btn-primary {
+    width: 100%;
+    min-height: 40px;
+    padding: 0.65rem 1rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: white !important;
+    background-color: var(--color-accent);
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background-color 0.15s ease, transform 0.1s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    text-decoration: none;
+}
+
+.btn-primary:hover {
+    background-color: var(--color-accent-hover);
+    color: white !important;
+    text-decoration: none;
+}
+
+.btn-primary:active {
+    transform: scale(0.98);
+}
+
+.btn-secondary {
+    width: 100%;
+    min-height: 40px;
+    padding: 0.65rem 1rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: white !important;
+    background-color: var(--color-primary);
+    border-radius: var(--radius-sm);
+    transition: background-color 0.15s ease, color 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    text-decoration: none;
+}
+
+.btn-secondary:hover {
+    background-color: var(--color-primary-hover);
+    color: white !important;
+    text-decoration: none;
+}
+
+.btn-tertiary {
+    width: 100%;
+    min-height: 40px;
+    padding: 0.65rem 1rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-muted) !important;
+    background-color: var(--color-bg);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    text-decoration: none;
+}
+
+.btn-tertiary:hover {
+    background-color: var(--color-border);
+    color: var(--color-text);
+    border-color: var(--color-muted);
+    text-decoration: none;
+}
+
+.welcome-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    margin-top: 1.25rem;
+}
+
+.btn-cancelar {
+    background-color: var(--color-admin);
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+.btn-cancelar:hover {
+    background-color: var(--color-admin-hover);
+}
+
+.auth-footer {
+    text-align: center;
+}
+
+.field .field-hint {
+    margin-top: 2px;
+    margin-bottom: 4px;
+    line-height: 1.2;
+}
+
+.auth-footer p a,
+.auth-footer p a:visited,
+.field-hint a,
+.field-hint a:visited {
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+.auth-footer p a:hover,
+.field-hint a:hover {
+    color: var(--color-primary-hover);
+    text-decoration: underline;
+}
+
+.accesorios-radio {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.radio-group {
+    display: flex;
+    gap: var(--spacing-md);
+}
+
+.radio-label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--color-text);
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+#accesorios_no:checked~.radio-group .radio-label[for="accesorios_no"],
+#accesorios_si:checked~.radio-group .radio-label[for="accesorios_si"] {
+    border-color: var(--color-primary);
+    background-color: rgba(0, 145, 213, 0.08);
+    font-weight: 600;
+}
+
+.accesorios-detalle {
+    display: none;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+#accesorios_si:checked~.accesorios-detalle {
+    display: flex;
+}
+
+.password-wrapper {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 0.25rem;
+    /* Ajustado al 0.25rem original de base.css */
+    background: none;
+    border: none;
+    color: var(--color-muted);
+    cursor: pointer;
+    padding: var(--spacing-xs);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+}
+
+.toggle-password:hover {
+    color: var(--color-primary);
+}
+
+.password-wrapper input {
+    padding-right: 2.75rem;
+}
+
+/* ==========================================================================
+   MEDIA QUERIES DE ADAPTACIÓN (IDÉNTICAS)
+   ========================================================================== */
+@media (max-width: 768px) {
+    .field-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--spacing-sm, 12px);
+    }
+}
+
+@media (max-width: 479px) {
+    .auth-header {
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .auth-brand {
+        font-size: 1.75rem;
+    }
+
+    .auth-header h1 {
+        font-size: 1.55rem;
+    }
+
+    .auth-subtitle {
+        font-size: 1rem;
+    }
+
+    .auth-page {
+        padding: var(--spacing-sm, 12px) 10px;
+    }
+
+    .auth-card {
+        padding: var(--spacing-lg, 1.5rem) var(--spacing-md, 1rem);
+        border-radius: var(--radius-md, 10px);
+        width: 100%;
+        box-sizing: border-box;
+    }
+}
+
+@media (max-width: 350px) {
+    .field-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 999px) and (orientation: portrait) {
+    .auth-card {
+        max-width: 480px;
+        padding: var(--spacing-xl, 2rem);
+    }
+
+    .auth-header h1 {
+        font-size: 1.85rem;
+    }
+
+    body {
+        font-size: 1.05rem;
+    }
+}
+
+@media (min-width: 1000px) and (max-width: 1080px) and (orientation: portrait) {
+    .auth-card {
+        max-width: 720px;
+        padding: var(--spacing-xl, 2rem);
+    }
+
+    .auth-header h1 {
+        font-size: 2rem;
+    }
+
+    body {
+        font-size: 1rem;
+    }
+}

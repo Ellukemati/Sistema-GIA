@@ -101,8 +101,20 @@ impl AuthService {
                     let token = format!("token_{}_{}", usuario.id, time);
 
                     match SesionRepository::crear(conn, &token, usuario.id) {
-                        Ok(_) => Ok((usuario, token)),
-                        Err(e) => Err(format!("Error al crear sesión: {}", e)),
+                        Ok(_) => {
+                            crate::logger::info(&format!(
+                                "Inicio de sesión exitoso: {}",
+                                usuario.email
+                            ));
+                            Ok((usuario, token))
+                        }
+                        Err(e) => {
+                            crate::logger::error(&format!(
+                                "Error al crear sesión para {}: {}",
+                                usuario.email, e
+                            ));
+                            Err(format!("Error al crear sesión: {}", e))
+                        }
                     }
                 } else {
                     Err("Contraseña incorrecta.".to_string())

@@ -8,8 +8,53 @@
 * Matias Ezequiel Dundic – [mdundic@fi.uba.ar](mailto:mdundic@fi.uba.ar) – 110773
 
 ---
+# Configuración Inicial
 
-# Como usar
+Antes de ejecutar la aplicación, ya sea en un entorno de desarrollo local o mediante Docker, es necesario configurar las variables de entorno. 
+
+Crear un archivo `.env` en la carpeta raíz del proyecto (dentro de gia) con los siguientes parámetros básicos (ajustar según el entorno):
+
+```env
+ADDRESS=0.0.0.0:8080
+DB_PATH=data/gia.db
+MAILTRAP_USER=tu_usuario_aqui
+MAILTRAP_PASSWORD=tu_password_aqui
+```
+*(Nota: El archivo .env está ignorado en Git por seguridad y no debe subirse al repositorio).*
+
+# Despliegue (Producción)
+El proyecto cuenta con la infraestructura necesaria para ser desplegado fácilmente utilizando Docker y Docker Compose. Se utiliza una estrategia Multi-stage build para garantizar una imagen final liviana y segura.
+
+### Requisitos previos
+* Docker instalado.
+* Docker Compose instalado.
+
+### Comandos de administración
+
+1. **Construir e iniciar el ambiente por primera vez (o al haber cambios en el código):**
+   ```bash
+   docker-compose up --build -d
+   ```
+   *La aplicación quedará disponible en `http://localhost:8080/inicio`.*
+
+2. **Iniciar el sistema (si ya fue construido previamente):**
+   ```bash
+   docker-compose up -d
+   ```
+
+3. **Ver el estado y los eventos del sistema (Logger):**
+   El sistema implementa un logger dual. Los eventos se guardan en el archivo físico persistente (`data/gia.log`) y también se emiten por consola. Para visualizarlos en tiempo real:
+   ```bash
+   docker-compose logs -f
+   ```
+
+4. **Detener y destruir los contenedores:**
+   ```bash
+   docker-compose down
+   ```
+   *Nota: Gracias a la configuración de volúmenes, la base de datos y los archivos de log alojados en la carpeta `/data` persistirán en el disco local y no se perderán al destruir el contenedor.*
+
+# Desarrollo Local (sin Docker)
 
 A continuación se detallan los pasos para compilar y ejecutar el programa.
 
