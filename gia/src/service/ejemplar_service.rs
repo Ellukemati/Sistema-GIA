@@ -49,6 +49,7 @@ impl EjemplarService {
             accesorios: data.accesorios,
             esta_disponible: data.esta_disponible,
             ubicacion: data.ubicacion,
+            eliminado: false,
         };
 
         match EjemplarRepository::crear(conn, &ejemplar_temporal) {
@@ -95,6 +96,7 @@ impl EjemplarService {
             accesorios: data.accesorios,
             esta_disponible: data.esta_disponible,
             ubicacion: data.ubicacion,
+            eliminado: false,
         };
 
         EjemplarRepository::actualizar(conn, &ejemplar).map_err(|e| {
@@ -111,6 +113,33 @@ impl EjemplarService {
         })?;
 
         Ok(ejemplar)
+    }
+
+    /// Elimina un ejemplar marcandolo como `eliminado`.
+    /// Falla si el ejemplar no existe, si ya fue eliminado, o si tiene una
+    /// reserva activa o pendiente.
+    pub fn eliminar_ejemplar(conn: &Connection, id: i64) -> Result<(), String> {
+        let ejemplar = EjemplarRepository::buscar_por_id(conn, id)
+            .map_err(|e| format!("Error al buscar ejemplar: {}", e))?
+            .ok_or_else(|| "El ejemplar no existe.".to_string())?;
+
+        if ejemplar.eliminado {
+            return Err("El ejemplar ya fue eliminado.".to_string());
+        }
+
+        if ReservaRepository::tiene_reserva_activa_o_pendiente(conn, id)
+            .map_err(|e| format!("Error al verificar reservas: {}", e))?
+        {
+            return Err(
+                "No se puede eliminar: el ejemplar tiene una reserva activa o pendiente."
+                    .to_string(),
+            );
+        }
+
+        EjemplarRepository::marcar_eliminado(conn, id)
+            .map_err(|e| format!("Error en la base de datos al eliminar ejemplar: {}", e))?;
+
+        Ok(())
     }
 
     /// Lista los ejemplares de un modelo con su disponibilidad para el rango de
@@ -247,7 +276,8 @@ mod tests {
                 categoria TEXT,
                 descripcion TEXT,
                 manual_blob BLOB,
-                manual_mime TEXT
+                manual_mime TEXT,
+                eliminado BOOLEAN NOT NULL DEFAULT 0
             )",
             [],
         )
@@ -262,7 +292,8 @@ mod tests {
                 observaciones TEXT,
                 accesorios TEXT,
                 esta_disponible BOOLEAN DEFAULT TRUE,
-                ubicacion TEXT
+                ubicacion TEXT,
+                eliminado BOOLEAN NOT NULL DEFAULT 0
             )",
             [],
         )
@@ -299,6 +330,7 @@ mod tests {
             nombre_modelo: nombre.into(),
             categoria: None,
             descripcion: None,
+            eliminado: false,
         };
         ModeloRepository::crear(conn, &modelo).unwrap()
     }
@@ -321,6 +353,7 @@ mod tests {
             accesorios: None,
             esta_disponible: true,
             ubicacion: ubicacion.map(String::from),
+            eliminado: false,
         };
         EjemplarRepository::crear(conn, &ejemplar).unwrap()
     }
@@ -517,5 +550,104 @@ mod tests {
                 .unwrap();
 
         assert_eq!(actualizado.numero_serie.as_deref(), Some("SN-NUEVO"));
+    }
+
+    #[test]
+    fn eliminar_ejemplar_sin_reservas_lo_marca_eliminado() {
+        let conn = crear_db_test();
+        let modelo_id = insertar_modelo(&conn, "Violín");
+        let ejemplar_id = insertar_ejemplar(&conn, modelo_id, Some("SN-1"), None, None, None);
+
+        EjemplarService::eliminar_ejemplar(&conn, ejemplar_id).unwrap();
+
+        let ejemplar = EjemplarRepository::buscar_por_id(&conn, ejemplar_id)
+            .unwrap()
+            .unwrap();
+        assert!(ejemplar.eliminado);
+    }
+
+    #[test]
+    fn eliminar_ejemplar_ya_eliminado_falla() {
+        let conn = crear_db_test();
+        let modelo_id = insertar_modelo(&conn, "Violín");
+        let ejemplar_id = insertar_ejemplar(&conn, modelo_id, Some("SN-1"), None, None, None);
+
+        EjemplarService::eliminar_ejemplar(&conn, ejemplar_id).unwrap();
+
+        match EjemplarService::eliminar_ejemplar(&conn, ejemplar_id) {
+            Err(msg) => assert!(msg.contains("ya fue eliminado")),
+            Ok(_) => panic!("Se esperaba un error por ejemplar ya eliminado"),
+        }
+    }
+
+    #[test]
+    fn eliminar_ejemplar_falla_con_reserva_pendiente() {
+        let conn = crear_db_test();
+        let modelo_id = insertar_modelo(&conn, "Violín");
+        let ejemplar_id = insertar_ejemplar(&conn, modelo_id, Some("SN-1"), None, None, None);
+
+        conn.execute(
+            "INSERT INTO reservas (id_usuario, fecha_inicio, fecha_fin, estado, motivo)
+             VALUES (1, '2026-07-01', '2026-07-05', 'pendiente', 'Test')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO reserva_ejemplar (reserva_id, ejemplar_id) VALUES (1, ?1)",
+            [ejemplar_id],
+        )
+        .unwrap();
+
+        match EjemplarService::eliminar_ejemplar(&conn, ejemplar_id) {
+            Err(msg) => assert!(msg.contains("reserva activa o pendiente")),
+            Ok(_) => panic!("Se esperaba un error por reserva pendiente"),
+        }
+    }
+
+    #[test]
+    fn eliminar_ejemplar_falla_con_reserva_activa() {
+        let conn = crear_db_test();
+        let modelo_id = insertar_modelo(&conn, "Violín");
+        let ejemplar_id = insertar_ejemplar(&conn, modelo_id, Some("SN-1"), None, None, None);
+
+        conn.execute(
+            "INSERT INTO reservas (id_usuario, fecha_inicio, fecha_fin, estado, motivo)
+             VALUES (1, '2026-07-01', '2026-07-05', 'activa', 'Test')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO reserva_ejemplar (reserva_id, ejemplar_id) VALUES (1, ?1)",
+            [ejemplar_id],
+        )
+        .unwrap();
+
+        assert!(EjemplarService::eliminar_ejemplar(&conn, ejemplar_id).is_err());
+    }
+
+    #[test]
+    fn eliminar_ejemplar_permite_si_reserva_concluida() {
+        let conn = crear_db_test();
+        let modelo_id = insertar_modelo(&conn, "Violín");
+        let ejemplar_id = insertar_ejemplar(&conn, modelo_id, Some("SN-1"), None, None, None);
+
+        conn.execute(
+            "INSERT INTO reservas (id_usuario, fecha_inicio, fecha_fin, estado, motivo)
+             VALUES (1, '2026-07-01', '2026-07-05', 'concluida', 'Test')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO reserva_ejemplar (reserva_id, ejemplar_id) VALUES (1, ?1)",
+            [ejemplar_id],
+        )
+        .unwrap();
+
+        EjemplarService::eliminar_ejemplar(&conn, ejemplar_id).unwrap();
+
+        let ejemplar = EjemplarRepository::buscar_por_id(&conn, ejemplar_id)
+            .unwrap()
+            .unwrap();
+        assert!(ejemplar.eliminado);
     }
 }

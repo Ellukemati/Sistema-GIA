@@ -82,6 +82,11 @@ impl ReservaService {
 
         let reserva_id = ReservaRepository::crear(conn, &reserva).map_err(|e| e.to_string())?;
 
+        crate::logger::info(&format!(
+            "Nueva reserva creada (ID: {}) por el usuario ID: {}",
+            reserva_id, id_usuario
+        ));
+
         for ejemplar_id in ejemplares {
             ReservaInstrumentoRepository::crear(conn, reserva_id, ejemplar_id)
                 .map_err(|e| e.to_string())?;
@@ -109,6 +114,11 @@ impl ReservaService {
             &ahora_raw,
         )
         .map_err(|e| format!("Error al persistir la aprobacion en la BDD: {}", e))?;
+
+        crate::logger::info(&format!(
+            "Reserva (ID: {}) aprobada por el administrador ID: {}",
+            id_reserva, admin_id
+        ));
 
         let data = Self::preparar_datos_comprobante(conn, id_reserva)
             .map_err(|e| format!("Error preparando comprobante: {}", e))?;
@@ -509,7 +519,8 @@ mod tests {
                 categoria TEXT,
                 descripcion TEXT,
                 manual_blob BLOB,
-                manual_mime TEXT
+                manual_mime TEXT,
+                eliminado BOOLEAN NOT NULL DEFAULT 0
             )",
             [],
         )
@@ -524,7 +535,8 @@ mod tests {
                 observaciones TEXT,
                 accesorios TEXT,
                 esta_disponible BOOLEAN DEFAULT TRUE,
-                ubicacion TEXT
+                ubicacion TEXT,
+                eliminado BOOLEAN NOT NULL DEFAULT 0
             )",
             [],
         )
@@ -539,6 +551,7 @@ mod tests {
             nombre_modelo: nombre.into(),
             categoria: None,
             descripcion: None,
+            eliminado: false,
         };
         ModeloRepository::crear(conn, &modelo).unwrap()
     }
@@ -561,6 +574,7 @@ mod tests {
             accesorios: None,
             esta_disponible: true,
             ubicacion: ubicacion.map(String::from),
+            eliminado: false,
         };
         EjemplarRepository::crear(conn, &ejemplar).unwrap()
     }

@@ -1,10 +1,9 @@
 use lettre::message::{Attachment, MultiPart, SinglePart};
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
+use std::env;
 
-use crate::constants::{
-    FIRMA_INSTITUCIONAL, MAIL_EMISOR, MAILTRAP_PASSWORD, MAILTRAP_USER, MOCK_MAILS, PIE_AUTOMATICO,
-};
+use crate::constants::{FIRMA_INSTITUCIONAL, MAIL_EMISOR, MOCK_MAILS, PIE_AUTOMATICO};
 
 pub trait MailProvider {
     fn enviar(&self, email: &str, nombre: &str, asunto: &str, cuerpo: &str) -> Result<(), String>;
@@ -27,7 +26,10 @@ pub struct MailtrapProvider;
 
 impl MailtrapProvider {
     fn autenticar_smtp() -> Result<SmtpTransport, String> {
-        let creds = Credentials::new(MAILTRAP_USER.to_string(), MAILTRAP_PASSWORD.to_string());
+        let mail_user = env::var("MAILTRAP_USER").expect("Falta MAILTRAP_USER en el .env");
+        let mail_pass = env::var("MAILTRAP_PASSWORD").expect("Falta MAILTRAP_PASSWORD en el .env");
+
+        let creds = Credentials::new(mail_user, mail_pass);
         let transport = SmtpTransport::starttls_relay("sandbox.smtp.mailtrap.io")
             .map_err(|e| format!("Error en host SMTP: {}", e))?
             .port(2525)

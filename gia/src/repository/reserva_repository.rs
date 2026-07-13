@@ -321,6 +321,17 @@ mod tests {
     fn crear_db_test() -> Connection {
         let conn = Connection::open_in_memory().unwrap();
         conn.execute(
+            "CREATE TABLE modelos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                marca TEXT NOT NULL,
+                nombre_modelo TEXT NOT NULL,
+                categoria TEXT,
+                descripcion TEXT
+            )",
+            [],
+        )
+        .unwrap();
+        conn.execute(
             "CREATE TABLE ejemplares (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 modelo_id INTEGER NOT NULL,
@@ -330,7 +341,8 @@ mod tests {
                 observaciones TEXT,
                 accesorios TEXT,
                 esta_disponible BOOLEAN DEFAULT TRUE,
-                ubicacion TEXT
+                ubicacion TEXT,
+                eliminado BOOLEAN NOT NULL DEFAULT 0
             )",
             [],
         )
@@ -600,6 +612,32 @@ mod tests {
         let bloqueado = ReservaRepository::tiene_reserva_activa_o_pendiente(&conn, 1).unwrap();
 
         assert!(!bloqueado);
+    }
+
+    #[test]
+    fn obtener_equipos_por_reserva_incluye_ejemplar_eliminado() {
+        let conn = crear_db_test();
+
+        conn.execute(
+            "INSERT INTO modelos (id, marca, nombre_modelo, categoria)
+             VALUES (1, 'Marca', 'Modelo', 'Categoria')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO ejemplares (id, modelo_id, numero_serie, esta_disponible, eliminado)
+             VALUES (1, 1, 'SN-1', TRUE, 1)",
+            [],
+        )
+        .unwrap();
+        ReservaRepository::crear(&conn, &reserva_test()).unwrap();
+        vincular_ejemplar(&conn, 1, 1);
+
+        let equipos = ReservaRepository::obtener_equipos_por_reserva(&conn, 1).unwrap();
+
+        assert_eq!(equipos.len(), 1);
+        assert_eq!(equipos[0].ejemplar_id, 1);
+        assert_eq!(equipos[0].numero_serie.as_deref(), Some("SN-1"));
     }
 
     #[test]
