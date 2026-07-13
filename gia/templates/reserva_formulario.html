@@ -22,22 +22,60 @@
 
     <section class="reserva-fechas">
         <h2 class="reserva-fechas-titulo">Fechas de la reserva</h2>
-        <form class="reserva-fechas-grid"
-              hx-get="/reservas/modelos"
-              hx-trigger="change"
-              hx-target="#lista-modelos"
-              hx-swap="innerHTML">
+<form class="reserva-fechas-grid">
+
             <div class="field">
                 <label for="fecha_inicio">Desde</label>
-                <input id="fecha_inicio" type="date" name="fecha_inicio"
-                       min="{{ fecha_minima }}" max="{{ fecha_maxima }}" value="{{ fecha_inicio }}">
+            <input
+                id="fecha_inicio"
+                type="date"
+                name="fecha_inicio"
+                min="{{ fecha_minima }}"
+                max="{{ fecha_maxima }}"
+                value="{{ fecha_inicio }}"
+
+                hx-get="/reservas/modelos"
+                hx-trigger="change"
+                hx-target="#lista-modelos"
+                hx-swap="innerHTML"
+                hx-include="closest form">
             </div>
+
             <div class="field">
                 <label for="fecha_fin">Hasta</label>
-                <input id="fecha_fin" type="date" name="fecha_fin"
-                       min="{{ fecha_minima }}" max="{{ fecha_maxima }}" value="{{ fecha_fin }}">
+            <input
+                id="fecha_fin"
+                type="date"
+                name="fecha_fin"
+                min="{{ fecha_minima }}"
+                max="{{ fecha_maxima }}"
+                value="{{ fecha_fin }}"
+
+                hx-get="/reservas/modelos"
+                hx-trigger="change"
+                hx-target="#lista-modelos"
+                hx-swap="innerHTML"
+                hx-include="closest form">
             </div>
+
+            <div class="catalogo-search">
+            <input
+                id="buscar-modelo"
+                type="text"
+                name="buscar"
+                value="{{ busqueda }}"
+                placeholder="Buscar por nombre de modelo"
+                class="catalogo-search-input"
+
+                hx-get="/reservas/modelos/busqueda"
+                hx-trigger="keyup delay:300ms"
+                hx-target="#lista-modelos"
+                hx-swap="innerHTML"
+                hx-include="closest form">
+            </div>
+
         </form>
+
         <p class="reserva-fechas-hint">
             La reserva puede comenzar entre el {{ fecha_minima }} y el {{ fecha_maxima }}.
             Cambiar las fechas reinicia los ejemplares elegidos.

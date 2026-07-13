@@ -44,7 +44,7 @@ impl ReservaHandler {
         let grupos = if carrito.tiene_fechas() {
             let inicio = carrito.fecha_inicio.clone().unwrap_or_default();
             let fin = carrito.fecha_fin.clone().unwrap_or_default();
-            ModeloService::listar_cards_disponibles_agrupadas(conn, &inicio, &fin)
+            ModeloService::listar_cards_disponibles_agrupadas(conn, &inicio, &fin, "")
         } else {
             ModeloService::listar_cards_agrupadas(conn)
         };
@@ -57,6 +57,7 @@ impl ReservaHandler {
         };
 
         let mut ctx = Context::new();
+        ctx.insert("busqueda", "");
         ctx.insert("fecha_minima", &fecha_minima);
         ctx.insert("fecha_maxima", &fecha_maxima);
         ctx.insert("grupos", &grupos);
@@ -82,13 +83,18 @@ impl ReservaHandler {
 
         let inicio = request.get_param("fecha_inicio").unwrap_or_default();
         let fin = request.get_param("fecha_fin").unwrap_or_default();
+        let buscar = request.get_param("buscar").unwrap_or_default();
 
         // Cambiar la fecha reinicia el carrito: las fechas nuevas reemplazan a las
         // anteriores y se vacia la lista de ejemplares.
         let (grupos_res, carrito) = if inicio.trim().is_empty() || fin.trim().is_empty() {
             // Sin fechas (el usuario las limpio): listamos todos los modelos.
             (
-                ModeloService::listar_cards_agrupadas(conn),
+                if buscar.trim().is_empty() {
+                    ModeloService::listar_cards_agrupadas(conn)
+                } else {
+                    ModeloService::listar_cards_filtradas(conn, &buscar)
+                },
                 Carrito {
                     fecha_inicio: None,
                     fecha_fin: None,
@@ -97,7 +103,7 @@ impl ReservaHandler {
             )
         } else if Self::fechas_validas(&inicio, &fin) {
             (
-                ModeloService::listar_cards_disponibles_agrupadas(conn, &inicio, &fin),
+                ModeloService::listar_cards_disponibles_agrupadas(conn, &inicio, &fin, &buscar),
                 Carrito {
                     fecha_inicio: Some(inicio.clone()),
                     fecha_fin: Some(fin.clone()),
@@ -130,6 +136,7 @@ impl ReservaHandler {
 
         // Resumen del carrito (vacio) actualizado fuera de banda (hx-swap-oob).
         let mut ctx_resumen = Context::new();
+        ctx_modelos.insert("busqueda", &buscar);
         ctx_resumen.insert("carrito_cantidad", &0usize);
         ctx_resumen.insert("oob", &true);
         let resumen_html = match templates::render("partials/carrito_resumen.html", &ctx_resumen) {
@@ -144,6 +151,42 @@ impl ReservaHandler {
             .with_additional_header("Set-Cookie", cookie_carrito(&carrito))
     }
 
+    pub fn buscar_modelos(request: &Request, conn: &Connection) -> Response {
+        if let Err(response) = Self::obtener_usuario_sesion(request, conn) {
+            return response;
+        }
+
+        let inicio = request.get_param("fecha_inicio").unwrap_or_default();
+        let fin = request.get_param("fecha_fin").unwrap_or_default();
+        let buscar = request.get_param("buscar").unwrap_or_default();
+
+        let grupos = if inicio.trim().is_empty() || fin.trim().is_empty() {
+            if buscar.trim().is_empty() {
+                ModeloService::listar_cards_agrupadas(conn)
+            } else {
+                ModeloService::listar_cards_filtradas(conn, &buscar)
+            }
+        } else {
+            ModeloService::listar_cards_disponibles_agrupadas(conn, &inicio, &fin, &buscar)
+        };
+
+        let grupos = match grupos {
+            Ok(g) => g,
+            Err(e) => {
+                return templates::response_mensaje_error("No se pudieron cargar los modelos", &e);
+            }
+        };
+
+        let mut ctx = Context::new();
+        ctx.insert("grupos", &grupos);
+
+        match templates::render("partials/reserva_modelos.html", &ctx) {
+            Ok(html) => Response::html(html),
+            Err(e) => {
+                Response::text(format!("Error renderizando plantilla: {}", e)).with_status_code(500)
+            }
+        }
+    }
     /// Valida que ambas fechas esten presentes, sean parseables y que fin sea
     /// posterior a inicio. Las cotas (min/max) las aplica el input del formulario.
     fn fechas_validas(inicio: &str, fin: &str) -> bool {
