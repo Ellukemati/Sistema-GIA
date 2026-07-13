@@ -149,13 +149,17 @@ impl ReservaHandler {
             Err(e) => return templates::response_mensaje_error("Error", &e),
         };
 
-        match Self::renderizar_parciales_htmx(&grupos, &buscar) {
+        match Self::renderizar_parciales_htmx(&grupos, &buscar, &carrito) {
             Ok(html) => Response::html(html).with_additional_header("Set-Cookie", cookie_carrito(&carrito)),
             Err(response) => response,
         }
     }
 
-    fn renderizar_parciales_htmx(grupos: &[crate::service::modelo_service::GrupoCategoriaDTO], buscar: &str) -> Result<String, Response> {
+    fn renderizar_parciales_htmx(
+        grupos: &[crate::service::modelo_service::GrupoCategoriaDTO],
+        buscar: &str,
+        carrito: &Carrito,
+    ) -> Result<String, Response> {
         let mut ctx_modelos = Context::new();
         ctx_modelos.insert("grupos", grupos);
         ctx_modelos.insert("busqueda", buscar);
@@ -163,7 +167,8 @@ impl ReservaHandler {
             .map_err(|e| Response::text(format!("Error: {}", e)).with_status_code(500))?;
 
         let mut ctx_resumen = Context::new();
-        ctx_resumen.insert("carrito_cantidad", &0usize);
+        ctx_resumen.insert("carrito_cantidad", &carrito.ejemplares.len());
+        ctx_resumen.insert("motivo", &carrito.motivo.clone().unwrap_or_default());
         ctx_resumen.insert("oob", &true);
         let r_html = templates::render("partials/carrito_resumen.html", &ctx_resumen)
             .map_err(|e| Response::text(format!("Error: {}", e)).with_status_code(500))?;
@@ -181,16 +186,44 @@ impl ReservaHandler {
         let buscar = request.get_param("buscar").unwrap_or_default();
         let categoria = request.get_param("categoria").unwrap_or_default();
         let orden = request.get_param("orden").unwrap_or_default();
+        let carrito_actual = leer_carrito(request);
 
-        let grupos = if inicio.trim().is_empty() || fin.trim().is_empty() {
-            ModeloService::filtrar_y_ordenar_cards(conn, &buscar, &categoria, &orden)
-        } else {
-            ModeloService::filtrar_y_ordenar_cards_disponibles(
-                conn, &inicio, &fin, &buscar, &categoria, &orden,
+        let (grupos_res, carrito) = if inicio.trim().is_empty() || fin.trim().is_empty() {
+            (
+                ModeloService::filtrar_y_ordenar_cards(conn, &buscar, &categoria, &orden),
+                Carrito {
+                    fecha_inicio: None,
+                    fecha_fin: None,
+                    motivo: carrito_actual.motivo,
+                    ejemplares: Vec::new(),
+                },
             )
+        } else if Self::fechas_validas(&inicio, &fin) {
+            let mismas_fechas = carrito_actual.fecha_inicio.as_deref() == Some(inicio.as_str())
+                && carrito_actual.fecha_fin.as_deref() == Some(fin.as_str());
+            (
+                ModeloService::filtrar_y_ordenar_cards_disponibles(
+                    conn, &inicio, &fin, &buscar, &categoria, &orden,
+                ),
+                Carrito {
+                    fecha_inicio: Some(inicio.clone()),
+                    fecha_fin: Some(fin.clone()),
+                    motivo: carrito_actual.motivo,
+                    ejemplares: if mismas_fechas {
+                        carrito_actual.ejemplares
+                    } else {
+                        Vec::new()
+                    },
+                },
+            )
+        } else {
+            return templates::response_mensaje_error(
+                "Fechas inválidas",
+                "Seleccioná una fecha de inicio y una de fin válidas. La fecha de fin debe ser posterior a la de inicio.",
+            );
         };
 
-        let grupos = match grupos {
+        let grupos = match grupos_res {
             Ok(g) => g,
             Err(e) => {
                 return templates::response_mensaje_error("No se pudieron cargar los modelos", &e);
@@ -199,9 +232,11 @@ impl ReservaHandler {
 
         let mut ctx = Context::new();
         ctx.insert("grupos", &grupos);
+        ctx.insert("busqueda", &buscar);
 
         match templates::render("partials/reserva_modelos.html", &ctx) {
-            Ok(html) => Response::html(html),
+            Ok(html) => Response::html(html)
+                .with_additional_header("Set-Cookie", cookie_carrito(&carrito)),
             Err(e) => {
                 Response::text(format!("Error renderizando plantilla: {}", e)).with_status_code(500)
             }

@@ -35,13 +35,23 @@
             <div class="field">
                 <label for="fecha_inicio">Desde</label>
                 <input id="fecha_inicio" type="date" name="fecha_inicio" min="{{ fecha_minima }}"
-                    max="{{ fecha_maxima }}" value="{{ fecha_inicio }}">
+                    max="{{ fecha_maxima }}" value="{{ fecha_inicio }}"
+                    hx-get="/reservas/modelos"
+                    hx-trigger="change"
+                    hx-target="#lista-modelos"
+                    hx-swap="innerHTML"
+                    hx-include=".reserva-fechas-grid,.catalogo-search">
             </div>
 
             <div class="field">
                 <label for="fecha_fin">Hasta</label>
                 <input id="fecha_fin" type="date" name="fecha_fin" min="{{ fecha_minima }}" max="{{ fecha_maxima }}"
-                    value="{{ fecha_fin }}">
+                    value="{{ fecha_fin }}"
+                    hx-get="/reservas/modelos"
+                    hx-trigger="change"
+                    hx-target="#lista-modelos"
+                    hx-swap="innerHTML"
+                    hx-include=".reserva-fechas-grid,.catalogo-search">
             </div>
 
         </form>
