@@ -1,11 +1,12 @@
-use crate::repository::image_repository::ImageRepository;
-use crate::repository::sesion_repository::SesionRepository;
-use crate::repository::usuario_repository::UsuarioRepository;
-use crate::service::auth_service::AuthService;
-use crate::service::image_service::procesar_avatar;
+use crate::constants::EXPIRACION_SESION;
+use crate::repository::{
+    image_repository::ImageRepository, reserva_repository::ReservaRepository,
+    sesion_repository::SesionRepository, usuario_repository::UsuarioRepository,
+};
+use crate::service::{auth_service::AuthService, image_service::procesar_avatar};
 use crate::templates;
-use crate::utils::extraer_token_sesion;
-use crate::utils::usuario_actual;
+use crate::utils::{extraer_token_sesion, usuario_actual};
+
 use rouille::{Request, Response};
 use rusqlite::Connection;
 use std::collections::HashMap;
@@ -33,7 +34,7 @@ impl AuthHandler {
     pub fn mostrar_formulario_solicitud() -> Response {
         let ctx = Context::new();
         templates::response_html(templates::render(
-            "usuario_solicitar_restablecimiento_contrasena.html",
+            "usuario_solicitar_restablecimiento_password.html",
             &ctx,
         ))
     }
@@ -66,49 +67,186 @@ impl AuthHandler {
         {
             let mut ctx = Context::new();
             ctx.insert("usuario_actual", &usuario);
+
+            let cache_buster = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|duracion| duracion.as_secs())
+                .unwrap_or(0);
+            ctx.insert("avatar_cache_buster", &cache_buster);
+
+            if usuario.es_admin() {
+                let reservas_pendientes = ReservaRepository::listar_por_estado(conn, "pendiente")
+                    .map(|lista| lista.len())
+                    .unwrap_or(0);
+
+                let docentes_pendientes = UsuarioRepository::listar_profesores_pendientes(conn)
+                    .map(|lista| lista.len())
+                    .unwrap_or(0);
+
+                ctx.insert("reservas_pendientes_count", &reservas_pendientes);
+                ctx.insert("docentes_pendientes_count", &docentes_pendientes);
+            }
+
             return templates::response_html(templates::render("home.html", &ctx));
         }
         Response::redirect_302("/ingreso")
     }
 
+    /// Registro publico desde la web
+    /// Cualquiera puede mandar la solicitud de registro, pero la cuenta es de tipo Docente
+    /// y nace sin el aprobado, requiriendo aprobacion de un administrador
     pub fn procesar_registro(request: &Request, conn: &Connection) -> Response {
-        let mut body = String::new();
-        if let Some(mut reader) = request.data() {
-            let _ = reader.read_to_string(&mut body);
+        let mut data = match rouille::input::multipart::get_multipart_input(request) {
+            Ok(d) => d,
+            Err(_) => {
+                return templates::response_mensaje_error(
+                    "Error",
+                    "Formulario multipart inválido.",
+                );
+            }
+        };
+
+        let mut nombre = String::new();
+        let mut apellido = String::new();
+        let mut email = String::new();
+        let mut password = String::new();
+        let mut legajo_str = String::new();
+        let mut avatar_bytes: Option<Vec<u8>> = None;
+
+        while let Some(mut entry) = data.next() {
+            let name = entry.headers.name.clone();
+            if entry.headers.filename.is_some() {
+                if &*name == "avatar" {
+                    let mut bytes = Vec::new();
+                    if entry.data.read_to_end(&mut bytes).is_ok() && !bytes.is_empty() {
+                        avatar_bytes = Some(bytes);
+                    }
+                }
+            } else {
+                let mut text = String::new();
+                if entry.data.read_to_string(&mut text).is_ok() {
+                    match &*name {
+                        "nombre" => nombre = text.trim().to_string(),
+                        "apellido" => apellido = text.trim().to_string(),
+                        "email" => email = text.trim().to_string(),
+                        "password" => password = text,
+                        "legajo" => legajo_str = text.trim().to_string(),
+                        _ => {}
+                    }
+                }
+            }
         }
 
-        let datos_parseados = Self::parsear_formulario(&body);
-
-        let nombre = datos_parseados.get("nombre").cloned().unwrap_or_default();
-        let apellido = datos_parseados.get("apellido").cloned().unwrap_or_default();
-        let email = datos_parseados.get("email").cloned().unwrap_or_default();
-        let tipo = "P"; // Registros por ruta pública no pueden ser de tipo administrador, se asigna "P" por defecto
-        let password = datos_parseados.get("password").cloned().unwrap_or_default();
-        let legajo = match datos_parseados
-            .get("legajo")
-            .unwrap_or(&String::new())
-            .parse::<i32>()
-        {
+        let tipo = "P";
+        let legajo = match legajo_str.parse::<i32>() {
             Ok(val) => val,
             Err(_) => {
                 return templates::response_mensaje_error(
                     "Datos inválidos",
-                    "Legajo inválido. Ingresá un número válido.",
+                    "El legajo debe contener únicamente números y ser válido.",
                 );
             }
         };
 
         match AuthService::registrar_cuenta(conn, legajo, nombre, apellido, email, tipo, &password)
         {
-            Ok(usuario) => templates::response_mensaje_exito(
-                "¡Cuenta creada!",
-                &format!("Bienvenido/a {}.", usuario.nombre_completo()),
-            ),
+            Ok(_) => {
+                if let Some(bytes) = avatar_bytes
+                    && let Ok((blob, mime)) = procesar_avatar(&bytes)
+                {
+                    let _ = ImageRepository::guardar_avatar(conn, legajo as i64, &blob, &mime);
+                }
 
+                templates::response_mensaje_exito(
+                    "Solicitud de registro enviada",
+                    "Tu registro ha sido enviado y tu cuenta debe ser habilitada por un administrador antes de que puedas iniciar sesión.\n\
+                     Te enviaremos un correo con la respuesta a tu solicitud.",
+                )
+            }
             Err(e) => templates::response_mensaje_error(
                 "No se pudo completar el registro",
                 &e.to_string(),
             ),
+        }
+    }
+
+    /// Registro privado por invitación de un administrador
+    /// Viene de un enlace por email. Como fue enviada por un administrador, se aprueba de inmediato
+    pub fn procesar_registro_invitacion(request: &Request, conn: &Connection) -> Response {
+        let mut data = match rouille::input::multipart::get_multipart_input(request) {
+            Ok(d) => d,
+            Err(_) => {
+                return templates::response_mensaje_error(
+                    "Error",
+                    "Formulario multipart inválido.",
+                );
+            }
+        };
+
+        let mut token = String::new();
+        let mut nombre = String::new();
+        let mut apellido = String::new();
+        let mut password = String::new();
+        let mut legajo_str = String::new();
+        let mut avatar_bytes: Option<Vec<u8>> = None;
+
+        while let Some(mut entry) = data.next() {
+            let name = entry.headers.name.clone();
+            if entry.headers.filename.is_some() {
+                if &*name == "avatar" {
+                    let mut bytes = Vec::new();
+                    if entry.data.read_to_end(&mut bytes).is_ok() && !bytes.is_empty() {
+                        avatar_bytes = Some(bytes);
+                    }
+                }
+            } else {
+                let mut text = String::new();
+                if entry.data.read_to_string(&mut text).is_ok() {
+                    match &*name {
+                        "token" => token = text.trim().to_string(),
+                        "nombre" => nombre = text.trim().to_string(),
+                        "apellido" => apellido = text.trim().to_string(),
+                        "password" => password = text,
+                        "legajo" => legajo_str = text.trim().to_string(),
+                        _ => {}
+                    }
+                }
+            }
+        }
+
+        if token.is_empty() {
+            return templates::response_mensaje_error(
+                "Error de sesión",
+                "El token de la invitación es inválido o ha expirado.",
+            );
+        }
+
+        let legajo = match legajo_str.parse::<i32>() {
+            Ok(val) => val,
+            Err(_) => {
+                return templates::response_mensaje_error(
+                    "Formato incorrecto",
+                    "El legajo debe contener únicamente números y ser válido.",
+                );
+            }
+        };
+
+        match AuthService::registrar_por_invitacion(
+            conn, &token, nombre, apellido, legajo, &password,
+        ) {
+            Ok(_) => {
+                if let Some(bytes) = avatar_bytes
+                    && let Ok((blob, mime)) = procesar_avatar(&bytes)
+                {
+                    let _ = ImageRepository::guardar_avatar(conn, legajo as i64, &blob, &mime);
+                }
+
+                templates::response_mensaje_exito(
+                    "Cuenta registrada",
+                    "Su cuenta fue registrada y habilitada, ya puede iniciar sesión.",
+                )
+            }
+            Err(e) => templates::response_mensaje_error("No se pudo completar el registro", &e),
         }
     }
 
@@ -124,8 +262,10 @@ impl AuthHandler {
 
         match AuthService::login(conn, &email, &password) {
             Ok((_usuario, token)) => {
-                let cookie_str =
-                    format!("session_token={}; HttpOnly; Path=/; Max-Age=86400", token);
+                let cookie_str = format!(
+                    "session_token={}; HttpOnly; Path=/; Max-Age={}",
+                    token, EXPIRACION_SESION
+                );
                 Response::empty_204()
                     .with_additional_header("Set-Cookie", cookie_str)
                     .with_additional_header("HX-Redirect", "/inicio")
@@ -179,6 +319,7 @@ impl AuthHandler {
             ),
         }
     }
+
     pub fn mostrar_perfil(request: &Request, conn: &Connection) -> Response {
         let usuario = match usuario_actual(request, conn) {
             Ok(u) => u,
@@ -188,49 +329,127 @@ impl AuthHandler {
         let mut ctx = Context::new();
 
         ctx.insert("usuario_actual", &usuario);
+        let cache_buster = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duracion| duracion.as_secs())
+            .unwrap_or(0);
+        ctx.insert("avatar_cache_buster", &cache_buster);
 
         templates::response_html(templates::render("perfil.html", &ctx))
     }
-    
+
     pub fn actualizar_perfil(request: &Request, conn: &Connection) -> Response {
-        let usuario = match usuario_actual(request, conn) { Ok(u) => u, Err(r) => return r };
+        let usuario = match usuario_actual(request, conn) {
+            Ok(u) => u,
+            Err(r) => return r,
+        };
+
         let mut data = match rouille::input::multipart::get_multipart_input(request) {
-            Ok(d) => d, Err(_) => return templates::response_mensaje_error("Error", "Formulario inválido")
+            Ok(d) => d,
+            Err(_) => {
+                return templates::response_mensaje_error("Error", "Formulario inválido");
+            }
         };
 
         let (mut nombre, mut apellido, mut password, mut password_repetida) = (usuario.nombre.clone(), usuario.apellido.clone(), String::new(), String::new());
         let mut avatar_bytes: Option<Vec<u8>> = None;
+        let mut flag_eliminar_avatar = String::new();
 
         while let Some(mut entry) = data.next() {
-            let name = entry.headers.name.to_string();
-            if entry.headers.filename.is_some() && name == "avatar" {
-                let mut bytes = Vec::new();
-                if entry.data.read_to_end(&mut bytes).is_ok() && !bytes.is_empty() { avatar_bytes = Some(bytes); }
+            let headers = entry.headers.clone();
+            let name = headers.name.clone();
+
+            if headers.filename.is_some() {
+                if &*name == "avatar" {
+                    let mut bytes = Vec::new();
+                    if entry.data.read_to_end(&mut bytes).is_ok() && !bytes.is_empty() {
+                        avatar_bytes = Some(bytes);
+                    }
+                }
             } else {
                 let mut text = String::new();
                 if entry.data.read_to_string(&mut text).is_ok() {
-                    match name.as_str() {
-                        "nombre" => nombre = text, "apellido" => apellido = text,
-                        "password" => password = text, "password_repetida" => password_repetida = text,
+                    match &*name {
+                        "nombre" => {
+                            nombre = text;
+                        }
+                        "apellido" => {
+                            apellido = text;
+                        }
+                        "password" => {
+                            password = text;
+                        }
+                        "password_confirm" => {
+                            password_repetida = text;
+                        }
+                        "eliminar_avatar" => {
+                            flag_eliminar_avatar = text;
+                        }
                         _ => {}
                     }
                 }
             }
         }
-        Self::guardar_cambios_perfil(conn, &usuario, nombre, apellido, password, password_repetida, avatar_bytes)
-    }
 
-    fn guardar_cambios_perfil(conn: &Connection, usuario: &crate::models::usuario::Usuario, nombre: String, apellido: String, pass: String, pass_rep: String, avatar: Option<Vec<u8>>) -> Response {
-        if !pass.is_empty() && pass != pass_rep { return templates::response_mensaje_error("Error", "Las contraseñas no coinciden"); }
-        if let Err(e) = UsuarioRepository::actualizar_perfil(conn, usuario.id, &nombre, &apellido) { return templates::response_mensaje_error("Error", &e.to_string()); }
-        
-        if !pass.is_empty() {
-            if let Err(e) = AuthService::cambiar_password_usuario(conn, usuario.id, &pass) { return templates::response_mensaje_error("Error", &e); }
+        let mut detalle_cambios = Vec::new();
+
+        // Cambio de Nombre y Apellido
+        if nombre != usuario.nombre || apellido != usuario.apellido {
+            if let Err(e) =
+                UsuarioRepository::actualizar_perfil(conn, usuario.id, &nombre, &apellido)
+            {
+                return templates::response_mensaje_error(
+                    "Error actualizando perfil",
+                    &e.to_string(),
+                );
+            }
+            if nombre != usuario.nombre {
+                detalle_cambios.push("- Cambio de nombre");
+            }
+            if apellido != usuario.apellido {
+                detalle_cambios.push("- Cambio de apellido");
+            }
         }
-        if let Some(bytes) = avatar {
-            if let Ok((blob, mime)) = procesar_avatar(&bytes) { let _ = ImageRepository::guardar_avatar(conn, usuario.legajo as i64, &blob, &mime); }
+
+        // Cambio de contraseña
+        let quiere_cambiar_password = !password.is_empty() || !password_repetida.is_empty();
+        if quiere_cambiar_password {
+            if password.is_empty() || password_repetida.is_empty() || password != password_repetida
+            {
+                return templates::response_mensaje_error("Error", "Las contraseñas no coinciden");
+            }
+            if let Err(e) = AuthService::cambiar_password_usuario(conn, usuario.id, &password) {
+                return templates::response_mensaje_error("Error", &e);
+            }
+            detalle_cambios.push("- Cambio de contraseña");
         }
-        Response::redirect_302("/perfil")
+
+        // Eliminacion o cambio de avatar
+        if flag_eliminar_avatar.trim() == "true" {
+            let _ = conn.execute(
+                "UPDATE usuarios SET avatar_blob = NULL, avatar_mime = NULL WHERE id = ?",
+                [usuario.id],
+            );
+            detalle_cambios.push("- Eliminación de foto de perfil");
+        } else if let Some(bytes) = avatar_bytes
+            && let Ok((blob, mime)) = procesar_avatar(&bytes)
+        {
+            let _ = ImageRepository::guardar_avatar(conn, usuario.legajo as i64, &blob, &mime);
+            detalle_cambios.push("- Cambio de foto de perfil");
+        }
+
+        if detalle_cambios.is_empty() {
+            return Response::empty_204();
+        }
+
+        let mensaje_final = detalle_cambios.join("\n");
+
+        let html_respuesta = format!(
+            "{} <div hx-get='/perfil' hx-target='body' hx-trigger='load delay:3000ms' style='display:none;'></div>",
+            templates::render_mensaje_exito("Cambios guardados", &mensaje_final).unwrap()
+        );
+
+        Response::html(html_respuesta)
     }
 
     pub fn procesar_cambio_password(request: &Request, conn: &Connection) -> Response {
@@ -252,71 +471,58 @@ impl AuthHandler {
 
         match AuthService::restablecer_password(conn, &token, &password) {
             Ok(_) => templates::response_mensaje_exito(
-                "Contraseña modificada",
-                "Su clave ha sido actualizada de forma segura. Ya puede dirigirse al Ingreso.",
+                "Contraseña cambiada",
+                "Su contraseña ha sido actualizada. Ya puede dirigirse al ingreso y usarla.",
             ),
-            Err(e) => templates::response_mensaje_error("No se pudo actualizar", &e),
+            Err(e) => templates::response_mensaje_error("No se pudo restablecer la contraseña", &e),
         }
     }
 
     /// Renderiza la vista de configuración final para el usuario invitado
-    pub fn mostrar_formulario_registro_invitacion(request: &Request) -> Response {
+    pub fn mostrar_formulario_registro_invitacion(
+        request: &Request,
+        conn: &Connection,
+    ) -> Response {
         let token = request.get_param("token").unwrap_or_default();
 
         if token.is_empty() {
             return templates::response_mensaje_error(
                 "Enlace de invitación inválido",
-                "El token de acceso no se encuentra presente en la dirección URL.",
+                "El token de acceso no se encuentra en la dirección URL.",
             );
         }
 
-        let mut ctx = Context::new();
-        ctx.insert("token", &token);
-        templates::response_html(templates::render("usuario_registro_invitacion.html", &ctx))
-    }
+        let ahora_segundos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64;
 
-    /// Carga los datos definitivos del invitado a la tabla de usuarios activos
-    pub fn procesar_alta_registro_invitacion(request: &Request, conn: &Connection) -> Response {
-        let mut body = String::new();
-        if let Some(mut reader) = request.data() {
-            let _ = reader.read_to_string(&mut body);
-        }
-
-        let datos_parseados = Self::parsear_formulario(&body);
-        let token = datos_parseados.get("token").cloned().unwrap_or_default();
-        let nombre = datos_parseados.get("nombre").cloned().unwrap_or_default();
-        let apellido = datos_parseados.get("apellido").cloned().unwrap_or_default();
-        let password = datos_parseados.get("password").cloned().unwrap_or_default();
-
-        if token.is_empty() {
-            return templates::response_mensaje_error(
-                "Error de sesión",
-                "El token de la invitación es inválido o ha expirado.",
-            );
-        }
-
-        let legajo = match datos_parseados
-            .get("legajo")
-            .unwrap_or(&String::new())
-            .parse::<i32>()
-        {
-            Ok(val) => val,
-            Err(_) => {
-                return templates::response_mensaje_error(
-                    "Formato incorrecto",
-                    "El legajo ingresado debe ser un valor numérico válido.",
-                );
-            }
-        };
-
-        match AuthService::registrar_por_invitacion(
-            conn, &token, nombre, apellido, legajo, &password,
+        // Buscamos si la invitación es válida y no expiró
+        match crate::repository::invitacion_repository::InvitacionRepository::buscar_valido(
+            conn,
+            &token,
+            ahora_segundos,
         ) {
-            Ok(_) => templates::response_mensaje_exito(
-                "Alta confirmada",
-                "Su usuario ha sido dado de alta y habilitado con éxito. Ya puede iniciar sesión de forma regular.",
+            Ok(Some(invitacion)) => {
+                let mut ctx = Context::new();
+                ctx.insert("token", &token);
+
+                let tipo_visible = if invitacion.tipo == crate::constants::TIPO_ADMIN {
+                    "Administrador"
+                } else {
+                    "Docente"
+                };
+                ctx.insert("tipo_cuenta", tipo_visible);
+
+                templates::response_html(templates::render(
+                    "usuario_registro_invitacion.html",
+                    &ctx,
+                ))
+            }
+            _ => templates::response_mensaje_error(
+                "Invitación inválida o expirada",
+                "El enlace utilizado ya no es válido, fue utilizado previamente o ha superado el tiempo límite de 24 horas.",
             ),
-            Err(e) => templates::response_mensaje_error("No se pudo completar el alta", &e),
         }
     }
 
@@ -325,12 +531,33 @@ impl AuthHandler {
         for par in cuerpo.split('&') {
             let mut partes = par.split('=');
             if let (Some(clave), Some(valor)) = (partes.next(), partes.next()) {
-                let valor_decodificado = valor.replace("%40", "@").replace("+", " ");
+                let con_espacios = valor.replace("+", " ");
+
+                let mut bytes = Vec::new();
+                let mut i = 0;
+                let chars: Vec<char> = con_espacios.chars().collect();
+
+                while i < chars.len() {
+                    if chars[i] == '%'
+                        && i + 2 < chars.len()
+                        && let Some(hex_str) = con_espacios.get(i + 1..i + 3)
+                        && let Ok(byte) = u8::from_str_radix(hex_str, 16)
+                    {
+                        bytes.push(byte);
+                        i += 3;
+                        continue;
+                    }
+                    bytes.extend_from_slice(chars[i].to_string().as_bytes());
+                    i += 1;
+                }
+
+                let valor_decodificado = String::from_utf8(bytes).unwrap_or(con_espacios);
                 mapa.insert(clave.to_string(), valor_decodificado.trim().to_string());
             }
         }
         mapa
     }
+
     pub fn obtener_avatar(conn: &Connection, usuario_id: i64) -> Response {
         let usuario = match UsuarioRepository::buscar_por_id(conn, usuario_id) {
             Ok(Some(u)) => u,

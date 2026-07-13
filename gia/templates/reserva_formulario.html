@@ -1,91 +1,120 @@
 {% extends "base.html" %}
 
-{% block title %}GIA - Nueva reserva{% endblock %}
+{% block title %}Nueva reserva{% endblock %}
 
-{% block extra_head %}
-    {% include "estilos/auth.html" %}
-    {% include "estilos/catalogo.html" %}
-    {% include "estilos/reserva.html" %}
-    {% include "estilos/carrito.html" %}
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/catalogo.css">
+<link rel="stylesheet" href="/static/css/reserva.css">
+<link rel="stylesheet" href="/static/css/carrito.css">
 {% endblock %}
 
 {% block content %}
+
+{% set en_home = false %}
+{% set en_perfil = false %}
+
+{% include "partials/header.html" %}
+
 <main class="catalogo-page">
-    <a href="/inicio" class="btn-volver">⬅ Volver al inicio</a>
+
     <header class="catalogo-header">
-        <div class="auth-brand">
-            <img src="/static/img/logo_gia_transparente.png" alt="GIA" class="auth-logo">
-        </div>
         <h1>Nueva reserva</h1>
-        <p class="auth-subtitle">Elegí las fechas para ver los modelos disponibles</p>
+        <p class="catalogo-subtitle">
+            Seleccioná un rango de fechas para consultar la disponibilidad de los modelos
+        </p>
     </header>
 
     <section class="reserva-fechas">
-        <h2 class="reserva-fechas-titulo">Fechas de la reserva</h2>
-<form class="reserva-fechas-grid">
+
+        <h2 class="reserva-fechas-titulo">
+            Fechas de la reserva
+        </h2>
+
+        <form class="reserva-fechas-grid">
 
             <div class="field">
                 <label for="fecha_inicio">Desde</label>
-            <input
-                id="fecha_inicio"
-                type="date"
-                name="fecha_inicio"
-                min="{{ fecha_minima }}"
-                max="{{ fecha_maxima }}"
-                value="{{ fecha_inicio }}"
-
-                hx-get="/reservas/modelos"
-                hx-trigger="change"
-                hx-target="#lista-modelos"
-                hx-swap="innerHTML"
-                hx-include="closest form">
+                <input id="fecha_inicio" type="date" name="fecha_inicio" min="{{ fecha_minima }}"
+                    max="{{ fecha_maxima }}" value="{{ fecha_inicio }}"
+                    hx-get="/reservas/modelos"
+                    hx-trigger="change"
+                    hx-target="#lista-modelos"
+                    hx-swap="innerHTML"
+                    hx-include=".reserva-fechas-grid,.catalogo-search">
             </div>
 
             <div class="field">
                 <label for="fecha_fin">Hasta</label>
-            <input
-                id="fecha_fin"
-                type="date"
-                name="fecha_fin"
-                min="{{ fecha_minima }}"
-                max="{{ fecha_maxima }}"
-                value="{{ fecha_fin }}"
-
-                hx-get="/reservas/modelos"
-                hx-trigger="change"
-                hx-target="#lista-modelos"
-                hx-swap="innerHTML"
-                hx-include="closest form">
-            </div>
-
-            <div class="catalogo-search">
-            <input
-                id="buscar-modelo"
-                type="text"
-                name="buscar"
-                value="{{ busqueda }}"
-                placeholder="Buscar por nombre de modelo"
-                class="catalogo-search-input"
-
-                hx-get="/reservas/modelos/busqueda"
-                hx-trigger="keyup delay:300ms"
-                hx-target="#lista-modelos"
-                hx-swap="innerHTML"
-                hx-include="closest form">
+                <input id="fecha_fin" type="date" name="fecha_fin" min="{{ fecha_minima }}" max="{{ fecha_maxima }}"
+                    value="{{ fecha_fin }}"
+                    hx-get="/reservas/modelos"
+                    hx-trigger="change"
+                    hx-target="#lista-modelos"
+                    hx-swap="innerHTML"
+                    hx-include=".reserva-fechas-grid,.catalogo-search">
             </div>
 
         </form>
 
-        <p class="reserva-fechas-hint">
-            La reserva puede comenzar entre el {{ fecha_minima }} y el {{ fecha_maxima }}.
-            Cambiar las fechas reinicia los ejemplares elegidos.
-        </p>
+        <div class="reserva-fechas-hint">
+            ℹ️ La reserva puede comenzar entre el
+            <strong>{{ fecha_minima_display }}</strong>
+            y el
+            <strong>{{ fecha_maxima_display }}</strong>.
+            Si modificás las fechas, los ejemplares seleccionados se eliminarán del carrito.
+        </div>
+
     </section>
 
     {% include "partials/carrito_resumen.html" %}
 
+    <section class="catalogo-search-section">
+        <form class="catalogo-search">
+
+            <input id="buscar-modelo" type="text" name="buscar" value="{{ busqueda }}"
+                placeholder="Buscar un modelo por su nombre..." class="catalogo-search-input"
+                hx-get="/reservas/modelos/busqueda" hx-trigger="keyup delay:300ms, change" hx-target="#lista-modelos"
+                hx-swap="innerHTML" hx-include=".reserva-fechas-grid,.catalogo-search">
+
+            <select name="categoria" class="catalogo-search-input" hx-get="/reservas/modelos/busqueda"
+                hx-trigger="change" hx-target="#lista-modelos" hx-swap="innerHTML"
+                hx-include=".reserva-fechas-grid,.catalogo-search">
+
+                <option value="">Todas las categorías</option>
+
+                {% for cat in categorias %}
+                <option value="{{ cat }}" {% if categoria==cat %}selected{% endif %}>
+                    {{ cat }}
+                </option>
+                {% endfor %}
+            </select>
+
+            <select name="orden" class="catalogo-search-input" hx-get="/reservas/modelos/busqueda" hx-trigger="change"
+                hx-target="#lista-modelos" hx-swap="innerHTML" hx-include=".reserva-fechas-grid,.catalogo-search">
+
+                <option value="cat_asc" {% if orden=="cat_asc" %}selected{% endif %}>
+                    Categoría: A-Z
+                </option>
+
+                <option value="cat_desc" {% if orden=="cat_desc" %}selected{% endif %}>
+                    Categoría: Z-A
+                </option>
+
+            </select>
+
+            <a href="/reservas" class="btn-limpiar">
+                Limpiar filtros
+            </a>
+
+        </form>
+    </section>
+
     <div id="lista-modelos">
         {% include "partials/reserva_modelos.html" %}
     </div>
+
 </main>
+
+{% include "partials/footer_institucional.html" %}
+
 {% endblock %}

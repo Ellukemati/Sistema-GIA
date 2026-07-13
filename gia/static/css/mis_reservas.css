@@ -1,0 +1,289 @@
+.contenedor {
+    max-width: 1200px;
+    margin: auto;
+}
+
+h1 {
+    margin-bottom: 5px;
+}
+
+.subtitulo {
+    color: var(--color-text-secondary);
+    margin-bottom: 25px;
+}
+
+.columna {
+    background: var(--color-surface);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.titulo-columna {
+    padding: 15px 20px;
+    font-size: 1.2em;
+    font-weight: bold;
+    background-color: var(--color-surface-secondary);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.detalles-contenido {
+    padding: 20px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--color-surface);
+    color: var(--color-text);
+}
+
+th,
+td {
+    border-bottom: 1px solid #ddd;
+    padding: 14px;
+    text-align: left;
+    vertical-align: top;
+    background: var(--color-surface);
+    color: var(--color-text);
+}
+
+th {
+    background: var(--color-surface-secondary);
+}
+
+/* Estados de la reserva específicos */
+.estado-pendiente {
+    color: var(--color-accent, #ff9800);
+    font-weight: bold;
+}
+
+.estado-aprobada {
+    color: var(--color-success, #28a745);
+    font-weight: bold;
+}
+
+.estado-cancelada {
+    color: var(--color-error, #dc3545);
+    font-weight: bold;
+}
+
+.btn-pdf {
+    display: inline-block;
+    background-color: var(--color-primary);
+    color: white !important;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-weight: 600;
+    text-align: center;
+    transition: background-color 0.15s ease;
+    text-decoration: none;
+}
+
+.btn-pdf:hover {
+    background-color: var(--color-primary-hover);
+    text-decoration: none;
+}
+
+.btn-cancelar {
+    background-color: var(--color-error, #dc3545);
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.15s ease;
+}
+
+.btn-cancelar:hover {
+    background-color: #c82333;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    margin-top: 8px;
+    border-radius: 6px;
+    background: var(--color-bg);
+    font-size: .9rem;
+    font-weight: 600;
+}
+
+.alerta-info {
+    background: #eef4ff;
+    border: 1px solid #d0e2ff;
+    padding: 12px;
+    border-radius: 6px;
+    color: #2457c5;
+    margin-bottom: 18px;
+}
+
+.estado-badge {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: .9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    text-align: center;
+    min-width: 95px;
+}
+
+.estado-pendiente {
+    background-color: #ffeeba;
+    color: #856404;
+}
+
+.estado-cancelada {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.estado-aprobada {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.estado-concluida {
+    background-color: #e2e3e5;
+    color: #383d41;
+}
+
+/* Desplegable de instrumentales vinculados */
+details.equipos-dropdown {
+    margin-top: 8px;
+}
+
+details.equipos-dropdown summary {
+    cursor: pointer;
+    padding: 8px 10px;
+    background: var(--color-surface-secondary);
+    border-radius: 6px;
+    display: inline-block;
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+}
+
+.equipos-lista {
+    margin-top: 10px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 10px 15px 10px 40px;
+    list-style-type: disc;
+}
+
+.equipos-lista li {
+    margin-bottom: 8px;
+    padding-left: 5px;
+}
+
+.equipos-dropdown {
+    max-width: 100%;
+}
+
+@media (max-width: 768px) {
+    .contenedor {
+        padding-left: var(--spacing-md);
+        padding-right: var(--spacing-md);
+    }
+
+    .contenedor h1 {
+        margin-left: 0;
+    }
+
+    .table-responsive {
+        overflow: visible;
+        width: 100%;
+    }
+
+    table {
+        width: 100%;
+        display: block;
+    }
+
+    table thead {
+        display: none;
+    }
+
+    table tbody {
+        display: block;
+        width: 100%;
+    }
+
+    table tr {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 12px;
+        margin-bottom: 16px;
+        padding: 10px;
+    }
+
+    table td {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        border: none;
+        padding: 12px 8px;
+        text-align: left;
+        overflow-wrap: break-word;
+        word-break: break-word;
+    }
+
+    table td::before {
+        content: attr(data-label);
+        display: block;
+        font-size: .8rem;
+        font-weight: bold;
+        color: var(--color-text-secondary);
+        text-transform: uppercase;
+        margin-bottom: 5px;
+    }
+
+    .equipos-dropdown {
+        max-width: 100%;
+    }
+
+    .equipos-lista {
+        margin-top: 10px;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 6px;
+        padding-top: 10px;
+        padding-right: 15px;
+        padding-bottom: 10px;
+        padding-left: 40px !important;
+        list-style-type: disc;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .equipos-lista li {
+        margin-bottom: 8px;
+        padding-left: 10px !important;
+    }
+
+    .equipos-dropdown {
+        width: 100%;
+    }
+
+    .acciones-reserva {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .acciones-reserva button,
+    .acciones-reserva a {
+        width: 100%;
+        box-sizing: border-box;
+        text-align: center;
+    }
+}

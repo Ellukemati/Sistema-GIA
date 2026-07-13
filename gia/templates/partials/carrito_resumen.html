@@ -1,25 +1,42 @@
-<section id="carrito-resumen" class="carrito-resumen"{% if oob %} hx-swap-oob="true"{% endif %}>
+<section id="carrito-resumen" class="carrito-resumen" {% if oob %}hx-swap-oob="true" {% endif %}>
+
     <div class="carrito-resumen-info">
-        <span class="carrito-resumen-cantidad">{{ carrito_cantidad }}</span>
-        <span class="carrito-resumen-texto">ejemplar(es) en esta reserva</span>
-    </div>
-    <form method="POST" action="/reservas/finalizar" class="carrito-resumen-form">
-        <div class="carrito-motivo-field">
-            <label for="carrito-motivo-input" class="carrito-motivo-label">Motivo</label>
-            <input
-                type="text"
-                id="carrito-motivo-input"
-                name="motivo"
-                class="carrito-motivo"
-                placeholder="Ej.: práctica de campo"
-                required
-                minlength="1"
-                maxlength="500"
-            >
+        <span class="carrito-resumen-cantidad">
+            {{ carrito_cantidad }}
+        </span>
+
+        <div>
+            <strong>{{ carrito_cantidad }} ejemplar(es)</strong>
+            <div class="carrito-resumen-texto">
+                listos para reservar
+            </div>
         </div>
-        <a class="btn-ver-detalle" href="/reservas/carrito">Ver detalle</a>
-        <button type="submit" class="btn-finalizar"{% if carrito_cantidad == 0 %} disabled{% endif %}>
-            Finalizar reserva
-        </button>
+    </div>
+
+    <form method="POST" action="/reservas/finalizar" class="carrito-resumen-form">
+
+        <div class="carrito-motivo-field">
+            <label for="carrito-motivo-input">
+                Motivo de la reserva (Obligatorio)
+            </label>
+
+            <input type="text" id="carrito-motivo-input" name="motivo" class="carrito-motivo" value="{{ motivo }}"
+                placeholder="Ej.: Práctica de Topografía" required minlength="1" maxlength="500"
+                hx-post="/reservas/carrito/motivo" hx-trigger="keyup changed delay:500ms" hx-swap="none">
+        </div>
+
+        <div class="carrito-botones">
+
+            <a class="btn-ver-detalle" href="/reservas/carrito">
+                Ver detalle
+            </a>
+
+            <button type="submit" class="btn-finalizar" {% if carrito_cantidad==0 %}disabled{% endif %}>
+                Finalizar reserva
+            </button>
+
+        </div>
+
     </form>
+
 </section>

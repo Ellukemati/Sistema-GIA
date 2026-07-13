@@ -27,7 +27,9 @@ pub struct ReservaService;
 pub struct CarritoItemDTO {
     pub ejemplar_id: i64,
     pub modelo_id: i64,
+    pub categoria: String,
     pub modelo_nombre: String,
+    pub numero_qr: String,
     pub numero_serie: String,
     pub patrimonio: String,
     pub ubicacion: String,
@@ -416,15 +418,23 @@ impl ReservaService {
                     None => continue,
                 };
 
-            let modelo_nombre = ModeloRepository::buscar_por_id(conn, ejemplar.modelo_id)
-                .map_err(|e| e.to_string())?
-                .map(|m| m.nombre_modelo)
-                .unwrap_or_else(|| "Modelo".to_string());
+            let modelo = ModeloRepository::buscar_por_id(conn, ejemplar.modelo_id)
+                .map_err(|e| e.to_string())?;
+
+            let (modelo_nombre, categoria) = match modelo {
+                Some(m) => (
+                    m.nombre_modelo,
+                    m.categoria.unwrap_or_else(|| "Sin categoría".to_string()),
+                ),
+                None => ("Modelo".to_string(), "Sin categoría".to_string()),
+            };
 
             items.push(CarritoItemDTO {
                 ejemplar_id: ejemplar.id,
                 modelo_id: ejemplar.modelo_id,
+                categoria,
                 modelo_nombre,
+                numero_qr: ejemplar.codigo_qr.unwrap_or_else(|| "Sin QR".to_string()),
                 numero_serie: ejemplar
                     .numero_serie
                     .unwrap_or_else(|| "Sin serie".to_string()),
@@ -464,13 +474,15 @@ impl ReservaService {
 
         let hoy = Local::now().date_naive();
         let minimo = hoy + Duration::days(5);
-        let maximo = hoy + Duration::days(180);
+        let maximo = hoy
+            .checked_add_months(chrono::Months::new(4))
+            .ok_or_else(|| "No se pudo calcular el límite máximo de reserva".to_string())?;
 
         if inicio < minimo {
             return Err("La reserva debe comenzar al menos 5 días después de hoy".to_string());
         }
         if inicio > maximo {
-            return Err("No se puede reservar con más de 6 meses de anticipación".to_string());
+            return Err("No se puede reservar con más de 4 meses de anticipación".to_string());
         }
         if fin <= inicio {
             return Err("La fecha de fin debe ser posterior a la fecha de inicio".to_string());

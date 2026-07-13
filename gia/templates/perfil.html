@@ -2,246 +2,158 @@
 
 {% block title %}Mi Perfil{% endblock %}
 
-{% block extra_head %}
-<style>
-
-.perfil-container {
-    max-width: 700px;
-    margin: 50px auto;
-    background: white;
-    padding: 40px;
-    border-radius: 16px;
-    border: 1px solid #dbe7f0;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.05);
-}
-
-.perfil-header {
-    text-align: center;
-    margin-bottom: 40px;
-}
-
-.perfil-avatar {
-    width: 130px;
-    height: 130px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 4px solid #dbe7f0;
-    margin-bottom: 15px;
-}
-
-#avatar-input {
-    margin-top: 10px;
-}
-
-.perfil-nombre {
-    font-size: 1.8em;
-    font-weight: bold;
-}
-
-.perfil-email {
-    color: #6c757d;
-}
-
-.perfil-form {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.form-group {
-    display: flex;
-    flex-direction: column;
-}
-
-.form-group label {
-    margin-bottom: 8px;
-    font-weight: 600;
-}
-
-.form-group input {
-    padding: 12px;
-    border-radius: 10px;
-    border: 1px solid #cfd9e2;
-    font-size: 1em;
-}
-
-.btn-guardar {
-    background: #0091D5;
-    color: white;
-    border: none;
-    padding: 14px;
-    border-radius: 10px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-.btn-guardar:hover {
-    background: #007bb5;
-}
-
-.btn-cerrar {
-    display: inline-block;
-    text-align: center;
-    margin-top: 25px;
-    padding: 12px;
-    border-radius: 10px;
-    text-decoration: none;
-    color: white;
-    background: #dc3545;
-    font-weight: bold;
-}
-
-</style>
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/home.css">
+<link rel="stylesheet" href="/static/css/auth.css">
+<link rel="stylesheet" href="/static/css/mensajes.css">
+<link rel="stylesheet" href="/static/css/perfil.css">
 {% endblock %}
 
 {% block content %}
+{% set en_perfil = true %}
+{% set en_home = false %}
+{% include "partials/header.html" %}
 
-<div class="perfil-container">
-    <div style="max-width: 1200px; margin: auto;">
-    <a href="/inicio" class="btn-volver">⬅ Volver al inicio</a>
+<div class="perfil-page-wrapper">
+    <main class="perfil-card-grid">
+        <div class="perfil-col-izq">
+            <div class="avatar-profile-container">
+                <img id="avatar-preview"
+                    src="/imagenes/avatares/{{ usuario_actual.legajo }}?v={{ avatar_cache_buster | default(value=0) }}"
+                    class="profile-avatar" onerror="this.onerror=null; this.src='/static/img/avatardefault.avif';">
+
+                <button type="button" id="btn-eliminar-avatar" onclick="marcarEliminarAvatar()"
+                    class="{% if usuario_actual.avatar_blob %}avatar-visible{% else %}avatar-oculto{% endif %}"
+                    title="Eliminar foto de perfil">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="feather feather-trash-2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <span class="perfil-card-role">
+                {% if usuario_actual.tipo == "A" %}Administrador{% else %}Docente{% endif %}
+            </span>
+
+            <h2 class="perfil-nombre"
+                style="font-size: 1.4rem; font-weight: bold; text-align: center; margin: 0 0 4px;">
+                {{ usuario_actual.nombre }} {{ usuario_actual.apellido }}
+            </h2>
+
+            <div class="perfil-email-fijo">
+                {{ usuario_actual.email }}
+            </div>
+        </div>
+
+        <div class="perfil-col-der">
+            <form hx-post="/perfil" hx-target="#resultado-perfil" hx-encoding="multipart/form-data" class="auth-form"
+                id="perfil-form" autocomplete="off">
+                <input type="hidden" name="eliminar_avatar" id="eliminar_avatar" value="false">
+
+                <h3 class="seccion-subtitulo">Cambiar nombre y/o apellido</h3>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="nombre">Nombre</label>
+                        <input type="text" name="nombre" id="nombre" value="{{ usuario_actual.nombre }}" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="apellido">Apellido</label>
+                        <input type="text" name="apellido" id="apellido" value="{{ usuario_actual.apellido }}" required>
+                    </div>
+                </div>
+
+                <h3 class="seccion-subtitulo">Cambiar contraseña</h3>
+                {% set password_required = false %}
+                {% set confirm_required = false %}
+                {% set password_autocomplete = "" %}
+
+                <div class="field-row">
+                    {% set password_label = "Nueva contraseña" %}
+                    {% set confirm_label = "Repetir contraseña" %}
+                    {% include "partials/campo_password.html" %}
+                    {% include "partials/campo_password_confirm.html" %}
+                </div>
+
+                <h3 class="seccion-subtitulo">Cambiar foto de perfil</h3>
+                <div class="field field-avatar" style="margin-top: var(--spacing-xs);">
+                    <input id="avatar" type="file" name="avatar" accept="image/png, image/jpeg"
+                        onchange="manejarCambioAvatar(this)">
+                </div>
+
+                <div id="resultado-perfil"></div>
+
+                <div class="perfil-action-buttons-group">
+                    <button type="submit" class="btn-primary">Guardar cambios</button>
+                    <a href="/cerrar-sesion" class="btn-tertiary-profile">
+                        Cerrar sesión
+                    </a>
+                </div>
+            </form>
+        </div>
+
+    </main>
 </div>
-<div class="perfil-header">
 
-    <img
-        id="avatar-preview"
-        src="/imagenes/avatares/{{ usuario_actual.legajo }}"
-        class="perfil-avatar"
-        onerror="this.onerror=null; this.src='/static/img/avatardefault.avif';"
-    >
+{% include "scripts/script_validacion_password_confirm.html" %}
+{% include "scripts/script_toggle_password.html" %}
+{% include "scripts/script_validacion_avatar.html" %}
 
-    <div class="perfil-nombre">
-        {{ usuario_actual.nombre }} {{ usuario_actual.apellido }}
-    </div>
-
-    <div class="perfil-email">
-        {{ usuario_actual.email }}
-    </div>
-
-</div>
-
-    <form
-        class="perfil-form"
-        id="perfil-form"
-        method="POST"
-        action="/perfil"
-        enctype="multipart/form-data"
-    >
-
-        <div class="form-group">
-            <label>Nombre</label>
-
-            <input
-                type="text"
-                name="nombre"
-                value="{{ usuario_actual.nombre }}"
-            >
-        </div>
-
-        <div class="form-group">
-            <label>Apellido</label>
-
-            <input
-                type="text"
-                name="apellido"
-                value="{{ usuario_actual.apellido }}"
-            >
-        </div>
-
-        <div class="form-group">
-            <label>Email</label>
-
-            <input
-                type="email"
-                value="{{ usuario_actual.email }}"
-                disabled
-            >
-        </div>
-
-        <div class="form-group">
-
-            <label>Foto de perfil</label>
-
-            <input
-                type="file"
-                name="avatar"
-                accept="image/*"
-            >
-
-        </div>
-        <div class="form-group">
-
-            <label>Nueva contraseña</label>
-
-            <input
-                type="password"
-                name="password"
-                id="password"
-                placeholder="Dejar vacío para no cambiar"
-            >
-
-        </div>
-
-        <div class="form-group">
-
-            <label>Repetir contraseña</label>
-
-            <input
-                type="password"
-                name="password_repetida"
-                id="password_repetida"
-                placeholder="Repetir nueva contraseña"
-            >
-
-        <div
-            id="error-password"
-            style="color:red; margin-top:5px;"
-        ></div>
-
-
-        </div>
-        <button
-            type="submit"
-            class="btn-guardar"
-        >
-            Guardar cambios
-        </button>
-
-    </form>
-
-    <a
-        href="/cerrar-sesion"
-        class="btn-cerrar"
-    >
-        Cerrar sesión
-    </a>
-
-</div>
 <script>
-document
-    .getElementById("perfil-form")
-    .addEventListener("submit", function(e) {
+    function manejarCambioAvatar(input) {
+        validarDimensionesAvatar(input);
+        const archivo = input.files[0];
+        if (archivo && input.checkValidity()) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                document.getElementById('avatar-preview').src = e.target.result;
+                document.getElementById('eliminar_avatar').value = "false";
 
-        const p1 =
-            document.getElementById("password").value;
-
-        const p2 =
-            document.getElementById("password_repetida").value;
-
-        const error =
-            document.getElementById("error-password");
-
-        error.textContent = "";
-
-        if (
-            p1 !== "" &&
-            p1 !== p2
-        ) {
-
-            e.preventDefault();
-
-            error.textContent =
-                "Las contraseñas no coinciden";
+                const btnEliminar = document.getElementById('btn-eliminar-avatar');
+                if (btnEliminar) {
+                    btnEliminar.style.display = "flex";
+                }
+            }
+            reader.readAsDataURL(archivo);
         }
-    });
+    }
+
+    function marcarEliminarAvatar() {
+        const inputAvatar = document.getElementById('avatar');
+        if (inputAvatar) inputAvatar.value = "";
+
+        document.getElementById('avatar-preview').src = '/static/img/avatardefault.avif';
+        document.getElementById('eliminar_avatar').value = "true";
+
+        const btnEliminar = document.getElementById('btn-eliminar-avatar');
+        if (btnEliminar) {
+            btnEliminar.style.display = "none";
+        }
+    }
+
+    function toggleDarkMode() {
+        const isChecked = document.getElementById('checkbox-theme').checked;
+        if (isChecked) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            document.documentElement.setAttribute('data-theme', 'light');
+            localStorage.setItem('theme', 'light');
+        }
+    }
+
+    (function () {
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        if (currentTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            const cb = document.getElementById('checkbox-theme');
+            if (cb) cb.checked = true;
+        }
+    })();
 </script>
 {% endblock %}

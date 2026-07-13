@@ -1,72 +1,54 @@
 {% extends "base.html" %}
 
-{% block title %}GIA - Catálogo de modelos{% endblock %}
+{% block title %}Catálogo de modelos{% endblock %}
 
-{% block extra_head %}
-    {% include "estilos/auth.html" %}
-    {% include "estilos/catalogo.html" %}
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/home.css">
+<link rel="stylesheet" href="/static/css/catalogo.css">
 {% endblock %}
 
 {% block content %}
+{% set en_perfil = false %}
+{% set en_home = false %}
+{% include "partials/header.html" %}
+
 <main class="catalogo-page">
-    <a href="/inicio" class="btn-volver">⬅ Volver al inicio</a>
-    
+
     <header class="catalogo-header">
-        <div class="auth-brand">
-            <img src="/static/img/logo_gia_transparente.png" alt="GIA" class="auth-logo">
-        </div>
-        <h1>Catálogo de modelos</h1>
-        <p class="auth-subtitle">Modelos de instrumentos disponibles</p>
+        <h1>Catálogo del instrumental</h1>
+        <p class="catalogo-subtitle">
+            Explorá los modelos disponibles de instrumentos y accesorios
+        </p>
     </header>
+
     <form method="GET" action="" class="catalogo-search">
-    <input
-        id="buscar-modelo"
-        type="text"
-        name="buscar"
-        value="{{ busqueda }}"
-        placeholder="Buscar por nombre de modelo"
-        class="catalogo-search-input"
 
-        hx-get="/reservas/modelos/busqueda"
-        hx-trigger="keyup delay:300ms"
-        hx-target="#lista-modelos"
-        hx-swap="innerHTML"
-        hx-include="closest form">
+        <input id="buscar-modelo" type="text" name="buscar" value="{{ busqueda | default(value='') }}"
+            placeholder="Buscar por nombre de modelo..." class="catalogo-search-input" hx-get="/modelo/busqueda"
+            hx-trigger="keyup delay:300ms, change" hx-target="#lista-modelos" hx-swap="innerHTML"
+            hx-include="closest form">
 
-        <button type="submit" class="btn-buscar">
-            Buscar
-        </button>
+        <select name="categoria_id" class="catalogo-search-input" hx-get="/modelo/busqueda" hx-trigger="change"
+            hx-target="#lista-modelos" hx-swap="innerHTML" hx-include="closest form">
+            <option value="">Todas las categorías</option>
+            {% for cat in categorias_disponibles %}
+            <option value="{{ cat }}" {% if categoria_seleccionada==cat %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+        </select>
 
-        {% if busqueda != "" %}
-        <a href="/modelo" class="btn-limpiar">
-            Limpiar
-        </a>
-        {% endif %}
+        <select name="orden" class="catalogo-search-input" hx-get="/modelo/busqueda" hx-trigger="change"
+            hx-target="#lista-modelos" hx-swap="innerHTML" hx-include="closest form">
+            <option value="cat_asc" {% if orden_seleccionado=="cat_asc" %}selected{% endif %}>Categoría: A-Z</option>
+            <option value="cat_desc" {% if orden_seleccionado=="cat_desc" %}selected{% endif %}>Categoría: Z-A</option>
+        </select>
+
+        <a href="/modelo" class="btn-limpiar">Limpiar filtros</a>
     </form>
-    {% if busqueda != "" %}
-    {% endif %}
-    {% if grupos | length == 0 %}
-    <p class="catalogo-vacio">No hay modelos cargados.</p>
-    {% else %}
-        {% for grupo in grupos %}
-        <section class="categoria-seccion">
-            <h2 class="categoria-titulo">{{ grupo.categoria }}</h2>
-            <div class="cards-grid">
-                {% for m in grupo.modelos %}
-                <a class="modelo-card" href="/modelo/{{ m.id }}">
-                    <div class="modelo-card-media">
-                        {% if m.imagen %}
-                        <img class="modelo-card-img" src="{{ m.imagen }}" alt="{{ m.nombre_modelo }}" loading="lazy">
-                        {% else %}
-                        <div class="modelo-card-sin-imagen">Sin imagen</div>
-                        {% endif %}
-                    </div>
-                    <p class="modelo-card-nombre">{{ m.nombre_modelo }}</p>
-                </a>
-                {% endfor %}
-            </div>
-        </section>
-        {% endfor %}
-    {% endif %}
+
+    <div id="lista-modelos">
+        {% include "partials/catalogo_cards.html" %}
+    </div>
 </main>
+
+{% include "partials/footer_institucional.html" %}
 {% endblock %}

@@ -10,6 +10,11 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
             ModeloHandler::listar_modelos(request, &conn_guard)
         },
 
+        (GET) (/modelo/busqueda) => {
+            let conn_guard = conn.lock().unwrap();
+            ModeloHandler::buscar_modelos_catalogo(request, &conn_guard)
+        },
+
         (GET) (/modelo/registro) => {
             let conn_guard = conn.lock().unwrap();
             ModeloHandler::mostrar_formulario_registro(request, &conn_guard)

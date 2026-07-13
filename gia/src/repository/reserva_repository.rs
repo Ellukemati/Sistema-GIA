@@ -68,10 +68,11 @@ impl ReservaRepository {
         id_usuario: i64,
     ) -> Result<Vec<Reserva>, rusqlite::Error> {
         let mut stmt = conn.prepare(
-            "SELECT id, id_usuario, fecha_inicio, fecha_fin, estado, motivo, 
-                    momento_creacion, momento_confirmacion, id_admin_aprobador 
-             FROM reservas 
-             WHERE id_usuario = ?",
+            "SELECT id, id_usuario, fecha_inicio, fecha_fin, estado, motivo,
+                momento_creacion, momento_confirmacion, id_admin_aprobador
+         FROM reservas
+         WHERE id_usuario = ?
+         ORDER BY id DESC",
         )?;
 
         let mapped_rows = stmt.query_map([id_usuario], Reserva::from_row)?;
@@ -80,6 +81,7 @@ impl ReservaRepository {
         for r in mapped_rows {
             lista.push(r?);
         }
+
         Ok(lista)
     }
 

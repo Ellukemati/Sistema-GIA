@@ -26,6 +26,7 @@ pub const ESTADO_CANCELADA: &str = "cancelada";
 pub const ESTADO_CONCLUIDA: &str = "concluida";
 
 /// Seguridad y Tiempos de Expiración (Tokens de acceso y restablecimiento)
+pub const EXPIRACION_SESION: i64 = 7200; // Sesiones de 2 horas de duración
 pub const EXPIRACION_RESTABLECIMIENTO_PASSWORD_SEGUNDOS: i64 = 900; // 15 minutos
 pub const EXPIRACION_INVITACION_SEGUNDOS: i64 = 86400; // 24 horas
 pub const BCRYPT_COST_FACTOR: u32 = 4;

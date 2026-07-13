@@ -1,37 +1,9 @@
 {% extends "base.html" %}
 
-{% block title %}GIA - Bienvenida{% endblock %}
+{% block title %}GIA · Bienvenida{% endblock %}
 
-{% block extra_head %}
-    {% include "estilos/auth.html" %}
-    <style>
-        .welcome-intro {
-            margin: 0;
-            text-align: center;
-            font-size: 0.95rem;
-            color: var(--color-muted);
-            line-height: 1.6;
-        }
-
-        .welcome-actions {
-            display: flex;
-            flex-direction: column;
-            gap: var(--spacing-md);
-            margin-top: var(--spacing-xl);
-        }
-
-        .welcome-actions a {
-            display: block;
-            text-align: center;
-            box-sizing: border-box;
-            text-decoration: none;
-            line-height: 1.2;
-        }
-
-        .welcome-actions .btn-primary {
-            margin-top: 0;
-        }
-    </style>
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/auth.css">
 {% endblock %}
 
 {% block content %}
@@ -41,22 +13,34 @@
             <div class="auth-brand">
                 <img src="/static/img/logo_gia_transparente.png" alt="GIA" class="auth-logo">
             </div>
-            <h1>Bienvenido</h1>
+            <h1>¡Bienvenido/a!</h1>
             <p class="auth-subtitle">Gestión de Instrumental de Agrimensura · FIUBA</p>
         </header>
 
-        <p class="welcome-intro">
-            Ingresá con tu cuenta institucional o registrate para solicitar reservas de instrumental.
-        </p>
-
-        <div class="welcome-actions">
-            <a href="/ingreso" class="btn-primary">Iniciar sesión</a>
-            <a href="/registro" class="btn-secondary">Registrarse</a>
+        <div class="welcome-description" style="margin-bottom: 20px; text-align: center; line-height: 1.5;">
+            <p style="font-size: 1rem; color: var(--color-muted); margin: 0 0 10px 0;">
+                Ingresá con una cuenta habilitada o registrate con tu email institucional para solicitar reservas de
+                instrumental.
+            </p>
+            <p style="font-size: 1rem; color: var(--color-muted); margin: 0;">
+                O ingresá como invitado para observar el catálogo del Salón de Instrumental y acceder a manuales e
+                información sin necesidad de registrarte.
+            </p>
         </div>
 
-        <footer class="auth-footer">
-            <p><a href="/modelo">Ingresar como invitado</a></p>
-        </footer>
+        <div class="welcome-actions">
+            <a href="/ingreso" class="btn-primary">
+                Iniciar sesión
+            </a>
+
+            <a href="/registro" class="btn-secondary">
+                Registrarse
+            </a>
+
+            <a href="/modelo" class="btn-tertiary">
+                Ingresar como invitado
+            </a>
+        </div>
     </section>
 </main>
 {% endblock %}

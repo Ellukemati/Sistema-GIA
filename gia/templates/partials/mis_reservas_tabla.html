@@ -1,62 +1,140 @@
 <tbody>
-{% for r in reservas %}
-<tr>
+    {% for r in reservas %}
+    <tr>
 
-    <td>
-        <strong>Reserva #{{ r.id }}</strong><br>
-        <small style="color: #666;">Creada: {{ r.creada }}</small>
-    </td>
+        <td data-label="Reserva">
+            <strong>Reserva #{{ r.id }}</strong><br>
+            <small style="color: #666;">
+                Creada: {{ r.creada }}
+            </small>
+        </td>
 
-    <td>
-        {{ r.fecha_inicio }}<br>al<br>{{ r.fecha_fin }}<br>
-        <div class="badge">⏱ {{ r.dias }} día(s)</div>
-    </td>
 
-    <td>
-        <span class="{{ r.clase_estado }}">
-            {{ r.texto_estado }}
-        </span>
-    </td>
+        <td data-label="Fechas">
+            {{ r.fecha_inicio }}<br>
+            al<br>
+            {{ r.fecha_fin }}<br>
 
-    <td>
-        {{ r.motivo }}
-    </td>
+            <div class="badge">
+                ⏱ {{ r.dias }} día(s)
+            </div>
+        </td>
 
-    <td>
-        {{ r.equipos | length }} equipo(s)
 
-        <details class="equipos-dropdown">
-            <summary>Ver detalles</summary>
-            <ul class="equipos-lista">
-                {% for e in r.equipos %}
-                    <li>{{ e }}</li>
-                {% endfor %}
-            </ul>
-        </details>
-    </td>
+        <td data-label="Estado">
+            <span class="estado-badge {{ r.clase_estado }}">
+                {{ r.texto_estado }}
+            </span>
+        </td>
 
-    <td>
-        <div style="display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap;">
-            {% if r.estado == "pendiente" %}
-                <button 
-                    hx-post="/mis-reservas/cancelar/{{ r.id }}" 
-                    hx-target="body" 
-                    hx-swap="innerHTML"
+
+        <td data-label="Motivo">
+            {{ r.motivo }}
+        </td>
+
+
+        <td data-label="Equipos Reservados">
+
+            {{ r.equipos | length }} equipo(s)
+
+            <details class="equipos-dropdown">
+
+                <summary>
+                    Ver detalles
+                </summary>
+
+                <ul class="equipos-lista">
+
+                    {% for e in r.equipos %}
+
+                    <li>
+
+                        <strong>
+                            {{ e.nombre }}
+                        </strong>
+
+                        <br>
+
+                        <small>
+
+                            {% if e.codigo_qr %}
+
+                            Nro. QR: {{ e.codigo_qr }}
+
+                            {% elif e.numero_serie %}
+
+                            S/N: {{ e.numero_serie }}
+
+                            {% elif e.patrimonio %}
+
+                            Pat.: {{ e.patrimonio }}
+
+                            {% else %}
+
+                            ID Int.: {{ e.id_interno }}
+
+                            {% endif %}
+
+                        </small>
+
+                    </li>
+
+                    {% endfor %}
+
+                </ul>
+
+            </details>
+
+        </td>
+
+
+        <td data-label="Acciones" class="td-acciones">
+
+            <div class="acciones-reserva">
+
+                {% if r.estado == "pendiente" %}
+
+                <button hx-post="/mis-reservas/cancelar/{{ r.id }}" hx-target="body" hx-swap="innerHTML"
                     class="btn-cancelar">
+
                     Cancelar
+
                 </button>
-            {% elif r.estado == "activa" or r.estado == "concluida" %}
-                <a href="/mis-reservas/comprobante/{{ r.id }}" target="_blank" class="btn-pdf">
+
+
+                {% elif r.estado == "activa" or r.estado == "concluida" %}
+
+                <a href="/mis-reservas/comprobante/{{ r.id }}" download class="btn-pdf">
+
                     📄 Descargar Comprobante
+
                 </a>
-            {% else %}
-                <span class="{{ r.clase_estado }}">
+
+
+                {% else %}
+
+                <span class="estado-badge {{ r.clase_estado }}">
                     {{ r.texto_estado }}
                 </span>
-            {% endif %}
-        </div>
-    </td>
 
-</tr>
-{% endfor %}
+                {% endif %}
+
+            </div>
+
+        </td>
+
+    </tr>
+
+
+    {% else %}
+
+    <tr>
+        <td colspan="6" style="text-align:center; padding:20px;">
+            No tienes reservas registradas.
+        </td>
+    </tr>
+
+
+    {% endfor %}
+
 </tbody>

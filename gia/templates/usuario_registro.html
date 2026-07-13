@@ -1,9 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}GIA - Registro{% endblock %}
+{% block title %}Registro de docentes{% endblock %}
 
-{% block extra_head %}
-    {% include "estilos/auth.html" %}
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/auth.css">
+<link rel="stylesheet" href="/static/css/mensajes.css">
 {% endblock %}
 
 {% block content %}
@@ -14,45 +15,62 @@
                 <img src="/static/img/logo_gia_transparente.png" alt="GIA" class="auth-logo">
             </div>
             <h1>Registro de docentes</h1>
-            <p class="auth-subtitle">Acceso institucional FIUBA</p>
         </header>
 
-        <form class="auth-form" hx-post="/registro" hx-target="#resultado">
+        <form hx-post="/registro" hx-target="#resultado-alta" hx-swap="innerHTML scroll:#resultado-alta:bottom"
+            hx-encoding="multipart/form-data" class="auth-form">
+
             <div class="field-row">
                 <div class="field">
                     <label for="nombre">Nombre</label>
-                    <input id="nombre" type="text" name="nombre" autocomplete="given-name" required>
+                    <input type="text" id="nombre" name="nombre" required autocomplete="given-name">
                 </div>
                 <div class="field">
                     <label for="apellido">Apellido</label>
-                    <input id="apellido" type="text" name="apellido" autocomplete="family-name" required>
+                    <input type="text" id="apellido" name="apellido" required autocomplete="family-name">
                 </div>
             </div>
 
-            <div class="field">
-                <label for="email">Email</label>
-                <input id="email" type="email" name="email" placeholder="docente@fi.uba.ar" autocomplete="email" required>
-                <small class="field-hint">Usá tu correo institucional @fi.uba.ar</small>
+            <div class="field-row">
+                <div class="field">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" placeholder="usuario@fi.uba.ar" autocomplete="email"
+                        required>
+                </div>
+                <div class="field">
+                    <label for="legajo">Legajo</label>
+                    <input type="text" id="legajo" name="legajo" placeholder="Ej.: 110773" inputmode="numeric"
+                        pattern="[0-9]*" required>
+                </div>
             </div>
 
-            <div class="field">
-                <label for="legajo">Legajo</label>
-                <input id="legajo" type="number" name="legajo" placeholder="12345678" required>
+            <div class="field-row">
+                {% set password_autocomplete = "" %}
+                {% set password_required = true %}
+                {% set confirm_required = true %}
+                
+                {% include "partials/campo_password.html" %}
+                {% include "partials/campo_password_confirm.html" %}
             </div>
 
-            {% include "partials/campo_password.html" %}
-            {% include "partials/campo_password_confirm.html" %}
+            <div class="field field-avatar">
+                <span class="field-label field-label--centered">Foto de perfil (Opcional)</span>
+                <input id="avatar" type="file" name="avatar" accept="image/png, image/jpeg"
+                    onchange="validarDimensionesAvatar(this)">
+            </div>
 
             <button type="submit" class="btn-primary">Crear cuenta</button>
         </form>
 
-        <footer class="auth-footer">
-            <p>¿Ya tenés cuenta? <a href="/ingreso">Iniciar sesión</a></p>
-            <p><a href="/modelo">Ingresar como invitado</a></p>
-        </footer>
+        <div id="resultado-alta"></div>
 
-        {% include "partials/resultado.html" %}
+        <footer class="auth-footer">
+            <p>¿Ya tenés una cuenta habilitada? <a href="/ingreso">Iniciar sesión</a></p>
+            <p><a href="/" class="back-link">Volver al portal de bienvenida</a></p>
+        </footer>
     </section>
 </main>
-{% include "partials/script_validacion_password.html" %}
+
+{% include "scripts/script_validacion_avatar.html" %}
+{% include "scripts/script_validacion_password.html" %}
 {% endblock %}

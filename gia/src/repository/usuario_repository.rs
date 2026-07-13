@@ -159,6 +159,7 @@ impl UsuarioRepository {
             rusqlite::params![nuevo_tipo, id],
         )
     }
+
     pub fn actualizar_perfil(
         conn: &Connection,
         usuario_id: i64,

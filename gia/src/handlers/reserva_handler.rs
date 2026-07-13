@@ -6,6 +6,7 @@ use std::io::Read;
 use std::sync::mpsc::SyncSender;
 use tera::Context;
 
+use crate::models::reserva_view::ReservaView;
 use crate::templates;
 use crate::{
     repository::{
@@ -18,35 +19,39 @@ use crate::{
     service::modelo_service::ModeloService,
     service::pdf_worker_service::PdfRequest,
     service::reserva_service::ReservaService,
-    utils::{Carrito, cookie_carrito, cookie_carrito_vacio, extraer_token_sesion, leer_carrito},
+    utils::{
+        Carrito, cookie_carrito, cookie_carrito_vacio, extraer_token_sesion, leer_carrito,
+        usuario_actual,
+    },
 };
 
 pub struct ReservaHandler;
-use crate::models::reserva_view::ReservaView;
 impl ReservaHandler {
     pub fn mostrar_formulario_reserva(request: &Request, conn: &Connection) -> Response {
         if let Err(response) = Self::obtener_usuario_sesion(request, conn) {
             return response;
         }
 
-        let fecha_minima = (Local::now().date_naive() + Duration::days(5))
-            .format("%Y-%m-%d")
-            .to_string();
-
-        let fecha_maxima = (Local::now().date_naive() + Duration::days(180))
-            .format("%Y-%m-%d")
-            .to_string();
-
+        let usuario_opt = usuario_actual(request, conn).ok();
+        let hoy = Local::now().date_naive();
+        let fecha_minima = (hoy + Duration::days(5)).format("%Y-%m-%d").to_string();
+        let fecha_maxima = (hoy + Duration::days(120)).format("%Y-%m-%d").to_string();
+        let fecha_minima_display = (hoy + Duration::days(5)).format("%d-%m-%Y").to_string();
+        let fecha_maxima_display = (hoy + Duration::days(120)).format("%d-%m-%Y").to_string();
         let carrito = leer_carrito(request);
+        let buscar = request.get_param("buscar").unwrap_or_default();
+        let categoria = request.get_param("categoria").unwrap_or_default();
+        let orden = request.get_param("orden").unwrap_or_default();
 
-        // Con fechas en el carrito listamos solo los modelos disponibles para ese
-        // rango; sin fechas, listamos todos los modelos.
         let grupos = if carrito.tiene_fechas() {
             let inicio = carrito.fecha_inicio.clone().unwrap_or_default();
             let fin = carrito.fecha_fin.clone().unwrap_or_default();
-            ModeloService::listar_cards_disponibles_agrupadas(conn, &inicio, &fin, "")
+
+            ModeloService::filtrar_y_ordenar_cards_disponibles(
+                conn, &inicio, &fin, &buscar, &categoria, &orden,
+            )
         } else {
-            ModeloService::listar_cards_agrupadas(conn)
+            ModeloService::filtrar_y_ordenar_cards(conn, &buscar, &categoria, &orden)
         };
 
         let grupos = match grupos {
@@ -56,18 +61,38 @@ impl ReservaHandler {
             }
         };
 
+        let categorias = ModeloService::obtener_lista_categorias(conn);
+
         let mut ctx = Context::new();
-        ctx.insert("busqueda", "");
+
+        ctx.insert("busqueda", &buscar);
+        ctx.insert("categoria", &categoria);
+        ctx.insert("orden", &orden);
+        ctx.insert("categorias", &categorias);
+
         ctx.insert("fecha_minima", &fecha_minima);
         ctx.insert("fecha_maxima", &fecha_maxima);
+        ctx.insert("fecha_minima_display", &fecha_minima_display);
+        ctx.insert("fecha_maxima_display", &fecha_maxima_display);
+
         ctx.insert("grupos", &grupos);
+
         ctx.insert(
             "fecha_inicio",
             &carrito.fecha_inicio.clone().unwrap_or_default(),
         );
         ctx.insert("fecha_fin", &carrito.fecha_fin.clone().unwrap_or_default());
+
+        ctx.insert("motivo", &carrito.motivo.clone().unwrap_or_default());
         ctx.insert("carrito_cantidad", &carrito.ejemplares.len());
         ctx.insert("oob", &false);
+
+        if let Some(ref usuario) = usuario_opt {
+            ctx.insert("usuario_actual", usuario);
+        }
+
+        ctx.insert("avatar_cache_buster", &0);
+
         templates::response_html(templates::render("reserva_formulario.html", &ctx))
     }
 
@@ -84,34 +109,57 @@ impl ReservaHandler {
         let inicio = request.get_param("fecha_inicio").unwrap_or_default();
         let fin = request.get_param("fecha_fin").unwrap_or_default();
         let buscar = request.get_param("buscar").unwrap_or_default();
+        let categoria = request.get_param("categoria").unwrap_or_default();
+        let orden = request.get_param("orden").unwrap_or_default();
+        let motivo = leer_carrito(request).motivo;
 
-        let (grupos_res, carrito) = Self::determinar_modelos_y_carrito(conn, &inicio, &fin, &buscar);
+        // Cambiar la fecha reinicia el carrito: las fechas nuevas reemplazan a las
+        // anteriores y se vacía la lista de ejemplares.
+        let (grupos_res, carrito) = if inicio.trim().is_empty() || fin.trim().is_empty() {
+            (
+                ModeloService::filtrar_y_ordenar_cards(conn, &buscar, &categoria, &orden),
+                Carrito {
+                    fecha_inicio: None,
+                    fecha_fin: None,
+                    motivo,
+                    ejemplares: Vec::new(),
+                },
+            )
+        } else if Self::fechas_validas(&inicio, &fin) {
+            (
+                ModeloService::filtrar_y_ordenar_cards_disponibles(
+                    conn, &inicio, &fin, &buscar, &categoria, &orden,
+                ),
+                Carrito {
+                    fecha_inicio: Some(inicio.clone()),
+                    fecha_fin: Some(fin.clone()),
+                    motivo,
+                    ejemplares: Vec::new(),
+                },
+            )
+        } else {
+            return templates::response_mensaje_error(
+                "Fechas inválidas",
+                "Seleccioná una fecha de inicio y una de fin válidas. La fecha de fin debe ser posterior a la de inicio.",
+            );
+        };
 
         let grupos = match grupos_res {
             Ok(g) => g,
             Err(e) => return templates::response_mensaje_error("Error", &e),
         };
 
-        match Self::renderizar_parciales_htmx(&grupos, &buscar) {
+        match Self::renderizar_parciales_htmx(&grupos, &buscar, &carrito) {
             Ok(html) => Response::html(html).with_additional_header("Set-Cookie", cookie_carrito(&carrito)),
             Err(response) => response,
         }
     }
 
-    fn determinar_modelos_y_carrito(conn: &Connection, inicio: &str, fin: &str, buscar: &str) -> (Result<Vec<crate::service::modelo_service::GrupoCategoriaDTO>, String>, Carrito) {
-        if inicio.trim().is_empty() || fin.trim().is_empty() {
-            let grupos = if buscar.trim().is_empty() { ModeloService::listar_cards_agrupadas(conn) } 
-                         else { ModeloService::listar_cards_filtradas(conn, buscar) };
-            (grupos, Carrito { fecha_inicio: None, fecha_fin: None, ejemplares: Vec::new() })
-        } else if Self::fechas_validas(inicio, fin) {
-            let grupos = ModeloService::listar_cards_disponibles_agrupadas(conn, inicio, fin, buscar);
-            (grupos, Carrito { fecha_inicio: Some(inicio.to_string()), fecha_fin: Some(fin.to_string()), ejemplares: Vec::new() })
-        } else {
-            (Err("La fecha de fin debe ser posterior a la de inicio.".into()), Carrito { fecha_inicio: None, fecha_fin: None, ejemplares: Vec::new() })
-        }
-    }
-
-    fn renderizar_parciales_htmx(grupos: &[crate::service::modelo_service::GrupoCategoriaDTO], buscar: &str) -> Result<String, Response> {
+    fn renderizar_parciales_htmx(
+        grupos: &[crate::service::modelo_service::GrupoCategoriaDTO],
+        buscar: &str,
+        carrito: &Carrito,
+    ) -> Result<String, Response> {
         let mut ctx_modelos = Context::new();
         ctx_modelos.insert("grupos", grupos);
         ctx_modelos.insert("busqueda", buscar);
@@ -119,7 +167,8 @@ impl ReservaHandler {
             .map_err(|e| Response::text(format!("Error: {}", e)).with_status_code(500))?;
 
         let mut ctx_resumen = Context::new();
-        ctx_resumen.insert("carrito_cantidad", &0usize);
+        ctx_resumen.insert("carrito_cantidad", &carrito.ejemplares.len());
+        ctx_resumen.insert("motivo", &carrito.motivo.clone().unwrap_or_default());
         ctx_resumen.insert("oob", &true);
         let r_html = templates::render("partials/carrito_resumen.html", &ctx_resumen)
             .map_err(|e| Response::text(format!("Error: {}", e)).with_status_code(500))?;
@@ -135,18 +184,46 @@ impl ReservaHandler {
         let inicio = request.get_param("fecha_inicio").unwrap_or_default();
         let fin = request.get_param("fecha_fin").unwrap_or_default();
         let buscar = request.get_param("buscar").unwrap_or_default();
+        let categoria = request.get_param("categoria").unwrap_or_default();
+        let orden = request.get_param("orden").unwrap_or_default();
+        let carrito_actual = leer_carrito(request);
 
-        let grupos = if inicio.trim().is_empty() || fin.trim().is_empty() {
-            if buscar.trim().is_empty() {
-                ModeloService::listar_cards_agrupadas(conn)
-            } else {
-                ModeloService::listar_cards_filtradas(conn, &buscar)
-            }
+        let (grupos_res, carrito) = if inicio.trim().is_empty() || fin.trim().is_empty() {
+            (
+                ModeloService::filtrar_y_ordenar_cards(conn, &buscar, &categoria, &orden),
+                Carrito {
+                    fecha_inicio: None,
+                    fecha_fin: None,
+                    motivo: carrito_actual.motivo,
+                    ejemplares: Vec::new(),
+                },
+            )
+        } else if Self::fechas_validas(&inicio, &fin) {
+            let mismas_fechas = carrito_actual.fecha_inicio.as_deref() == Some(inicio.as_str())
+                && carrito_actual.fecha_fin.as_deref() == Some(fin.as_str());
+            (
+                ModeloService::filtrar_y_ordenar_cards_disponibles(
+                    conn, &inicio, &fin, &buscar, &categoria, &orden,
+                ),
+                Carrito {
+                    fecha_inicio: Some(inicio.clone()),
+                    fecha_fin: Some(fin.clone()),
+                    motivo: carrito_actual.motivo,
+                    ejemplares: if mismas_fechas {
+                        carrito_actual.ejemplares
+                    } else {
+                        Vec::new()
+                    },
+                },
+            )
         } else {
-            ModeloService::listar_cards_disponibles_agrupadas(conn, &inicio, &fin, &buscar)
+            return templates::response_mensaje_error(
+                "Fechas inválidas",
+                "Seleccioná una fecha de inicio y una de fin válidas. La fecha de fin debe ser posterior a la de inicio.",
+            );
         };
 
-        let grupos = match grupos {
+        let grupos = match grupos_res {
             Ok(g) => g,
             Err(e) => {
                 return templates::response_mensaje_error("No se pudieron cargar los modelos", &e);
@@ -155,14 +232,17 @@ impl ReservaHandler {
 
         let mut ctx = Context::new();
         ctx.insert("grupos", &grupos);
+        ctx.insert("busqueda", &buscar);
 
         match templates::render("partials/reserva_modelos.html", &ctx) {
-            Ok(html) => Response::html(html),
+            Ok(html) => Response::html(html)
+                .with_additional_header("Set-Cookie", cookie_carrito(&carrito)),
             Err(e) => {
                 Response::text(format!("Error renderizando plantilla: {}", e)).with_status_code(500)
             }
         }
     }
+
     /// Valida que ambas fechas esten presentes, sean parseables y que fin sea
     /// posterior a inicio. Las cotas (min/max) las aplica el input del formulario.
     fn fechas_validas(inicio: &str, fin: &str) -> bool {
@@ -291,10 +371,34 @@ impl ReservaHandler {
             .with_additional_header("Set-Cookie", cookie_carrito(&carrito))
     }
 
+    pub fn actualizar_motivo_carrito(request: &Request, conn: &Connection) -> Response {
+        if let Err(response) = Self::obtener_usuario_sesion(request, conn) {
+            return response;
+        }
+
+        let mut carrito = leer_carrito(request);
+
+        let mut body = String::new();
+        if let Some(mut reader) = request.data() {
+            let _ = reader.read_to_string(&mut body);
+        }
+
+        let datos = Self::parsear_formulario(&body);
+
+        carrito.motivo = datos
+            .get("motivo")
+            .cloned()
+            .filter(|m| !m.trim().is_empty());
+
+        Response::text("").with_additional_header("Set-Cookie", cookie_carrito(&carrito))
+    }
+
     pub fn mostrar_carrito(request: &Request, conn: &Connection) -> Response {
         if let Err(response) = Self::obtener_usuario_sesion(request, conn) {
             return response;
         }
+
+        let usuario_opt = usuario_actual(request, conn).ok();
 
         let carrito = leer_carrito(request);
 
@@ -306,13 +410,22 @@ impl ReservaHandler {
         };
 
         let mut ctx = Context::new();
+
         ctx.insert("items", &items);
         ctx.insert(
             "fecha_inicio",
             &carrito.fecha_inicio.clone().unwrap_or_default(),
         );
         ctx.insert("fecha_fin", &carrito.fecha_fin.clone().unwrap_or_default());
+        ctx.insert("motivo", &carrito.motivo.clone().unwrap_or_default());
         ctx.insert("carrito_cantidad", &carrito.ejemplares.len());
+
+        if let Some(ref usuario) = usuario_opt {
+            ctx.insert("usuario_actual", usuario);
+        }
+
+        ctx.insert("avatar_cache_buster", &0);
+
         templates::response_html(templates::render("carrito_detalle.html", &ctx))
     }
 
@@ -351,12 +464,7 @@ impl ReservaHandler {
                 }
             };
 
-        let mut body = String::new();
-        if let Some(mut reader) = request.data() {
-            let _ = reader.read_to_string(&mut body);
-        }
-        let datos = Self::parsear_formulario(&body);
-        let motivo = datos.get("motivo").cloned();
+        let motivo = carrito.motivo.clone();
 
         match ReservaService::crear_reserva(
             conn,
@@ -518,55 +626,99 @@ impl ReservaHandler {
             Err(r) => return r,
         };
 
+        let usuario_opt = usuario_actual(request, conn).ok();
+
         let reservas = match ReservaService::obtener_reservas_usuario(conn, id_usuario) {
             Ok(r) => r,
-            Err(e) => return Response::text(format!("Error cargando reservas: {}", e)).with_status_code(500),
+            Err(e) => {
+                return Response::text(format!("Error cargando reservas: {}", e))
+                    .with_status_code(500);
+            }
         };
 
-        let reservas_vista: Vec<ReservaView> = reservas
-            .into_iter()
-            .map(|r| Self::mapear_reserva_a_vista(conn, r))
-            .collect();
+        let mut reservas_vista: Vec<ReservaView> = Vec::new();
+
+        for reserva in reservas {
+            let clase_estado = match reserva.estado.as_str() {
+                "activa" => "estado-aprobada",
+                "concluida" => "estado-concluida",
+                "pendiente" => "estado-pendiente",
+                "cancelada" => "estado-cancelada",
+                _ => "",
+            };
+
+            let texto_estado = match reserva.estado.as_str() {
+                "activa" => "Aceptada",
+                "concluida" => "Finalizada",
+                "pendiente" => "Pendiente",
+                "cancelada" => "Cancelada",
+                _ => &reserva.estado,
+            };
+
+            let equipos =
+                ReservaInstrumentoRepository::obtener_detalle_equipos_reserva(conn, reserva.id)
+                    .unwrap_or(vec![]);
+
+            let inicio = NaiveDate::parse_from_str(&reserva.fecha_inicio, "%Y-%m-%d").unwrap();
+            let fin = NaiveDate::parse_from_str(&reserva.fecha_fin, "%Y-%m-%d").unwrap();
+
+            let dias = (fin - inicio).num_days();
+
+            let creada =
+                NaiveDateTime::parse_from_str(&reserva.momento_creacion, "%Y-%m-%d %H:%M:%S")
+                    .unwrap();
+
+            let ahora = Local::now().naive_local();
+            let dias_desde = (ahora - creada).num_days();
+
+            let creada_txt = if dias_desde == 0 {
+                "Hoy".to_string()
+            } else {
+                format!("Hace {} días", dias_desde)
+            };
+
+            let fecha_inicio = NaiveDate::parse_from_str(&reserva.fecha_inicio, "%Y-%m-%d")
+                .unwrap()
+                .format("%d-%m-%Y")
+                .to_string();
+
+            let fecha_fin = NaiveDate::parse_from_str(&reserva.fecha_fin, "%Y-%m-%d")
+                .unwrap()
+                .format("%d-%m-%Y")
+                .to_string();
+
+                reservas_vista.push(ReservaView {
+                    id: reserva.id,
+                    fecha_inicio,
+                    fecha_fin,
+                    estado: reserva.estado.clone(),
+                    texto_estado: texto_estado.to_string(),
+                    clase_estado: clase_estado.to_string(),
+                    motivo: reserva.motivo.unwrap_or("Sin motivo".to_string()),
+                    equipos,
+                    dias,
+                    creada: creada_txt,
+                });
+            }
 
         let mut ctx = Context::new();
         ctx.insert("reservas", &reservas_vista);
 
+        if let Some(ref usuario) = usuario_opt {
+            ctx.insert("usuario_actual", usuario);
+        }
+
+        ctx.insert("avatar_cache_buster", &0);
+
         let html = match templates::render("mis_reservas.html", &ctx) {
             Ok(html) => html,
-            Err(e) => return Response::text(format!("Error Tera: {:?}", e)).with_status_code(500),
+            Err(e) => {
+                eprintln!("ERROR TERA: {:?}", e);
+                return Response::text(format!("Error Tera: {:?}", e)).with_status_code(500);
+            }
         };
+
         templates::response_html(Ok(html))
-    }
-
-    fn mapear_reserva_a_vista(conn: &Connection, reserva: crate::models::reserva::Reserva) -> ReservaView {
-        let (clase_estado, texto_estado) = match reserva.estado.as_str() {
-            "activa" => ("estado-aprobada", "Aceptada"),
-            "concluida" => ("estado-concluida", "Finalizada"),
-            "pendiente" => ("estado-pendiente", "Pendiente"),
-            "cancelada" => ("estado-cancelada", "Cancelada"),
-            _ => ("", reserva.estado.as_str()),
-        };
-
-        let equipos = ReservaInstrumentoRepository::obtener_nombres_equipos_reserva(conn, reserva.id).unwrap_or_default();
-        let inicio = NaiveDate::parse_from_str(&reserva.fecha_inicio, "%Y-%m-%d").unwrap();
-        let fin = NaiveDate::parse_from_str(&reserva.fecha_fin, "%Y-%m-%d").unwrap();
-        let creada = NaiveDateTime::parse_from_str(&reserva.momento_creacion, "%Y-%m-%d %H:%M:%S").unwrap();
-        
-        let dias_desde = (Local::now().naive_local() - creada).num_days();
-        let creada_txt = if dias_desde == 0 { "Hoy".to_string() } else { format!("Hace {} días", dias_desde) };
-
-        ReservaView {
-            id: reserva.id,
-            fecha_inicio: reserva.fecha_inicio,
-            fecha_fin: reserva.fecha_fin,
-            estado: reserva.estado.clone(),
-            texto_estado: texto_estado.to_string(),
-            clase_estado: clase_estado.to_string(),
-            motivo: reserva.motivo.unwrap_or_else(|| "Sin motivo".to_string()),
-            equipos,
-            dias: (fin - inicio).num_days(),
-            creada: creada_txt,
-        }
     }
 
     pub fn cancelar_reserva(request: &Request, conn: &Connection, reserva_id: i64) -> Response {

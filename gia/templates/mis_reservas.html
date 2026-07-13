@@ -1,26 +1,25 @@
 {% extends "base.html" %}
 
-{% block title %}GIA - Mis Reservas{% endblock %}
+{% block title %}Mis reservas{% endblock %}
 
-{% block extra_head %}
-    {% include "estilos/mis_reservas.html" %}
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/mis_reservas.css">
 {% endblock %}
 
 {% block content %}
+{% set en_home = false %}
+{% set en_perfil = false %}
+
+{% include "partials/header.html" %}
+
 <div class="contenedor">
-    
-    <a href="/inicio" class="btn-volver">⬅ Volver al inicio</a>
     <h1>📚 Mis Reservas</h1>
 
-    <p class="subtitulo">Consulta y gestiona tus reservas de equipos.</p>
-
-    <details class="columna" open>
-        <summary>📋 Resumen de Reservas</summary>
-        
+    <div class="columna">
         <div class="detalles-contenido">
-            
+
             <div class="alerta-info">
-                ℹ️ Aquí puedes ver todas tus reservas y su estado actual.
+                ℹ️ Solo puedes cancelar reservas que estén en estado "Pendiente".
             </div>
 
             <div class="table-responsive">
@@ -35,19 +34,15 @@
                             <th>Acciones</th>
                         </tr>
                     </thead>
-                    
+
                     {% include "partials/mis_reservas_tabla.html" %}
-                    
+
                 </table>
             </div>
 
-            <div class="alerta-info" style="margin-top: 18px; margin-bottom: 0;">
-                ℹ️ Solo puedes cancelar reservas que estén en estado "Pendiente".
-            </div>
-
         </div>
-    </details>
-
-
+    </div>
 </div>
+
+{% include "partials/footer_institucional.html" %}
 {% endblock %}

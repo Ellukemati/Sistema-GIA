@@ -1,19 +1,25 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}GIA{% endblock %}</title>
-    
+
     <link rel="icon" type="image/png" href="/{{ logo_path }}">
 
+    {% block extra_css %}{% endblock %}
+
+    <!-- Enlace a CSS global -->
+    <link rel="stylesheet" href="/static/css/base.css">
+
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    
+
     <script>
         document.addEventListener('htmx:beforeOnLoad', function (evt) {
             if (evt.detail.xhr.status >= 400) {
                 evt.detail.shouldSwap = true;
-                evt.detail.isError = false; 
+                evt.detail.isError = false;
             }
         });
     </script>
@@ -32,32 +38,12 @@
             });
         }
     </script>
-    <style>
-        body {
-            background-image: url('../static/img/fondo.png');
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            background-attachment: fixed;
-        }
-        .btn-volver {
-            display: inline-flex;
-            align-items: center;
-            color: #6c757d;
-            text-decoration: none;
-            font-weight: bold;
-            font-size: 0.95em;
-            margin-bottom: 20px;
-            transition: color 0.2s;
-        }
-        .btn-volver:hover {
-            color: #007bff;
-        }
-    </style>
-    
+
     {% block extra_head %}{% endblock %}
 </head>
+
 <body>
     {% block content %}{% endblock %}
 </body>
+
 </html>

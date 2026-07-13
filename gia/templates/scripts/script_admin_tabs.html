@@ -1,0 +1,48 @@
+<script>
+    function switchTab(index) {
+        document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+            btn.classList.toggle('active', i === index);
+        });
+        document.querySelectorAll('.tab-content').forEach((content, i) => {
+            content.classList.toggle('active', i === index);
+        });
+        sessionStorage.setItem('gia_admin_tab', index);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const activeTab = sessionStorage.getItem('gia_admin_tab') || 0;
+        switchTab(parseInt(activeTab));
+    });
+
+    document.addEventListener('htmx:afterSwap', function (event) {
+        if (event.detail.target.id === 'tablas-container') {
+            const activeTab = sessionStorage.getItem('gia_admin_tab') || 0;
+            switchTab(parseInt(activeTab));
+        }
+    });
+
+    document.addEventListener("abrirComprobante", function (evt) {
+        const idReserva = evt.detail.value;
+        if (idReserva) {
+            window.open(`/admin/historial-reservas/comprobante/${idReserva}`, '_blank');
+        }
+    });
+
+    function abrirModalPrevisualizacion(idReserva) {
+        const visor = document.getElementById("visor-pdf");
+        visor.src = `/admin/reservas/previsualizar/${idReserva}#toolbar=0`;
+        document.getElementById("modal-pdf").style.display = "block";
+    }
+
+    function cerrarModal() {
+        document.getElementById("modal-pdf").style.display = "none";
+        document.getElementById("visor-pdf").src = "";
+    }
+
+    window.onclick = function (event) {
+        const modal = document.getElementById("modal-pdf");
+        if (event.target == modal) {
+            cerrarModal();
+        }
+    }
+</script>

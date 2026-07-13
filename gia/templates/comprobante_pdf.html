@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     {% include "estilos/comprobante.html" %}
 </head>
+
 <body>
 
     <table class="header-table">
@@ -18,11 +20,12 @@
     </table>
 
     <h1>Informe de Retiro de Instrumentos de Medición y Accesorios del Salón de Instrumental</h1>
-    
+
     <table class="auditoria-bloque">
         <tr>
             <td class="fechas-contenedor">
-                <div><strong>Fecha y hora de confirmación y firma del comprobante original:</strong> {{ fecha_hora_confirmacion }}</div>
+                <div><strong>Fecha y hora de aprobación y firma del comprobante original:</strong> {{
+                    fecha_hora_confirmacion }}</div>
                 <div><strong>Fecha y hora de generación de este archivo:</strong> {{ fecha_hora_actual }}</div>
             </td>
             <td class="firma-bloque-td">
@@ -36,7 +39,8 @@
     </table>
 
     <div class="cuerpo">
-        El/La docente <strong>{{ docente }}</strong> solicita el préstamo de instrumental <strong>{{ periodo_reserva }}</strong> con el motivo: <em>{{ motivo }}</em>. El instrumental solicitado se detalla a continuación:
+        El/La docente <strong>{{ docente }}</strong> solicita el préstamo de instrumental <strong>{{ periodo_reserva
+            }}</strong> con el motivo: <em>{{ motivo }}</em>. El instrumental solicitado se detalla a continuación:
     </div>
 
     <table class="tabla-items">
@@ -61,7 +65,7 @@
                     <strong>{{ item.marca }} {{ item.nombre_modelo }}</strong>
                     {% if item.codigo_qr and item.numero_serie %} &nbsp;| S/N: {{ item.numero_serie }} {% endif %}
                     {% if item.patrimonio and (item.codigo_qr or item.numero_serie) %}
-                        &nbsp;| Pat.: {{ item.patrimonio }}
+                    &nbsp;| Pat.: {{ item.patrimonio }}
                     {% endif %}
                 </td>
             </tr>
@@ -69,39 +73,80 @@
         </tbody>
     </table>
 
-    <div class="seccion-detalles">
-        <div class="titulo-detalles">Accesorios, Observaciones e Imágenes del Instrumental Solicitado:</div>
-        {% for item in items %}
-            {% if item.observaciones or item.accesorios or (item.imagenes_b64 and item.imagenes_b64 | length > 0) %}
-            <div class="bloque-ejemplar-detalle">
-                
-                <div class="item-title">
-                    • 
-                    {% if item.codigo_qr %} Núm. QR: {{ item.codigo_qr }}
-                    {% elif item.numero_serie %} S/N: {{ item.numero_serie }}
-                    {% elif item.patrimonio %} Pat.: {{ item.patrimonio }}
-                    {% else %} ID Int.: {{ item.id_interno }} {% endif %}
-                    ({{ item.marca }} {{ item.nombre_modelo }})
-                </div>
+    {% set hay_detalles = false %}
 
-                {% if item.accesorios %}<div class="item-sub">- <strong>Accesorios:</strong> {{ item.accesorios }}</div>{% endif %}
-                {% if item.observaciones %}<div class="item-sub">- <strong>Observaciones:</strong> {{ item.observaciones }}</div>{% endif %}
-                
-                {% if item.imagenes_b64 and item.imagenes_b64 | length > 0 %}
-                <div class="contenedor-fotos">
-                    {% for img in item.imagenes_b64 %}
-                        {% if img and img != "" %}
-                        <div class="marco-foto">
-                            <img src="data:image/jpeg;base64,{{ img }}" class="foto-ejemplar" alt="Fotografía del ejemplar">
-                        </div>
-                        {% endif %}
-                    {% endfor %}
-                </div>
+    {% for item in items %}
+    {% if item.observaciones or item.accesorios or (item.imagenes_b64 and item.imagenes_b64 | length > 0) %}
+    {% set hay_detalles = true %}
+    {% endif %}
+    {% endfor %}
+
+    {% if hay_detalles %}
+    <div class="seccion-detalles">
+
+        <div class="titulo-detalles">
+            Accesorios, observaciones e imágenes del instrumental solicitado
+        </div>
+
+        {% for item in items %}
+
+        {% if item.observaciones or item.accesorios or (item.imagenes_b64 and item.imagenes_b64 | length > 0) %}
+
+        <div class="bloque-ejemplar-detalle">
+
+            <div class="item-title">
+                •
+                {% if item.codigo_qr %}
+                Núm. QR: {{ item.codigo_qr }}
+                {% elif item.numero_serie %}
+                S/N: {{ item.numero_serie }}
+                {% elif item.patrimonio %}
+                Pat.: {{ item.patrimonio }}
+                {% else %}
+                ID Int.: {{ item.id_interno }}
                 {% endif %}
+                ({{ item.marca }} {{ item.nombre_modelo }})
+            </div>
+
+
+            {% if item.accesorios %}
+            <div class="item-sub">
+                - <strong>Accesorios:</strong> {{ item.accesorios }}
             </div>
             {% endif %}
-        {% endfor %}
-    </div>
 
+
+            {% if item.observaciones %}
+            <div class="item-sub">
+                - <strong>Observaciones:</strong> {{ item.observaciones }}
+            </div>
+            {% endif %}
+
+
+            {% if item.imagenes_b64 and item.imagenes_b64 | length > 0 %}
+            <div class="contenedor-fotos">
+
+                {% for img in item.imagenes_b64 %}
+
+                {% if img and img != "" %}
+                <div class="marco-foto">
+                    <img src="data:image/jpeg;base64,{{ img }}" class="foto-ejemplar" alt="Fotografía del ejemplar">
+                </div>
+                {% endif %}
+
+                {% endfor %}
+
+            </div>
+            {% endif %}
+
+        </div>
+
+        {% endif %}
+
+        {% endfor %}
+
+    </div>
+    {% endif %}
 </body>
+
 </html>

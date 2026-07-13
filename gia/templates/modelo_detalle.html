@@ -1,21 +1,26 @@
 {% extends "base.html" %}
 
-{% block title %}GIA - {{ modelo.nombre_modelo }}{% endblock %}
+{% block title %}{{ modelo.nombre_modelo }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/auth.css">
+<link rel="stylesheet" href="/static/css/detalle.css">
+<link rel="stylesheet" href="/static/css/ejemplares.css">
+{% endblock %}
 
 {% block extra_head %}
-    {% include "estilos/auth.html" %}
-    {% include "estilos/detalle.html" %}
-    {% include "estilos/ejemplares.html" %}
-    <style>
-        .modelo-eliminar-form {
-            display: inline-flex;
-            margin: 0;
-        }
-    </style>
+<style>
+    .modelo-eliminar-form {
+        display: inline-flex;
+        margin: 0;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
 <main class="detalle-page">
+    <a href="/modelo" class="btn-volver">⬅ Volver al catálogo</a>
+
     <article class="detalle-card">
         <div class="detalle-media">
             {% if imagen %}
@@ -48,19 +53,14 @@
 
             <div class="detalle-meta">
                 <span class="detalle-badge"><span>Marca:</span> {{ modelo.marca }}</span>
-                {% if modelo.categoria %}
-                <span class="detalle-badge"><span>Categoría:</span> {{ modelo.categoria }}</span>
-                {% else %}
-                <span class="detalle-badge"><span>Categoría:</span> Sin categoría</span>
-                {% endif %}
+                <span class="detalle-badge"><span>Categoría:</span> {{ modelo.categoria | default(value='Sin categoría')
+                    }}</span>
             </div>
 
             <p class="detalle-descripcion-label">Descripción</p>
-            {% if modelo.descripcion %}
-            <p class="detalle-descripcion">{{ modelo.descripcion }}</p>
-            {% else %}
-            <p class="detalle-descripcion detalle-descripcion--vacia">Sin descripción.</p>
-            {% endif %}
+            <p class="detalle-descripcion {% if not modelo.descripcion %}detalle-descripcion--vacia{% endif %}">
+                {{ modelo.descripcion | default(value='Sin descripción.') }}
+            </p>
 
             <div class="detalle-acciones">
                 {% if es_admin %}
@@ -69,20 +69,22 @@
                 {% if tiene_manual %}
                 <a class="btn-manual" href="/manuales/{{ modelo.id }}">Manual</a>
                 {% else %}
-                <span class="btn-manual btn-manual--disabled" aria-disabled="true" title="Este modelo no tiene un manual cargado">Manual</span>
+                <span class="btn-manual btn-manual--disabled" aria-disabled="true"
+                    title="Este modelo no tiene un manual cargado">Manual</span>
                 {% endif %}
+
                 {% if es_admin %}
-                <form class="modelo-eliminar-form" method="post"
-                      action="/modelo/{{ modelo.id }}/eliminar"
-                      data-bloqueante="{% if tiene_ejemplares_activos %}true{% else %}false{% endif %}"
-                      onsubmit="return confirmarEliminacionModelo(this);">
+                <form class="modelo-eliminar-form" method="post" action="/modelo/{{ modelo.id }}/eliminar"
+                    data-bloqueante="{% if tiene_ejemplares_activos %}true{% else %}false{% endif %}"
+                    onsubmit="return confirmarEliminacionModelo(this);">
                     <button type="submit" class="btn-manual btn-manual--peligro btn-manual--icono"
-                            aria-label="Eliminar modelo" title="Eliminar modelo">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-                             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                             stroke-linejoin="round" aria-hidden="true">
+                        aria-label="Eliminar modelo" title="Eliminar modelo">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            aria-hidden="true">
                             <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                            </path>
                             <line x1="10" y1="11" x2="10" y2="17"></line>
                             <line x1="14" y1="11" x2="14" y2="17"></line>
                         </svg>
@@ -97,10 +99,6 @@
         <h2 class="ejemplares-titulo">Ejemplares</h2>
         {% include "partials/reserva_ejemplares.html" %}
     </section>
-
-    <footer class="detalle-footer">
-        <a href="/modelo">&larr; Volver al catálogo</a>
-    </footer>
 </main>
 
 {% if imagen %}
@@ -204,14 +202,10 @@
 
 <script>
     function confirmarEliminacionModelo(form) {
-        if (form.dataset.confirmed === 'true') {
-            return true;
-        }
+        if (form.dataset.confirmed === 'true') return true;
 
         const dialog = document.getElementById('modelo-confirm-dialog');
-        if (!dialog) {
-            return false;
-        }
+        if (!dialog) return false;
 
         const titulo = document.getElementById('modelo-confirm-titulo');
         const mensaje = document.getElementById('modelo-confirm-mensaje');
@@ -270,9 +264,7 @@
         });
 
         dialog.addEventListener('click', function (event) {
-            if (event.target === dialog) {
-                cerrarDialogo();
-            }
+            if (event.target === dialog) cerrarDialogo();
         });
 
         dialog.addEventListener('cancel', function () {

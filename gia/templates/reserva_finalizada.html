@@ -1,33 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}GIA - Reserva finalizada{% endblock %}
+{% block title %}Reserva finalizada{% endblock %}
 
-{% block extra_head %}
-    {% include "estilos/auth.html" %}
-    {% include "estilos/mensajes.html" %}
-    <style>
-        .reserva-finalizada-mensaje {
-            margin-bottom: var(--spacing-lg);
-        }
-
-        .reserva-finalizada-actions {
-            display: flex;
-            flex-direction: column;
-            gap: var(--spacing-md);
-        }
-
-        .reserva-finalizada-actions a {
-            display: block;
-            text-align: center;
-            box-sizing: border-box;
-            text-decoration: none;
-            line-height: 1.2;
-        }
-
-        .reserva-finalizada-actions .btn-primary {
-            margin-top: 0;
-        }
-    </style>
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/auth.css">
+<link rel="stylesheet" href="/static/css/mensajes.css">
 {% endblock %}
 
 {% block content %}
@@ -35,29 +12,22 @@
     <section class="auth-card">
         <header class="auth-header">
             <div class="auth-brand">
-                <img src="/static/img/logo_gia_transparente.png" alt="GIA" class="auth-logo" style="max-height: 60px; width: auto; display: block; margin: 0 auto 15px auto;">
+                <img src="/static/img/logo_gia_transparente.png" alt="GIA" class="auth-logo">
             </div>
-            
             <h1>{% if exito %}Reserva enviada{% else %}No se pudo finalizar{% endif %}</h1>
             <p class="auth-subtitle">Resultado de la solicitud de reserva</p>
         </header>
 
-        <div class="reserva-finalizada-mensaje">
-            {% if exito %}
-            <div class="mensaje mensaje--exito">
+        <div class="reserva-finalizada-mensaje" style="margin-bottom: var(--spacing-lg);">
+            <div class="mensaje {% if exito %}mensaje--exito{% else %}mensaje--error{% endif %}">
                 <strong>{{ titulo }}</strong>
                 <p>{{ mensaje }}</p>
             </div>
-            {% else %}
-            <div class="mensaje mensaje--error">
-                <strong>{{ titulo }}</strong>
-                <p>{{ mensaje }}</p>
-            </div>
-            {% endif %}
         </div>
 
-        <div class="reserva-finalizada-actions">
-            <a href="/reservas" class="btn-primary">Volver a reservas</a>
+        <div class="field-row" style="grid-template-columns: 1fr 1fr; gap: 15px;">
+            <a href="/reservas" class="btn-primary" style="text-decoration: none; text-align: center;">Volver a
+                reservas</a>
             <a href="/mis-reservas" class="btn-secondary">Mis reservas</a>
         </div>
     </section>

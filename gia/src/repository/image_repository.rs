@@ -42,9 +42,8 @@ impl ImageRepository {
     /// Devuelve los `orden` de las imagenes de un modelo, ascendente, sin traer
     /// los blobs. Util para armar una galeria sin cargar los bytes en memoria.
     pub fn listar_ordenes_modelo(conn: &Connection, modelo_id: i64) -> SqlResult<Vec<i32>> {
-        let mut stmt = conn.prepare(
-            "SELECT orden FROM modelo_imagen WHERE modelo_id = ?1 ORDER BY orden ASC",
-        )?;
+        let mut stmt = conn
+            .prepare("SELECT orden FROM modelo_imagen WHERE modelo_id = ?1 ORDER BY orden ASC")?;
         let ordenes = stmt
             .query_map(params![modelo_id], |row| row.get::<_, i32>(0))?
             .collect::<SqlResult<Vec<i32>>>()?;

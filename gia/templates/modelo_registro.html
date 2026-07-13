@@ -1,9 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}GIA - Registro de modelo{% endblock %}
+{% block title %}Registro de modelos{% endblock %}
 
-{% block extra_head %}
-    {% include "estilos/auth.html" %}
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/auth.css">
+<link rel="stylesheet" href="/static/css/mensajes.css">
 {% endblock %}
 
 {% block content %}
@@ -19,7 +20,7 @@
         </header>
 
         <form class="auth-form" hx-post="/modelo/registro" hx-target="#resultado" hx-encoding="multipart/form-data">
-            <div class="field-row">
+            <div class="field-row" style="grid-template-columns: 1fr 1fr;">
                 <div class="field">
                     <label for="marca">Marca</label>
                     <input id="marca" type="text" name="marca" placeholder="Ej: Leica" required>
@@ -40,13 +41,13 @@
                 <input id="descripcion" type="text" name="descripcion" placeholder="Breve descripción del instrumento">
             </div>
 
-            <div class="field-row">
+            <div class="field-row" style="grid-template-columns: 1fr 1fr;">
                 <div class="field">
-                    <label for="manual_pdf">Archivo del Manual (Debe ser un PDF de 16MB máximo)</label>
+                    <label for="manual_pdf">Archivo del Manual (PDF máx 16MB)</label>
                     <input id="manual_pdf" type="file" name="manual_pdf" accept="application/pdf">
                 </div>
                 <div class="field">
-                    <label for="imagenes_modelo">Imágenes del modelo (La primera será la principal)</label>
+                    <label for="imagenes_modelo">Imágenes del modelo</label>
                     <input id="imagenes_modelo" type="file" name="imagenes[]" accept="image/png, image/jpeg" multiple>
                 </div>
             </div>
@@ -58,7 +59,9 @@
             <p><a href="/ejemplar/registro">Registrar un ejemplar</a></p>
         </footer>
 
-        {% include "partials/resultado.html" %}
+        <div id="resultado">
+            {% include "partials/resultado.html" %}
+        </div>
     </section>
 </main>
 {% endblock %}

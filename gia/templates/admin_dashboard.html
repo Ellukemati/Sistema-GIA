@@ -1,82 +1,47 @@
 {% extends "base.html" %}
 
-{% block title %}Panel de Administración - GIA{% endblock %}
+{% block title %}Panel de administración{% endblock %}
 
-{% block extra_head %}
-    {% include "estilos/admin_dashboard.html" %}
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/home.css">
+<link rel="stylesheet" href="/static/css/admin_dashboard.css">
 {% endblock %}
 
 {% block content %}
-<div style="max-width: 1200px; margin: auto;">
-    <a href="/inicio" class="btn-volver">⬅ Volver al inicio</a>
-    <h1>⚙️ Panel de Control</h1>
-</div>
+{% set en_perfil = false %}
+{% set en_home = false %}
+{% include "partials/header.html" %}
 
-<div id="tablas-container" class="dashboard-container" 
-     hx-get="/admin/tablas/recargar" 
-     hx-trigger="every 10s"
-     hx-vals='js:{tab_activo: sessionStorage.getItem("gia_admin_tab") || "0"}'>
-    {% include "partials/admin_tablas.html" %}
-</div>
+<main class="admin-page">
 
-<div id="modal-pdf" style="display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); padding-top: 30px;">
-    <div style="background-color: #fff; margin: auto; padding: 15px; border-radius: 8px; width: 80%; height: 85%; position: relative; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
-        <span onclick="cerrarModal()" style="position: absolute; right: 20px; top: 10px; font-size: 28px; font-weight: bold; cursor: pointer; color: #555;">&times;</span>
-        <h3 style="margin-top: 5px; color: #111;">👁️ Previsualización del Comprobante de Reserva</h3>
-        <iframe id="visor-pdf" src="" width="100%" height="92%" style="border: 1px solid #ccc; border-radius: 4px;"></iframe>
+    <div class="admin-page-header">
+        <h1>⚙️ Panel de Control</h1>
+    </div>
+
+    <div id="tablas-container" class="dashboard-container"
+        hx-get="/admin/tablas/recargar"
+        hx-trigger="every 10s"
+        hx-vals='js:{tab_activo: sessionStorage.getItem("gia_admin_tab") || "0"}'>
+        {% include "partials/admin_tablas.html" %}
+    </div>
+
+</main>
+
+<div id="modal-pdf" class="modal-overlay">
+    <div class="modal-content">
+        <span onclick="cerrarModal()" class="modal-close">&times;</span>
+        <h3 style="margin-top: 5px; color: var(--color-text);">
+            👁️ Previsualización del Comprobante de Reserva
+        </h3>
+        <iframe id="visor-pdf"
+            src=""
+            width="100%"
+            height="92%"
+            style="border: 1px solid var(--color-border); border-radius: var(--radius-sm);">
+        </iframe>
     </div>
 </div>
 
-<script>
-    function switchTab(index) {
-        document.querySelectorAll('.tab-btn').forEach((btn, i) => {
-            btn.classList.toggle('active', i === index);
-        });
-        
-        document.querySelectorAll('.tab-content').forEach((content, i) => {
-            content.classList.toggle('active', i === index);
-        });
-        
-        sessionStorage.setItem('gia_admin_tab', index);
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        const activeTab = sessionStorage.getItem('gia_admin_tab') || 0;
-        switchTab(parseInt(activeTab));
-    });
-
-    document.addEventListener('htmx:afterSwap', function(event) {
-        if (event.detail.target.id === 'tablas-container') {
-            const activeTab = sessionStorage.getItem('gia_admin_tab') || 0;
-            switchTab(parseInt(activeTab));
-        }
-    });
-
-    // Cuando se aprueba una reserva, descarga automáticamente
-    document.addEventListener("abrirComprobante", function(evt) {
-        const idReserva = evt.detail.value;
-        if (idReserva) {
-            window.open(`/admin/historial-reservas/comprobante/${idReserva}`, '_blank');
-        }
-    });
-
-    // CONTROL DEL MODAL DE PREVISUALIZACIÓN SEGURO (OCULTA LA BARRA SUPERIOR PARA EVITAR DESCARGA SENCILLA DE PREVISUALIZACIÓN)
-    function abrirModalPrevisualizacion(idReserva) {
-        const visor = document.getElementById("visor-pdf");
-        visor.src = `/admin/reservas/previsualizar/${idReserva}#toolbar=0`;
-        document.getElementById("modal-pdf").style.display = "block";
-    }
-
-    function cerrarModal() {
-        document.getElementById("modal-pdf").style.display = "none";
-        document.getElementById("visor-pdf").src = "";
-    }
-
-    window.onclick = function(event) {
-        const modal = document.getElementById("modal-pdf");
-        if (event.target == modal) {
-            cerrarModal();
-        }
-    }
-</script>
+{% include "partials/footer_institucional.html" %}
+{% include "scripts/script_admin_tabs.html" %}
 {% endblock %}

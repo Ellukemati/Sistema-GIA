@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Créditos{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/home.css">
+<link rel="stylesheet" href="/static/css/creditos.css">
+{% endblock %}
+
+{% block content %}
+{% set en_perfil = false %}
+{% set en_home = false %}
+{% include "partials/header.html" %}
+
+<main class="creditos-page">
+
+    <section class="creditos-hero dashboard-group">
+        <img src="/static/img/logo_gia_transparente.png" alt="GIA" class="creditos-logo">
+        <h1 class="creditos-titulo">Sistema GIA</h1>
+        <p class="creditos-subtitulo">Gestión de Instrumental de Agrimensura</p>
+        <p class="creditos-descripcion">
+            Aplicación desarrollada como proyecto para la materia
+            <strong>Taller de Programación</strong> durante el 1er cuatrimestre de 2026, para el Departamento de
+            Agrimensura
+            de la Facultad de Ingeniería de la Universidad de Buenos Aires.
+        </p>
+        <div class="creditos-meta">
+            <span class="creditos-badge">Grupo 8</span>
+            <span class="creditos-badge creditos-badge--accent">Bugbusters</span>
+        </div>
+    </section>
+
+    <section class="dashboard-group">
+        <h3 class="group-title">👥 Equipo de desarrollo</h3>
+        <div class="creditos-grid">
+
+            <article class="creditos-card">
+                <span class="creditos-avatar">👤</span>
+                <h4 class="creditos-nombre">Matias Ezequiel Dundic</h4>
+                <span class="creditos-legajo">Legajo 110773</span>
+                <span class="creditos-email">mdundic@fi.uba.ar</span>
+                <div class="creditos-links">
+                    <a href="https://github.com/Ellukemati" target="_blank" rel="noopener" class="creditos-link">🔗
+                        GitHub</a>
+                </div>
+            </article>
+
+            <article class="creditos-card">
+                <span class="creditos-avatar">👤</span>
+                <h4 class="creditos-nombre">Franco Lamas</h4>
+                <span class="creditos-legajo">Legajo 112306</span>
+                <span class="creditos-email">flamas@fi.uba.ar</span>
+                <div class="creditos-links">
+                    <a href="https://github.com/Francodlamas" target="_blank" rel="noopener" class="creditos-link">🔗
+                        GitHub</a>
+                </div>
+            </article>
+
+            <article class="creditos-card">
+                <span class="creditos-avatar">👤</span>
+                <h4 class="creditos-nombre">Gerónimo Fanti</h4>
+                <span class="creditos-legajo">Legajo 109712</span>
+                <span class="creditos-email">gfanti@fi.uba.ar</span>
+                <div class="creditos-links">
+                    <a href="https://github.com/Gero-F" target="_blank" rel="noopener" class="creditos-link">🔗
+                        GitHub</a>
+                </div>
+            </article>
+
+            <article class="creditos-card">
+                <span class="creditos-avatar">👤</span>
+                <h4 class="creditos-nombre">Oliverio Mourier</h4>
+                <span class="creditos-legajo">Legajo 106758</span>
+                <span class="creditos-email">omourier@fi.uba.ar</span>
+                <div class="creditos-links">
+                    <a href="https://github.com/oliveriomourier" target="_blank" rel="noopener" class="creditos-link">🔗
+                        GitHub</a>
+                </div>
+            </article>
+
+        </div>
+    </section>
+
+    <section class="dashboard-group">
+        <h3 class="group-title">🎓 Agradecimientos</h3>
+        <p class="creditos-agradecimiento">
+            Agradecemos al Departamento de Agrimensura y a la Cátedra Deymonnaz de Taller de Programación de la FIUBA
+            por la oportunidad y al profesor Juan Cruz Caserio por el acompañamiento.
+        </p>
+    </section>
+
+    <p class="creditos-copyright">© 2026 Sistema GIA — Gestión de Instrumental de Agrimensura</p>
+
+</main>
+
+{% include "partials/footer_institucional.html" %}
+{% endblock %}

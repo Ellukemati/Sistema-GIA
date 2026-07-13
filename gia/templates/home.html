@@ -1,286 +1,96 @@
 {% extends "base.html" %}
 
-{% block title %}Inicio - GIA{% endblock %}
+{% block title %}Inicio{% endblock %}
 
-{% block extra_head %}
-<style>
-    .home-container {
-        max-width: 900px;
-        margin: 40px auto;
-        text-align: center;
-        padding: 0 20px;
-    }
-    
-    .home-brand-wrapper {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 5px;
-    }
-
-    .home-logo {
-        width: 120px;
-        height: auto;
-        object-fit: contain;
-        border-radius: 50%;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        transition: transform 0.3s ease;
-    }
-
-    .home-logo:hover {
-        transform: scale(1.05);
-    }
-
-    /* .home-title {
-        font-size: 2.8em;
-        color: #F58220;
-        margin: 0;
-        font-weight: 800;
-        letter-spacing: 0.05em;
-    } */
-    
-    .home-subtitle {
-        color: #5a6a75;
-        font-size: 1.15em;
-        margin-bottom: 40px;
-    }
-    
-    .grid-menu {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 20px;
-    }
-    
-    .menu-card {
-        background: white;
-        border-radius: 12px;
-        padding: 30px 20px;
-        text-decoration: none;
-        color: #1a1a1a;
-        box-shadow: 0 4px 6px rgba(0, 145, 213, 0.05);
-        border: 1px solid #c5d9e8;
-        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-    
-    .menu-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 24px rgba(0, 145, 213, 0.15);
-        border-color: #0091D5;
-    }
-    
-    .menu-icon {
-        font-size: 3.5em;
-        margin-bottom: 15px;
-    }
-    
-    .menu-title {
-        font-size: 1.3em;
-        font-weight: bold;
-        margin-bottom: 10px;
-    }
-    
-    .menu-desc {
-        font-size: 0.95em;
-        color: #5a6a75;
-    }
-    
-    .admin-section {
-        margin-top: 50px;
-        padding-top: 30px;
-        border-top: 2px dashed #dee2e6;
-    }
-    .admin-header {
-        color: #dc3545;
-        margin-bottom: 25px;
-        font-size: 1.5em;
-    }
-    .menu-card.admin:hover {
-        border-color: #dc3545;
-        box-shadow: 0 8px 24px rgba(220, 53, 69, 0.15);
-    }
-    
-    .btn-salir {
-        display: inline-block;
-        padding: 8px 16px;
-        background-color: #f8f9fa;
-        color: #dc3545;
-        text-decoration: none;
-        border-radius: 8px;
-        border: 1px solid #dc3545;
-        font-weight: bold;
-        transition: all 0.2s ease;
-    }
-
-    .btn-salir:hover {
-        background-color: #dc3545;
-        color: #ffffff;
-    }
-
-    .logout-wrapper {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        z-index: 100;
-    }
-
-    /* Para telefonos */
-    @media (max-width: 600px) {
-        .home-logo {
-            width: 90px;
-        }
-        /* .home-title {
-            font-size: 2.2em;
-        } */
-        .menu-card {
-            padding: 20px 15px;
-        }
-        .menu-icon {
-            font-size: 2.5em; 
-            margin-bottom: 10px;
-        }
-        .menu-title {
-            font-size: 1.15em;
-        }
-        .grid-menu {
-            gap: 15px;
-        }
-        @media (max-width: 768px) {
-
-    .logout-wrapper {
-        position: static;
-        display: flex;
-        justify-content: center;
-        margin-bottom: 20px;
-    }
-
-    .profile-link {
-        flex-direction: column;
-        gap: 6px;
-    }
-
-    .profile-avatar {
-        width: 55px;
-        height: 55px;
-    }
-
-    .profile-name {
-        font-size: 0.9rem;
-    }
-}
-    }
-    .profile-link {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    text-decoration: none;
-    color: #1a1a1a;
-    font-weight: 600;
-}
-
-.profile-avatar {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid #dbe7f0;
-    background-color: white;
-}
-
-.profile-avatar:hover {
-    transform: scale(1.05);
-}
-
-.profile-name {
-    font-size: 0.95em;
-}
-</style>
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/home.css">
 {% endblock %}
 
 {% block content %}
-<div class="logout-wrapper">
+{% set en_perfil = false %}
+{% set en_home = true %}
+{% include "partials/header.html" %}
 
-    <a href="/perfil" class="profile-link">
+<main class="home-dashboard-container{% if usuario_actual.tipo != 'A' %} home-dashboard-container--docente{% endif %}">
 
-        <img
-            src="/imagenes/avatares/{{ usuario_actual.legajo }}"
-            alt="Avatar"
-            class="profile-avatar"
-            onerror="this.onerror=null; this.src='/static/img/avatardefault.avif';"
-        >
+    <header class="dashboard-welcome">
+        <p class="welcome-subtitle-main">Gestión de Instrumental de Agrimensura</p>
+    </header>
 
-        <span class="profile-name">
-            {{ usuario_actual.nombre }}
-        </span>
-
-    </a>
-
-</div>
-</div>
-<div class="home-container">
-
-    <div class="home-brand-wrapper">
-        <h1 style="margin: 0;">
-            <img src="/static/img/logo_gia_transparente.png" alt="GIA" class="home-logo">
-        </h1>
-    </div>
-    <p class="home-subtitle">Gestión de Instrumental de Agrimensura</p>
-    
-    <h3 style="margin-bottom: 30px; color: #495057;">¡Hola, {{ usuario_actual.nombre }}! ¿Qué querés hacer hoy?</h3>
-
-    <div class="grid-menu">
-        <a href="/modelo" class="menu-card">
-            <div class="menu-icon">🗂️</div>
-            <div class="menu-title">Catálogo</div>
-            <div class="menu-desc">Explorá todos los modelos de instrumentos disponibles.</div>
-        </a>
-
-        <a href="/reservas" class="menu-card">
-            <div class="menu-icon">📅</div>
-            <div class="menu-title">Reservar Equipos</div>
-            <div class="menu-desc">Consultá disponibilidad y solicitá instrumental para tus clases.</div>
-        </a>
-        
-        <a href="/mis-reservas" class="menu-card"> 
-            <div class="menu-icon">📋</div>
-            <div class="menu-title">Mis Reservas</div>
-            <div class="menu-desc">Revisá el estado de tus solicitudes o cancelalas.</div>
-        </a>
-    </div>
-
-    {% if usuario_actual.tipo == "A" %}
-    <div class="admin-section">
-        <h2 class="admin-header">⚙️ Panel de Administración</h2>
-        <div class="grid-menu">
-            <a href="/admin/dashboard" class="menu-card admin">
-                <div class="menu-icon">🔔</div>
-                <div class="menu-title">Dashboard</div>
-                <div class="menu-desc">Aprobá o rechazá solicitudes y gestioná usuarios.</div>
+    <section class="dashboard-group">
+        <h3 class="group-title">📋 Menú de Usuario</h3>
+        <div class="grid-menu-optimized grid-docente">
+            <a href="/modelo" class="menu-card-flat brand-edge">
+                <span class="card-flat-icon">🗂️</span>
+                <div class="card-flat-content">
+                    <h4>Catálogo</h4>
+                    <p>Mirá todo el instrumental del Departamento</p>
+                </div>
             </a>
-            
-            <a href="/modelo/registro" class="menu-card admin">
-                <div class="menu-icon">📦</div>
-                <div class="menu-title">Nuevo Modelo</div>
-                <div class="menu-desc">Agregá nuevos equipos al catálogo general.</div>
+
+            <a href="/reservas" class="menu-card-flat brand-edge">
+                <span class="card-flat-icon">📅</span>
+                <div class="card-flat-content">
+                    <h4>Reservar Instrumental</h4>
+                    <p>Realizá reservas</p>
+                </div>
             </a>
-            
-            <a href="/ejemplar/registro" class="menu-card admin">
-                <div class="menu-icon">🏷️</div>
-                <div class="menu-title">Nuevo Ejemplar</div>
-                <div class="menu-desc">Registrá unidades físicas de un modelo existente.</div>
-            </a>
-            <a href="/admin/historial-reservas" class="menu-card admin">
-                <div class="menu-icon">📚</div>
-                <div class="menu-title">Historial de Reservas</div>
-                <div class="menu-desc">
-                    Consultá todas las reservas realizadas en el sistema.
+
+            <a href="/mis-reservas" class="menu-card-flat brand-edge">
+                <span class="card-flat-icon">📋</span>
+                <div class="card-flat-content">
+                    <h4>Mis Reservas</h4>
+                    <p>Revisá todas tus solicitudes de reserva</p>
                 </div>
             </a>
         </div>
-    </div>
+    </section>
+
+    {% if usuario_actual.tipo == "A" %}
+    <section class="dashboard-group admin-group-wrapper">
+        <h3 class="group-title title-admin">⚙️ Panel de Control de Administrador</h3>
+        <div class="grid-menu-optimized grid-admin">
+            <a href="/admin/dashboard" class="menu-card-flat admin-edge">
+                {% set reservas_count = reservas_pendientes_count | default(value=0) %}
+                {% set docentes_count = docentes_pendientes_count | default(value=0) %}
+                {% set total_pendientes = reservas_count + docentes_count %}
+                {% if total_pendientes > 0 %}
+                <span class="card-flat-badge">{{ total_pendientes }}</span>
+                {% endif %}
+                <span class="card-flat-icon">🔔</span>
+                <div class="card-flat-content">
+                    <h4>Dashboard</h4>
+                    <p>Gestioná solicitudes y roles de usuario</p>
+                </div>
+            </a>
+
+            <a href="/modelo/registro" class="menu-card-flat admin-edge">
+                <span class="card-flat-icon">📦</span>
+                <div class="card-flat-content">
+                    <h4>Nuevo Modelo</h4>
+                    <p>Agregá nuevos modelos al catálogo</p>
+                </div>
+            </a>
+
+            <a href="/ejemplar/registro" class="menu-card-flat admin-edge">
+                <span class="card-flat-icon">🏷️</span>
+                <div class="card-flat-content">
+                    <h4>Nuevo Ejemplar</h4>
+                    <p>Registrá unidades físicas de los modelos</p>
+                </div>
+            </a>
+
+            <a href="/admin/historial-reservas" class="menu-card-flat admin-edge">
+                <span class="card-flat-icon">📚</span>
+                <div class="card-flat-content">
+                    <h4>Historial de Reservas</h4>
+                    <p>Consultá todas las solicitudes de reserva históricas del sistema</p>
+                </div>
+            </a>
+        </div>
+    </section>
     {% endif %}
-</div>
+</main>
+
+{% include "partials/footer_institucional.html" %}
 {% endblock %}

@@ -113,7 +113,7 @@ impl ModeloRepository {
         )
         .optional()
     }
-    
+
     pub fn buscar_por_nombre(conn: &Connection, texto: &str) -> SqlResult<Vec<Modelo>> {
         let patron = format!("%{}%", texto);
 

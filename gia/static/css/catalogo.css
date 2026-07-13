@@ -1,0 +1,229 @@
+.catalogo-page {
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: var(--spacing-xl) var(--spacing-md);
+    box-sizing: border-box;
+    min-height: 60vh;
+}
+
+.catalogo-header {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+}
+
+.catalogo-header h1 {
+    margin: 0 0 var(--spacing-xs);
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.catalogo-subtitle {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 1rem;
+}
+
+.catalogo-vacio {
+    text-align: center;
+    color: var(--color-muted);
+}
+
+.categoria-seccion {
+    margin-bottom: var(--spacing-xl);
+}
+
+.categoria-titulo {
+    margin: 0 0 var(--spacing-md);
+    padding-bottom: var(--spacing-xs);
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    border-bottom: 2px solid var(--color-border);
+}
+
+.cards-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-lg);
+    justify-content: flex-start;
+}
+
+.modelo-card {
+    display: flex;
+    flex-direction: column;
+    width: 200px;
+    background-color: var(--color-surface);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+    text-decoration: none;
+    color: var(--color-text);
+    transition: border-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.modelo-card:hover {
+    border-color: var(--color-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(0, 145, 213, 0.18);
+}
+
+.modelo-card:focus-visible {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.modelo-card-media {
+    width: 100%;
+    height: 160px;
+    background-color: var(--color-bg);
+}
+
+.modelo-card-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.modelo-card-sin-imagen {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    color: var(--color-muted);
+}
+
+.modelo-card-nombre {
+    margin: 0;
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+.catalogo-search {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    margin: 10px auto 25px;
+    max-width: 900px;
+    box-sizing: border-box;
+}
+
+.catalogo-search-input {
+    padding: 12px 16px;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    box-sizing: border-box;
+    font-size: 1rem;
+    min-height: 46px;
+}
+
+input.catalogo-search-input {
+    flex: 2 1 260px;
+}
+
+select.catalogo-search-input {
+    flex: 1 1 200px;
+    max-width: 220px;
+    cursor: pointer;
+}
+
+.catalogo-search-input:focus {
+    outline: none;
+    border-color: #1d8fe1;
+    box-shadow: 0 0 0 3px rgba(29, 143, 225, .15);
+}
+
+.btn-buscar {
+    padding: 12px 18px;
+    border: none;
+    border-radius: 10px;
+    background: #1d8fe1;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 1rem;
+    min-height: 46px;
+}
+
+.btn-buscar:hover {
+    background: #167dca;
+}
+
+.btn-limpiar {
+    flex: 0 0 auto;
+    padding: 12px 18px;
+    min-height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    border: 1px solid #d0d0d0;
+    text-decoration: none;
+    color: #444;
+    background: white;
+    font-weight: 600;
+    font-size: 1rem;
+    box-sizing: border-box;
+}
+
+.btn-limpiar:hover {
+    background: #f5f5f5;
+}
+
+.catalogo-resultados {
+    margin-top: -15px;
+    margin-bottom: 25px;
+    color: #555;
+}
+
+[data-theme="dark"] .catalogo-search-input,
+[data-theme="dark"] .btn-limpiar,
+[data-theme="dark"] .modelo-card {
+    background-color: var(--color-surface) !important;
+    color: var(--color-text) !important;
+    border-color: var(--color-border) !important;
+}
+
+@media (max-width: 768px) {
+    .catalogo-search {
+        flex-direction: column;
+        align-items: stretch;
+        max-width: 100%;
+    }
+
+    .catalogo-search-input,
+    select.catalogo-search-input,
+    input.catalogo-search-input {
+        flex: 0 0 auto;
+        width: 100%;
+        max-width: 100%;
+        font-size: 1rem;
+    }
+
+    .btn-limpiar {
+        text-align: center;
+    }
+}
+
+@media (max-width: 479px) {
+    .cards-grid {
+        justify-content: center;
+    }
+
+    .modelo-card {
+        width: 100%;
+        max-width: 320px;
+    }
+}

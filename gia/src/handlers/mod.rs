@@ -5,3 +5,4 @@ pub mod image_handler;
 pub mod manual_handler;
 pub mod modelo_handler;
 pub mod reserva_handler;
+pub mod static_handler;

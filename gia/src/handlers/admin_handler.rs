@@ -139,6 +139,14 @@ impl AdminHandler {
         }
 
         let mut ctx = Context::new();
+
+        if let Some(token) = extraer_token_sesion(request)
+            && let Ok(Some(sesion)) = SesionRepository::buscar_por_token(conn, &token)
+            && let Ok(Some(usuario)) = UsuarioRepository::buscar_por_id(conn, sesion.id_usuario)
+        {
+            ctx.insert("usuario_actual", &usuario);
+        }
+
         let reservas = Self::obtener_reservas_detalladas(conn);
         let profes = UsuarioRepository::listar_profesores_pendientes(conn).unwrap_or_default();
         let docentes_aprobados =
@@ -343,6 +351,16 @@ impl AdminHandler {
         if let Err(resp) = Self::verificar_admin(request, conn) {
             return resp;
         }
+
+        let cantidad_admins = UsuarioRepository::listar_administradores(conn)
+            .map(|lista| lista.len())
+            .unwrap_or(0);
+
+        if cantidad_admins <= 1 {
+            return Response::text("Debe existir al menos un administrador en el sistema.")
+                .with_status_code(400);
+        }
+
         let _ = UsuarioRepository::quitar_admin(conn, id);
         Response::html("")
     }
@@ -507,9 +525,11 @@ impl AdminHandler {
         let fecha_desde = request.get_param("fecha_desde").unwrap_or_default();
         let fecha_hasta = request.get_param("fecha_hasta").unwrap_or_default();
         let motivo = request.get_param("motivo").unwrap_or_default();
+
         let ordenar_por = request
             .get_param("ordenar_por")
             .unwrap_or_else(|| "momento_creacion".to_string());
+
         let direccion = request
             .get_param("direccion")
             .unwrap_or_else(|| "desc".to_string());
@@ -534,32 +554,48 @@ impl AdminHandler {
         );
 
         let total_reservas = reservas.len();
+
         let total_paginas = if total_reservas == 0 {
             1
         } else {
             ((total_reservas as f64) / (por_pagina as f64)).ceil() as usize
         };
+
         let inicio = (pagina - 1) * por_pagina;
 
         reservas = reservas.into_iter().skip(inicio).take(por_pagina).collect();
 
         let mut ctx = Context::new();
+
+        if let Some(token) = extraer_token_sesion(request)
+            && let Ok(Some(sesion)) = SesionRepository::buscar_por_token(conn, &token)
+            && let Ok(Some(usuario)) = UsuarioRepository::buscar_por_id(conn, sesion.id_usuario)
+        {
+            ctx.insert("usuario_actual", &usuario);
+        }
+
         ctx.insert("reservas", &reservas);
+
         ctx.insert("filtro_docente", &docente);
         ctx.insert("filtro_estado", &estado);
         ctx.insert("filtro_fecha_desde", &fecha_desde);
         ctx.insert("filtro_fecha_hasta", &fecha_hasta);
         ctx.insert("filtro_motivo", &motivo);
+
         ctx.insert("ordenar_por", &ordenar_por);
         ctx.insert("direccion", &direccion);
+
         ctx.insert("pagina_actual", &pagina);
 
         let tiene_anterior = pagina > 1;
         let tiene_siguiente = pagina < total_paginas;
+
         ctx.insert("tiene_anterior", &tiene_anterior);
         ctx.insert("tiene_siguiente", &tiene_siguiente);
+
         ctx.insert("pagina_anterior", &(pagina - 1));
         ctx.insert("pagina_siguiente", &(pagina + 1));
+
         ctx.insert("total_paginas", &total_paginas);
 
         templates::response_html(templates::render("admin_historial_reservas.html", &ctx))

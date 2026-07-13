@@ -1,9 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}GIA - Registro de ejemplar{% endblock %}
+{% block title %}Registro de ejemplares{% endblock %}
 
-{% block extra_head %}
-    {% include "estilos/auth.html" %}
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/auth.css">
+<link rel="stylesheet" href="/static/css/mensajes.css">
 {% endblock %}
 
 {% block content %}
@@ -22,17 +23,14 @@
             <div class="field">
                 <label for="modelo_id">Modelo</label>
                 <div id="modelo-select-container">
-                    <select id="modelo_id" name="modelo_id" required
-                            hx-get="/ejemplar/modelos/opciones"
-                            hx-trigger="focus"
-                            hx-target="#modelo-select-container"
-                            hx-swap="innerHTML">
+                    <select id="modelo_id" name="modelo_id" required hx-get="/ejemplar/modelos/opciones"
+                        hx-trigger="focus" hx-target="#modelo-select-container" hx-swap="innerHTML">
                         <option value="" disabled selected>Seleccione un modelo</option>
                     </select>
                 </div>
             </div>
 
-            <div class="field-row">
+            <div class="field-row" style="grid-template-columns: 1fr 1fr;">
                 <div class="field">
                     <label for="numero_serie">Número de serie</label>
                     <input id="numero_serie" type="text" name="numero_serie" placeholder="Ej: SN-001234">
@@ -43,7 +41,7 @@
                 </div>
             </div>
 
-            <div class="field-row">
+            <div class="field-row" style="grid-template-columns: 1fr 1fr;">
                 <div class="field">
                     <label for="patrimonio">Patrimonio</label>
                     <input id="patrimonio" type="text" name="patrimonio" placeholder="Ej: PAT-2024-001">
@@ -56,12 +54,14 @@
 
             <div class="field">
                 <label for="observaciones">Observaciones</label>
-                <input id="observaciones" type="text" name="observaciones" placeholder="Notas adicionales sobre el ejemplar">
+                <input id="observaciones" type="text" name="observaciones"
+                    placeholder="Notas adicionales sobre el ejemplar">
             </div>
 
             <div class="field accesorios-group">
                 <span class="field-label">Accesorios</span>
-                <input type="radio" name="tiene_accesorios" value="no" id="accesorios_no" class="accesorios-radio" checked>
+                <input type="radio" name="tiene_accesorios" value="no" id="accesorios_no" class="accesorios-radio"
+                    checked>
                 <input type="radio" name="tiene_accesorios" value="si" id="accesorios_si" class="accesorios-radio">
                 <div class="radio-group">
                     <label for="accesorios_no" class="radio-label">No</label>
@@ -70,7 +70,7 @@
                 <div class="accesorios-detalle">
                     <label for="accesorios">Detalle de accesorios</label>
                     <textarea id="accesorios" name="accesorios" rows="3"
-                              placeholder="Ej: cable de alimentación, estuche, trípode"></textarea>
+                        placeholder="Ej: cable, estuche, trípode"></textarea>
                     <small class="field-hint">Un ítem por línea o separados por coma.</small>
                 </div>
             </div>
@@ -84,18 +84,20 @@
             </div>
 
             <div class="field">
-                <label for="imagenes_ejemplar">Imágenes del ejemplar (opcional; la primera será la principal)</label>
+                <label for="imagenes_ejemplar">Imágenes del ejemplar (Opcional)</label>
                 <input id="imagenes_ejemplar" type="file" name="imagenes[]" accept="image/png, image/jpeg" multiple>
             </div>
 
             <button type="submit" class="btn-primary">Registrar ejemplar</button>
         </form>
 
-        <footer class="auth-footer">
+        <footer class="auth-footer" style="text-align: center; margin-top: 20px;">
             <p><a href="/modelo/registro">Registrar un modelo</a></p>
         </footer>
 
-        {% include "partials/resultado.html" %}
+        <div id="resultado">
+            {% include "partials/resultado.html" %}
+        </div>
     </section>
 </main>
 {% endblock %}

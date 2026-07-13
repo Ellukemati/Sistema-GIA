@@ -1,0 +1,194 @@
+.carrito-resumen {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    background-color: var(--color-surface);
+    border: 1.5px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
+    padding: var(--spacing-md) var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+.carrito-resumen-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    width: 100%;
+}
+
+.carrito-resumen-cantidad {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    height: 2rem;
+    padding: 0 0.5rem;
+    font-weight: 700;
+    color: var(--color-surface);
+    background-color: var(--color-primary);
+    border-radius: 999px;
+}
+
+.carrito-resumen-texto {
+    font-size: 0.95rem;
+    color: var(--color-text);
+}
+
+.carrito-resumen-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    width: 100%;
+}
+
+.carrito-motivo-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.carrito-motivo-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.carrito-motivo-label::after {
+    content: " *";
+    color: var(--color-error, #b91c1c);
+}
+
+.carrito-motivo {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.55rem 0.75rem;
+    font-size: 1rem;
+    color: var(--color-text);
+    background-color: var(--color-bg);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    min-height: 44px;
+}
+
+.carrito-motivo:focus-visible {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.carrito-botones {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.btn-ver-detalle {
+    display: inline-block;
+    padding: 0.6rem 1.25rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-decoration: none;
+    color: var(--color-primary);
+    background-color: var(--color-surface);
+    border: 1.5px solid var(--color-primary);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.btn-ver-detalle:hover {
+    color: var(--color-surface);
+    background-color: var(--color-primary);
+}
+
+.btn-finalizar {
+    padding: 0.6rem 1.25rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--color-surface);
+    background-color: var(--color-primary);
+    border: 1.5px solid var(--color-primary);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.btn-finalizar:hover:not(:disabled) {
+    background-color: var(--color-primary-hover);
+}
+
+.btn-finalizar:disabled {
+    color: var(--color-muted);
+    background-color: var(--color-bg);
+    border-color: var(--color-border);
+    cursor: not-allowed;
+}
+
+.carrito-acciones-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.carrito-item-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+}
+
+.btn-remover {
+    padding: 0.45rem 0.9rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--color-danger, #c0392b);
+    background-color: var(--color-surface);
+    border: 1.5px solid var(--color-danger, #c0392b);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+.btn-remover:hover {
+    color: var(--color-surface);
+    background-color: var(--color-danger, #c0392b);
+}
+
+@media (max-width: 768px) {
+
+    .carrito-resumen {
+        padding: var(--spacing-md);
+    }
+
+    .carrito-resumen-form {
+        width: 100%;
+    }
+
+    .carrito-motivo-field {
+        max-width: 100%;
+    }
+
+    .carrito-motivo {
+        font-size: 0.95rem;
+    }
+
+    .carrito-botones {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .btn-ver-detalle,
+    .btn-finalizar {
+        width: 100%;
+        box-sizing: border-box;
+        text-align: center;
+    }
+}

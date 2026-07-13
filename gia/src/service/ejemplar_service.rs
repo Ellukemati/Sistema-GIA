@@ -163,8 +163,7 @@ impl EjemplarService {
             let disponible = ReservaRepository::ejemplar_disponible(conn, ejemplar.id, inicio, fin)
                 .map_err(|e| e.to_string())?;
 
-            let (imagen, cantidad_imagenes) =
-                Self::imagen_principal_y_cantidad(conn, ejemplar.id);
+            let (imagen, cantidad_imagenes) = Self::imagen_principal_y_cantidad(conn, ejemplar.id);
 
             dtos.push(EjemplarDTO {
                 id: ejemplar.id,
@@ -227,8 +226,7 @@ impl EjemplarService {
                 false
             };
 
-            let (imagen, cantidad_imagenes) =
-                Self::imagen_principal_y_cantidad(conn, ejemplar.id);
+            let (imagen, cantidad_imagenes) = Self::imagen_principal_y_cantidad(conn, ejemplar.id);
 
             dtos.push(EjemplarDTO {
                 id: ejemplar.id,

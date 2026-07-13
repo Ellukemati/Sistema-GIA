@@ -1,9 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}GIA - Iniciar sesión{% endblock %}
+{% block title %}Iniciar sesión{% endblock %}
 
-{% block extra_head %}
-    {% include "estilos/auth.html" %}
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/auth.css">
+<link rel="stylesheet" href="/static/css/mensajes.css">
 {% endblock %}
 
 {% block content %}
@@ -14,13 +15,13 @@
                 <img src="/static/img/logo_gia_transparente.png" alt="GIA" class="auth-logo">
             </div>
             <h1>Iniciar sesión</h1>
-            <p class="auth-subtitle">Acceso institucional FIUBA</p>
         </header>
 
-        <form class="auth-form" hx-post="/ingreso" hx-target="#resultado">
+        <form class="auth-form" hx-post="/ingreso" hx-target="#resultado" hx-swap="innerHTML scroll:#resultado:top">
             <div class="field">
                 <label for="email">Email</label>
-                <input id="email" type="email" name="email" placeholder="usuario@fi.uba.ar" autocomplete="email" required>
+                <input id="email" type="email" name="email" placeholder="usuario@fi.uba.ar" autocomplete="email"
+                    required>
             </div>
 
             {% set password_autocomplete = "current-password" %}
@@ -30,12 +31,15 @@
             <button type="submit" class="btn-primary">Ingresar</button>
         </form>
 
-        <footer class="auth-footer">
-            <p>¿No tenés cuenta? <a href="/registro">Registrarse</a></p>
-        </footer>
+        <div id="resultado">
+            {% include "partials/resultado.html" %}
+        </div>
 
-        {% include "partials/resultado.html" %}
+        <footer class="auth-footer">
+            <p>¿No tenés cuenta? <a href="/registro">Registrate</a></p>
+            <p><a href="/" class="back-link">Volver al portal de bienvenida</a></p>
+        </footer>
     </section>
 </main>
-{% include "partials/script_toggle_password.html" %}
+{% include "scripts/script_toggle_password.html" %}
 {% endblock %}
