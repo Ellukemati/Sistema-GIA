@@ -1,6 +1,0 @@
-[2026-07-13 08:45:07] INFO: Base de datos inicializada correctamente en: data/gia.db
-[2026-07-13 08:45:07] INFO: Servidor GIA escuchando en: 0.0.0.0:8080
-[2026-07-13 08:49:02] INFO: Nuevo modelo creado: Kern Disto A5 (ID: 2)
-[2026-07-13 08:49:24] INFO: Nuevo ejemplar ingresado al sistema (ID: 2 / Modelo ID: 2)
-[2026-07-13 08:51:04] INFO: Nueva reserva creada (ID: 1) por el usuario ID: 1
-[2026-07-13 08:52:28] INFO: Reserva (ID: 1) aprobada por el administrador ID: 1
