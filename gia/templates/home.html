@@ -7,7 +7,8 @@
 {% endblock %}
 
 {% block content %}
-{% set ocultar_volver = true %}
+{% set en_perfil = false %}
+{% set en_home = true %}
 {% include "partials/header.html" %}
 
 <main class="home-dashboard-container{% if usuario_actual.tipo != 'A' %} home-dashboard-container--docente{% endif %}">
@@ -50,6 +51,12 @@
         <h3 class="group-title title-admin">⚙️ Panel de Control de Administrador</h3>
         <div class="grid-menu-optimized grid-admin">
             <a href="/admin/dashboard" class="menu-card-flat admin-edge">
+                {% set reservas_count = reservas_pendientes_count | default(value=0) %}
+                {% set docentes_count = docentes_pendientes_count | default(value=0) %}
+                {% set total_pendientes = reservas_count + docentes_count %}
+                {% if total_pendientes > 0 %}
+                <span class="card-flat-badge">{{ total_pendientes }}</span>
+                {% endif %}
                 <span class="card-flat-icon">🔔</span>
                 <div class="card-flat-content">
                     <h4>Dashboard</h4>
@@ -84,28 +91,6 @@
     </section>
     {% endif %}
 </main>
-
-<script>
-    function toggleDarkMode() {
-        const isChecked = document.getElementById('checkbox-theme').checked;
-        if (isChecked) {
-            document.documentElement.setAttribute('data-theme', 'dark');
-            localStorage.setItem('theme', 'dark');
-        } else {
-            document.documentElement.setAttribute('data-theme', 'light');
-            localStorage.setItem('theme', 'light');
-        }
-    }
-
-    (function () {
-        const currentTheme = localStorage.getItem('theme') || 'light';
-        if (currentTheme === 'dark') {
-            document.documentElement.setAttribute('data-theme', 'dark');
-            const cb = document.getElementById('checkbox-theme');
-            if (cb) cb.checked = true;
-        }
-    })();
-</script>
 
 {% include "partials/footer_institucional.html" %}
 {% endblock %}

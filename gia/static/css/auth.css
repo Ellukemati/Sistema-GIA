@@ -173,7 +173,8 @@ textarea:focus {
     cursor: pointer;
     width: max-content;
     max-width: 100%;
-    margin: 0 auto; /* 🌟 Centrado perfecto del componente nativo del sistema */
+    margin: 0 auto;
+    /* 🌟 Centrado perfecto del componente nativo del sistema */
     padding: 2px 0 var(--spacing-xs) 0;
 }
 
@@ -380,14 +381,28 @@ textarea:focus {
     padding-right: 2.75rem;
 }
 
+input[type="file"] {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
 /* ==========================================================================
    MEDIA QUERIES DE ADAPTACIÓN (IDÉNTICAS)
    ========================================================================== */
 @media (max-width: 768px) {
     .field-row {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr;
         gap: var(--spacing-sm, 12px);
+    }
+
+    .field-avatar input[type="file"],
+    input[type="file"] {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
     }
 }
 

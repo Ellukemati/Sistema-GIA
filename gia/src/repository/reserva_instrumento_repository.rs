@@ -1,5 +1,7 @@
-use crate::models::reserva_instrumento::ReservaInstrumento;
 use rusqlite::{Connection, Result as SqlResult};
+
+use crate::models::reserva_instrumento::ReservaInstrumento;
+use crate::models::reserva_view::EquipoReservaView;
 
 pub struct ReservaInstrumentoRepository;
 
@@ -34,25 +36,26 @@ impl ReservaInstrumentoRepository {
         Ok(relaciones)
     }
 
-    pub fn obtener_nombres_equipos_reserva(
+    pub fn obtener_detalle_equipos_reserva(
         conn: &Connection,
         reserva_id: i64,
-    ) -> Result<Vec<String>, rusqlite::Error> {
+    ) -> Result<Vec<EquipoReservaView>, rusqlite::Error> {
         let mut stmt = conn.prepare(
             "
         SELECT
             modelos.nombre_modelo,
-            ejemplares.numero_serie
+            ejemplares.codigo_qr,
+            ejemplares.numero_serie,
+            ejemplares.patrimonio,
+            ejemplares.id
 
         FROM reserva_ejemplar
 
         JOIN ejemplares
-            ON ejemplares.id =
-               reserva_ejemplar.ejemplar_id
+            ON ejemplares.id = reserva_ejemplar.ejemplar_id
 
         JOIN modelos
-            ON modelos.id =
-               ejemplares.modelo_id
+            ON modelos.id = ejemplares.modelo_id
 
         WHERE reserva_ejemplar.reserva_id = ?1
         ",
@@ -60,17 +63,15 @@ impl ReservaInstrumentoRepository {
 
         let equipos = stmt
             .query_map([reserva_id], |row| {
-                let modelo: String = row.get(0)?;
-
-                let serie: Option<String> = row.get(1)?;
-
-                Ok(format!(
-                    "{} ({})",
-                    modelo,
-                    serie.unwrap_or("Sin serie".to_string())
-                ))
+                Ok(EquipoReservaView {
+                    nombre: row.get(0)?,
+                    codigo_qr: row.get(1)?,
+                    numero_serie: row.get(2)?,
+                    patrimonio: row.get(3)?,
+                    id_interno: row.get(4)?,
+                })
             })?
-            .collect::<Result<Vec<String>, _>>()?;
+            .collect::<Result<Vec<EquipoReservaView>, _>>()?;
 
         Ok(equipos)
     }

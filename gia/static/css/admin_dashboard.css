@@ -1,22 +1,41 @@
-body {
-    font-family: Arial, sans-serif;
-    background-color: #f0f2f5;
-    margin: 0;
-    padding: 20px;
+/* ==========================================================================
+   ESTRUCTURA GENERAL
+   ========================================================================== */
+.admin-page {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--spacing-xl) var(--spacing-md);
+    box-sizing: border-box;
+}
+
+.admin-page-header {
+    margin-bottom: var(--spacing-lg);
+}
+
+.admin-page-header h1 {
+    margin-top: 0px;
+    margin: 0px;
+    color: var(--color-text);
 }
 
 .dashboard-container {
     display: flex;
     flex-direction: column;
     gap: 20px;
+    width: 100%;
     max-width: 1200px;
-    margin: auto;
+    margin: 0 auto;
+    box-sizing: border-box;
 }
 
+/* ==========================================================================
+   TABS
+   ========================================================================== */
 .tabs-header {
     display: flex;
     gap: 10px;
-    border-bottom: 2px solid #c5d9e8;
+    border-bottom: 2px solid var(--color-border);
     margin-bottom: 20px;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
@@ -28,7 +47,7 @@ body {
     padding: 12px 20px;
     font-size: 1.05em;
     font-weight: 600;
-    color: #5a6a75;
+    color: var(--color-muted);
     cursor: pointer;
     border-bottom: 3px solid transparent;
     transition: all 0.2s ease;
@@ -36,28 +55,32 @@ body {
 }
 
 .tab-btn:hover {
-    color: #0091D5;
+    color: var(--color-primary);
     background-color: rgba(0, 145, 213, 0.05);
     border-radius: 8px 8px 0 0;
 }
 
 .tab-btn.active {
-    color: #0091D5;
-    border-bottom-color: #0091D5;
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
 }
 
 .tab-content {
     display: none;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background: var(--color-surface);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
     padding: 20px;
+    box-sizing: border-box;
 }
 
 .tab-content.active {
     display: block;
 }
 
+/* ==========================================================================
+   TABLAS
+   ========================================================================== */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -66,14 +89,15 @@ table {
 
 th,
 td {
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid var(--color-border);
     padding: 12px;
     text-align: left;
     vertical-align: middle;
+    color: var(--color-text);
 }
 
 th {
-    background-color: #f8f9fa;
+    background-color: var(--color-bg);
 }
 
 .btn-aprobar {
@@ -94,6 +118,12 @@ th {
     cursor: pointer;
     border-radius: 4px;
     transition: 0.2s;
+}
+
+.btn-rechazar:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    opacity: 0.7;
 }
 
 .btn-previsualizar {
@@ -125,9 +155,91 @@ th {
     -webkit-overflow-scrolling: touch;
 }
 
+/* ==========================================================================
+   MODAL DE PREVISUALIZACIÓN
+   ========================================================================== */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100dvh;
+    min-height: 100vh;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 9999;
+
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-overlay.visible {
+    display: flex !important;
+}
+
+.modal-content {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    width: 90%;
+    max-width: 900px;
+    height: 85vh;
+    padding: 20px;
+    border-radius: var(--radius-md);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, .35);
+    box-sizing: border-box;
+    margin: auto;
+}
+
+.modal-close {
+    position: absolute;
+    top: 10px;
+    right: 18px;
+    font-size: 1.8rem;
+    cursor: pointer;
+    color: var(--color-muted);
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: var(--color-admin);
+}
+
+/* ==========================================================================
+   MODO OSCURO
+   ========================================================================== */
+[data-theme="dark"] .tab-content,
+[data-theme="dark"] .modal-content {
+    background-color: var(--color-surface);
+    color: var(--color-text);
+}
+
+[data-theme="dark"] th {
+    background-color: var(--color-bg);
+}
+
+[data-theme="dark"] .table-responsive tr {
+    background-color: var(--color-surface);
+    border-color: var(--color-border);
+}
+
+[data-theme="dark"] .table-responsive td {
+    border-bottom-color: var(--color-border);
+}
+
+[data-theme="dark"] .table-responsive td::before {
+    color: var(--color-primary);
+}
+
+/* ==========================================================================
+   RESPONSIVE
+   ========================================================================== */
 @media (max-width: 768px) {
-    body {
-        padding: 10px;
+    .admin-page {
+        padding: var(--spacing-md) var(--spacing-sm);
     }
 
     .tabs-header {
@@ -157,8 +269,8 @@ th {
     }
 
     .table-responsive tr {
-        background-color: #fff;
-        border: 2px solid #c5d9e8;
+        background-color: var(--color-surface);
+        border: 2px solid var(--color-border);
         border-radius: 12px;
         margin-bottom: 20px;
         padding: 10px;
@@ -166,7 +278,7 @@ th {
     }
 
     .table-responsive td {
-        border-bottom: 1px solid #f0f2f5;
+        border-bottom: 1px solid var(--color-bg);
         text-align: right;
         padding: 12px 10px 12px 45%;
         position: relative;
@@ -181,7 +293,7 @@ th {
         width: 40%;
         text-align: left;
         font-weight: bold;
-        color: #0091D5;
+        color: var(--color-primary);
     }
 
     .table-responsive td ul {
@@ -206,5 +318,11 @@ th {
         margin: 5px 2px;
         font-size: 1rem;
         display: inline-block;
+    }
+
+    .modal-content {
+        width: 95%;
+        height: 90vh;
+        padding: 12px;
     }
 }

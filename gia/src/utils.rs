@@ -85,6 +85,7 @@ pub fn formatear_rango_fechas(fecha_inicio_str: &str, fecha_fin_str: &str) -> St
 pub struct Carrito {
     pub fecha_inicio: Option<String>,
     pub fecha_fin: Option<String>,
+    pub motivo: Option<String>,
     pub ejemplares: Vec<i64>,
 }
 
@@ -93,6 +94,7 @@ impl Carrito {
         Carrito {
             fecha_inicio: None,
             fecha_fin: None,
+            motivo: None,
             ejemplares: Vec::new(),
         }
     }
@@ -110,9 +112,11 @@ pub fn leer_carrito(request: &Request) -> Carrito {
         None => return Carrito::vacio(),
     };
 
-    let mut partes = valor.splitn(3, '_');
+    let mut partes = valor.splitn(4, '_');
+
     let inicio = partes.next().unwrap_or("").to_string();
     let fin = partes.next().unwrap_or("").to_string();
+    let motivo = partes.next().unwrap_or("").replace("%20", " ");
     let ids = partes.next().unwrap_or("");
 
     let ejemplares = ids
@@ -127,6 +131,11 @@ pub fn leer_carrito(request: &Request) -> Carrito {
             Some(inicio)
         },
         fecha_fin: if fin.is_empty() { None } else { Some(fin) },
+        motivo: if motivo.is_empty() {
+            None
+        } else {
+            Some(motivo)
+        },
         ejemplares,
     }
 }
@@ -135,6 +144,13 @@ pub fn leer_carrito(request: &Request) -> Carrito {
 pub fn cookie_carrito(carrito: &Carrito) -> String {
     let inicio = carrito.fecha_inicio.clone().unwrap_or_default();
     let fin = carrito.fecha_fin.clone().unwrap_or_default();
+
+    let motivo = carrito
+        .motivo
+        .clone()
+        .unwrap_or_default()
+        .replace(' ', "%20");
+
     let ids = carrito
         .ejemplares
         .iter()
@@ -143,8 +159,8 @@ pub fn cookie_carrito(carrito: &Carrito) -> String {
         .join(".");
 
     format!(
-        "reserva_carrito={}_{}_{}; Path=/; Max-Age=86400",
-        inicio, fin, ids
+        "reserva_carrito={}_{}_{}_{}; Path=/; Max-Age=86400",
+        inicio, fin, motivo, ids
     )
 }
 

@@ -73,42 +73,80 @@
         </tbody>
     </table>
 
+    {% set hay_detalles = false %}
+
+    {% for item in items %}
+    {% if item.observaciones or item.accesorios or (item.imagenes_b64 and item.imagenes_b64 | length > 0) %}
+    {% set hay_detalles = true %}
+    {% endif %}
+    {% endfor %}
+
+    {% if hay_detalles %}
     <div class="seccion-detalles">
-        <div class="titulo-detalles">Accesorios, observaciones e imágenes del instrumental solicitado</div>
+
+        <div class="titulo-detalles">
+            Accesorios, observaciones e imágenes del instrumental solicitado
+        </div>
+
         {% for item in items %}
+
         {% if item.observaciones or item.accesorios or (item.imagenes_b64 and item.imagenes_b64 | length > 0) %}
+
         <div class="bloque-ejemplar-detalle">
 
             <div class="item-title">
                 •
-                {% if item.codigo_qr %} Núm. QR: {{ item.codigo_qr }}
-                {% elif item.numero_serie %} S/N: {{ item.numero_serie }}
-                {% elif item.patrimonio %} Pat.: {{ item.patrimonio }}
-                {% else %} ID Int.: {{ item.id_interno }} {% endif %}
+                {% if item.codigo_qr %}
+                Núm. QR: {{ item.codigo_qr }}
+                {% elif item.numero_serie %}
+                S/N: {{ item.numero_serie }}
+                {% elif item.patrimonio %}
+                Pat.: {{ item.patrimonio }}
+                {% else %}
+                ID Int.: {{ item.id_interno }}
+                {% endif %}
                 ({{ item.marca }} {{ item.nombre_modelo }})
             </div>
 
-            {% if item.accesorios %}<div class="item-sub">- <strong>Accesorios:</strong> {{ item.accesorios }}</div>{%
-            endif %}
-            {% if item.observaciones %}<div class="item-sub">- <strong>Observaciones:</strong> {{ item.observaciones }}
-            </div>{% endif %}
+
+            {% if item.accesorios %}
+            <div class="item-sub">
+                - <strong>Accesorios:</strong> {{ item.accesorios }}
+            </div>
+            {% endif %}
+
+
+            {% if item.observaciones %}
+            <div class="item-sub">
+                - <strong>Observaciones:</strong> {{ item.observaciones }}
+            </div>
+            {% endif %}
+
 
             {% if item.imagenes_b64 and item.imagenes_b64 | length > 0 %}
             <div class="contenedor-fotos">
+
                 {% for img in item.imagenes_b64 %}
+
                 {% if img and img != "" %}
                 <div class="marco-foto">
                     <img src="data:image/jpeg;base64,{{ img }}" class="foto-ejemplar" alt="Fotografía del ejemplar">
                 </div>
                 {% endif %}
+
                 {% endfor %}
+
             </div>
             {% endif %}
-        </div>
-        {% endif %}
-        {% endfor %}
-    </div>
 
+        </div>
+
+        {% endif %}
+
+        {% endfor %}
+
+    </div>
+    {% endif %}
 </body>
 
 </html>

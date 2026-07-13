@@ -48,6 +48,35 @@
     line-height: 1.45;
 }
 
+.catalogo-header{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    text-align:center;
+    gap:.5rem;
+
+    margin-bottom:2rem;
+}
+
+.catalogo-logo{
+    width:180px;
+    max-width:40vw;
+    height:auto;
+
+    margin-bottom:.5rem;
+}
+
+.catalogo-header h1{
+    margin:0;
+    font-size:2rem;
+}
+
+.catalogo-subtitle{
+    margin:0;
+    color:var(--color-muted);
+    font-size:1rem;
+}
+
 /* Responsive local para el calendario */
 @media (max-width: 479px) {
     .reserva-fechas {

@@ -28,6 +28,11 @@
     --spacing-xl: 2rem;
 }
 
+html {
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
+}
+
 /* ==========================================================================
    ESTILOS BASE Y MAQUETACIÓN GLOBAL
    ========================================================================== */
@@ -53,8 +58,10 @@ main {
 }
 
 .contenedor {
+    width: 100%;
     max-width: 1200px;
     margin: auto;
+    box-sizing: border-box;
 }
 
 a {
@@ -82,7 +89,309 @@ h1 {
 }
 
 /* ==========================================================================
-   FOOTER INSTITUCIONAL UNIFICADO
+   NAVBAR COMPARTIDA GLOBALMENTE
+   ========================================================================== */
+.main-navbar {
+    background-color: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    border-bottom: 2px solid var(--color-border);
+    padding: 0 var(--spacing-lg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: var(--shadow-soft);
+    min-height: 80px;
+    box-sizing: border-box;
+}
+
+.nav-left-zone,
+.nav-user-zone {
+    display: flex;
+    align-items: center;
+    flex: 1 1 0;
+    min-width: 0 !important;
+    box-sizing: border-box;
+}
+
+.nav-left-zone {
+    justify-content: flex-start;
+}
+
+.nav-left-zone:empty {
+    display: none;
+}
+
+.nav-user-zone {
+    justify-content: flex-end;
+    padding-right: 12px;
+}
+
+.nav-brand {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 5;
+    height: 70px;
+    display: flex;
+    align-items: center;
+}
+
+.nav-brand-link {
+    pointer-events: none;
+    cursor: default;
+}
+
+.nav-logo-large {
+    height: 70px;
+    width: auto;
+    object-fit: contain;
+    display: block;
+}
+
+.profile-action-card {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: 6px 12px;
+    border-radius: var(--radius-md);
+    border: 1.5px solid transparent;
+    transition: all 0.2s ease;
+    background-color: var(--color-bg);
+    text-decoration: none;
+}
+
+.profile-action-card:hover {
+    border-color: var(--color-primary);
+    background-color: var(--color-surface);
+    box-shadow: var(--shadow-soft);
+    text-decoration: none;
+}
+
+.profile-info-text {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    justify-content: center;
+}
+
+.profile-welcome {
+    font-size: 0.9rem;
+    color: var(--color-text);
+}
+
+.profile-role {
+    font-size: 0.75rem;
+    color: var(--color-muted);
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.avatar-container {
+    position: relative;
+    display: inline-flex;
+}
+
+.profile-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--color-primary);
+    background-color: white;
+}
+
+.badge-edit-gear {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    background: white;
+    border: 1px solid var(--color-border);
+    border-radius: 50%;
+    font-size: 0.7rem;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    user-select: none;
+    z-index: 2;
+}
+
+.main-navbar .btn-volver {
+    color: var(--color-primary);
+    background-color: var(--color-surface);
+    border: 1.5px solid var(--color-primary);
+    transition: all 0.15s ease;
+}
+
+.main-navbar .btn-volver:hover {
+    background-color: var(--color-primary);
+    color: var(--color-surface);
+    text-decoration: none;
+}
+
+/* RESPONSIVE DE LA NAVBAR */
+@media (max-width: 768px) {
+    .main-navbar {
+        padding: 0 8px;
+        min-height: 70px;
+        height: 70px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+
+    .nav-left-zone,
+    .nav-user-zone {
+        display: flex;
+        align-items: center;
+        flex: 1 1 0;
+        min-width: 0 !important;
+        box-sizing: border-box;
+    }
+
+    .nav-left-zone {
+        justify-content: flex-start;
+    }
+
+    .nav-user-zone {
+        justify-content: flex-end;
+        padding-right: 0;
+    }
+
+    .main-navbar .profile-info-text {
+        display: none !important;
+    }
+
+    .main-navbar .profile-action-card {
+        padding: 0 !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .main-navbar .btn-volver {
+        padding: 6px 12px;
+        font-size: 0.85rem;
+    }
+
+    .nav-brand {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 5;
+        height: 50px;
+        display: flex;
+        align-items: center;
+    }
+
+    .nav-logo-large {
+        height: 44px;
+        width: auto;
+    }
+
+    .texto-largo-inicio {
+        display: none;
+    }
+
+    .texto-corto-inicio {
+        display: inline;
+    }
+
+    .btn-inicio-nav {
+        display: inline-flex !important;
+    }
+
+    .texto-largo-inicio {
+        display: none !important;
+    }
+
+    .texto-corto-inicio {
+        display: inline !important;
+    }
+}
+
+@media (max-width: 400px) {
+    .btn-inicio-nav {
+        display: none !important;
+    }
+
+    .nav-left-zone {
+        min-width: 60px !important;
+    }
+
+    .nav-user-zone {
+        min-width: 60px !important;
+    }
+
+    .main-navbar {
+        padding: 0 6px;
+    }
+
+    .darkmode-switch-wrapper {
+        padding: 4px 8px;
+        gap: 2px;
+    }
+
+    .switch-icon {
+        font-size: 0.8rem;
+    }
+
+    .nav-brand-link {
+        pointer-events: auto;
+        cursor: pointer;
+    }
+}
+
+@media (max-width: 335px) {
+    .darkmode-switch-wrapper .switch-icon {
+        display: none;
+    }
+}
+
+/* ==========================================================================
+   MODO OSCURO GLOBAL (DARK MODE)
+   ========================================================================== */
+[data-theme="dark"] .main-navbar {
+    background-color: var(--color-surface) !important;
+    border-bottom-color: var(--color-border);
+}
+
+[data-theme="dark"] .profile-action-card {
+    background-color: var(--color-bg);
+}
+
+[data-theme="dark"] .badge-edit-gear {
+    background: var(--color-surface);
+    border-color: var(--color-border);
+    color: var(--color-text);
+}
+
+[data-theme="dark"] .catalogo-search-input {
+    background-color: var(--color-surface) !important;
+    color: var(--color-text) !important;
+    border-color: var(--color-border) !important;
+}
+
+[data-theme="dark"] .btn-limpiar {
+    background-color: var(--color-surface) !important;
+    color: var(--color-text) !important;
+    border-color: var(--color-border) !important;
+}
+
+[data-theme="dark"] .btn-limpiar:hover {
+    background-color: var(--color-bg) !important;
+}
+
+/* ==========================================================================
+   FOOTER INSTITUCIONAL
    ========================================================================== */
 .footer-institucional {
     width: 100%;

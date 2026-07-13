@@ -5,48 +5,96 @@
 {% block extra_css %}
 <link rel="stylesheet" href="/static/css/catalogo.css">
 <link rel="stylesheet" href="/static/css/carrito.css">
+<link rel="stylesheet" href="/static/css/carrito_detalle.css">
 <link rel="stylesheet" href="/static/css/ejemplares.css">
 {% endblock %}
 
 {% block content %}
+
+{% set en_home = false %}
+{% set en_perfil = false %}
+
+{% include "partials/header.html" %}
+
 <main class="catalogo-page">
+
     <header class="catalogo-header">
-        <div class="auth-brand">
-            <img src="/static/img/logo_gia_transparente.png" alt="GIA" class="auth-logo">
-        </div>
         <h1>Detalle de la reserva</h1>
+
         {% if fecha_inicio and fecha_fin %}
-        <p class="auth-subtitle">Fechas: {{ fecha_inicio }} a {{ fecha_fin }}</p>
+        <p class="catalogo-subtitle">
+            Reserva desde <strong>{{ fecha_inicio }}</strong> hasta
+            <strong>{{ fecha_fin }}</strong>.
+        </p>
         {% endif %}
     </header>
 
-    <section class="ejemplares-seccion">
-        <div class="carrito-acciones-top">
-            <a class="btn-volver" href="/reservas">&larr; Volver a reservas</a>
-            <span class="carrito-resumen-cantidad">{{ carrito_cantidad }}</span>
+    <section class="carrito-detalle-card">
+
+        <div class="carrito-detalle-top">
+
+            <a class="btn-volver" href="/reservas">
+                ← Volver a reserva
+            </a>
+
+            <div class="carrito-detalle-badge">
+                {{ carrito_cantidad }} ejemplar(es)
+            </div>
+
         </div>
 
         {% if items | length == 0 %}
-        <p class="ejemplares-vacio">No hay ejemplares en la reserva todavía.</p>
+
+        <div class="carrito-vacio">
+            <h3>La reserva todavía está vacía</h3>
+            <p>
+                Agregá uno o más ejemplares desde el catálogo para continuar.
+            </p>
+        </div>
+
         {% else %}
+
         <ul class="ejemplares-lista">
+
             {% for it in items %}
+
             <li class="ejemplar-item">
+
                 <div class="carrito-item-row">
-                    <span class="ejemplar-datos">
-                        <span class="ejemplar-dato"><b>Modelo:</b> {{ it.modelo_nombre }}</span>
-                        <span class="ejemplar-dato"><b>Serie:</b> {{ it.numero_serie }}</span>
-                        <span class="ejemplar-dato"><b>Patrimonio:</b> {{ it.patrimonio }}</span>
-                        <span class="ejemplar-dato"><b>Ubicación:</b> {{ it.ubicacion }}</span>
-                    </span>
+
+                    <div class="ejemplar-datos">
+
+                        <div><strong>Categoría:</strong> {{ it.categoria }}</div>
+                        <div><strong>Modelo:</strong> {{ it.modelo_nombre }}</div>
+                        <div><strong>N.º QR:</strong> {{ it.numero_qr }}</div>
+                        <div><strong>N.º de serie:</strong> {{ it.numero_serie }}</div>
+                        <div><strong>Patrimonio:</strong> {{ it.patrimonio }}</div>
+                        <div><strong>Ubicación:</strong> {{ it.ubicacion }}</div>
+
+                    </div>
+
                     <form method="POST" action="/reservas/carrito/remover/{{ it.ejemplar_id }}">
-                        <button type="submit" class="btn-remover">Quitar</button>
+
+                        <button class="btn-remover" type="submit">
+                            Quitar
+                        </button>
+
                     </form>
+
                 </div>
+
             </li>
+
             {% endfor %}
+
         </ul>
+
         {% endif %}
+
     </section>
+
 </main>
+
+{% include "partials/footer_institucional.html" %}
+
 {% endblock %}

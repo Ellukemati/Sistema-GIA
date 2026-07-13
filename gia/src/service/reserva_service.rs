@@ -27,7 +27,9 @@ pub struct ReservaService;
 pub struct CarritoItemDTO {
     pub ejemplar_id: i64,
     pub modelo_id: i64,
+    pub categoria: String,
     pub modelo_nombre: String,
+    pub numero_qr: String,
     pub numero_serie: String,
     pub patrimonio: String,
     pub ubicacion: String,
@@ -414,15 +416,23 @@ impl ReservaService {
                     None => continue,
                 };
 
-            let modelo_nombre = ModeloRepository::buscar_por_id(conn, ejemplar.modelo_id)
-                .map_err(|e| e.to_string())?
-                .map(|m| m.nombre_modelo)
-                .unwrap_or_else(|| "Modelo".to_string());
+            let modelo = ModeloRepository::buscar_por_id(conn, ejemplar.modelo_id)
+                .map_err(|e| e.to_string())?;
+
+            let (modelo_nombre, categoria) = match modelo {
+                Some(m) => (
+                    m.nombre_modelo,
+                    m.categoria.unwrap_or_else(|| "Sin categoría".to_string()),
+                ),
+                None => ("Modelo".to_string(), "Sin categoría".to_string()),
+            };
 
             items.push(CarritoItemDTO {
                 ejemplar_id: ejemplar.id,
                 modelo_id: ejemplar.modelo_id,
+                categoria,
                 modelo_nombre,
+                numero_qr: ejemplar.codigo_qr.unwrap_or_else(|| "Sin QR".to_string()),
                 numero_serie: ejemplar
                     .numero_serie
                     .unwrap_or_else(|| "Sin serie".to_string()),

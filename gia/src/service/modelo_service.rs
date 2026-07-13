@@ -252,6 +252,7 @@ impl ModeloService {
 
         Ok(Self::agrupar_por_categoria(cards))
     }
+
     pub fn listar_cards_filtradas(
         conn: &Connection,
         texto: &str,
@@ -266,6 +267,77 @@ impl ModeloService {
         }
 
         Ok(Self::agrupar_por_categoria(cards))
+    }
+
+    fn aplicar_categoria_y_orden(
+        mut grupos: Vec<GrupoCategoriaDTO>,
+        cat: &str,
+        orden: &str,
+    ) -> Vec<GrupoCategoriaDTO> {
+        if !cat.trim().is_empty() {
+            grupos.retain(|g| g.categoria.eq_ignore_ascii_case(cat));
+        }
+
+        match orden {
+            "cat_desc" => {
+                grupos.sort_by(|a, b| b.categoria.to_lowercase().cmp(&a.categoria.to_lowercase()));
+            }
+            _ => {
+                grupos.sort_by(|a, b| a.categoria.to_lowercase().cmp(&b.categoria.to_lowercase()));
+            }
+        }
+
+        grupos
+    }
+
+    pub fn filtrar_y_ordenar_cards(
+        conn: &Connection,
+        buscar: &str,
+        cat: &str,
+        orden: &str,
+    ) -> Result<Vec<GrupoCategoriaDTO>, String> {
+        let grupos = if buscar.trim().is_empty() {
+            Self::listar_cards_agrupadas(conn)?
+        } else {
+            Self::listar_cards_filtradas(conn, buscar)?
+        };
+
+        Ok(Self::aplicar_categoria_y_orden(grupos, cat, orden))
+    }
+
+    pub fn filtrar_y_ordenar_cards_disponibles(
+        conn: &Connection,
+        fecha_inicio: &str,
+        fecha_fin: &str,
+        buscar: &str,
+        cat: &str,
+        orden: &str,
+    ) -> Result<Vec<GrupoCategoriaDTO>, String> {
+        let grupos =
+            Self::listar_cards_disponibles_agrupadas(conn, fecha_inicio, fecha_fin, buscar)?;
+
+        Ok(Self::aplicar_categoria_y_orden(grupos, cat, orden))
+    }
+
+    pub fn obtener_lista_categorias(conn: &Connection) -> Vec<String> {
+        let mut lista = ModeloRepository::listar_todos(conn)
+            .unwrap_or_default()
+            .into_iter()
+            .filter_map(|m| m.categoria)
+            .filter(|c| !c.trim().is_empty())
+            .fold(Vec::new(), |mut acc, c| {
+                if !acc
+                    .iter()
+                    .any(|x: &String| x.to_lowercase() == c.to_lowercase())
+                {
+                    acc.push(c);
+                }
+                acc
+            });
+
+        lista.sort_by_key(|a| a.to_lowercase());
+
+        lista
     }
 }
 

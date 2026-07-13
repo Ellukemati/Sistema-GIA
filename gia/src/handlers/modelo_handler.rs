@@ -229,26 +229,54 @@ impl ModeloHandler {
     }
 
     pub fn listar_modelos(request: &Request, conn: &Connection) -> Response {
+        let usuario_opt = usuario_actual(request, conn).ok();
         let busqueda = request.get_param("buscar").unwrap_or_default();
-
-        let grupos = if busqueda.trim().is_empty() {
-            ModeloService::listar_cards_agrupadas(conn)
-        } else {
-            ModeloService::listar_cards_filtradas(conn, &busqueda)
-        };
+        let cat_sel = request.get_param("categoria_id").unwrap_or_default();
+        let orden_sel = request
+            .get_param("orden")
+            .unwrap_or_else(|| "cat_asc".to_string());
+        let grupos = ModeloService::filtrar_y_ordenar_cards(conn, &busqueda, &cat_sel, &orden_sel);
+        let categorias_disponibles = ModeloService::obtener_lista_categorias(conn);
 
         match grupos {
             Ok(grupos) => {
                 let mut ctx = Context::new();
                 ctx.insert("grupos", &grupos);
                 ctx.insert("busqueda", &busqueda);
+                ctx.insert("categoria_seleccionada", &cat_sel);
+                ctx.insert("orden_seleccionado", &orden_sel);
+                ctx.insert("categorias_disponibles", &categorias_disponibles);
+
+                if let Some(ref usuario) = usuario_opt {
+                    ctx.insert("usuario_actual", usuario);
+                }
 
                 templates::response_html(templates::render("modelo_listado.html", &ctx))
             }
-
             Err(e) => templates::response_mensaje_error("No se pudieron cargar los modelos", &e),
         }
     }
+
+    pub fn buscar_modelos_catalogo(request: &Request, conn: &Connection) -> Response {
+        let busqueda = request.get_param("buscar").unwrap_or_default();
+        let cat_sel = request.get_param("categoria_id").unwrap_or_default();
+        let orden_sel = request
+            .get_param("orden")
+            .unwrap_or_else(|| "cat_asc".to_string());
+
+        let grupos = ModeloService::filtrar_y_ordenar_cards(conn, &busqueda, &cat_sel, &orden_sel);
+
+        match grupos {
+            Ok(grupos) => {
+                let mut ctx = Context::new();
+                ctx.insert("grupos", &grupos);
+
+                templates::response_html(templates::render("partials/catalogo_cards.html", &ctx))
+            }
+            Err(e) => templates::response_mensaje_error("Error al procesar el ordenamiento", &e),
+        }
+    }
+
     pub fn mostrar_detalle(request: &Request, conn: &Connection, id: i64) -> Response {
         let modelo = match ModeloRepository::buscar_por_id(conn, id) {
             Ok(Some(m)) if !m.eliminado => m,

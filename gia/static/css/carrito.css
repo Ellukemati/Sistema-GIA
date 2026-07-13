@@ -1,8 +1,6 @@
 .carrito-resumen {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
     gap: var(--spacing-md);
     background-color: var(--color-surface);
     border: 1.5px solid var(--color-primary);
@@ -15,7 +13,9 @@
 .carrito-resumen-info {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: var(--spacing-sm);
+    width: 100%;
 }
 
 .carrito-resumen-cantidad {
@@ -38,17 +38,18 @@
 
 .carrito-resumen-form {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--spacing-sm);
+    flex-direction: column;
+    gap: var(--spacing-md);
+    width: 100%;
 }
 
 .carrito-motivo-field {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-xs);
-    flex: 1 1 12rem;
-    min-width: 0;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
 }
 
 .carrito-motivo-label {
@@ -78,6 +79,13 @@
     outline: none;
     border-color: var(--color-primary);
     box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.carrito-botones {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--spacing-sm);
 }
 
 .btn-ver-detalle {
@@ -111,6 +119,17 @@
     transition: background-color 0.15s ease;
 }
 
+.btn-finalizar:hover:not(:disabled) {
+    background-color: var(--color-primary-hover);
+}
+
+.btn-finalizar:disabled {
+    color: var(--color-muted);
+    background-color: var(--color-bg);
+    border-color: var(--color-border);
+    cursor: not-allowed;
+}
+
 .carrito-acciones-top {
     display: flex;
     align-items: center;
@@ -136,7 +155,6 @@
     border: 1.5px solid var(--color-danger, #c0392b);
     border-radius: var(--radius-sm);
     cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .btn-remover:hover {
@@ -144,25 +162,33 @@
     background-color: var(--color-danger, #c0392b);
 }
 
-.btn-finalizar:hover:not(:disabled) {
-    background-color: var(--color-primary-hover);
-}
+@media (max-width: 768px) {
 
-.btn-finalizar:disabled {
-    color: var(--color-muted);
-    background-color: var(--color-bg);
-    border-color: var(--color-border);
-    cursor: not-allowed;
-}
-
-@media (max-width: 479px) {
     .carrito-resumen {
-        flex-direction: column;
-        align-items: stretch;
+        padding: var(--spacing-md);
     }
 
     .carrito-resumen-form {
+        width: 100%;
+    }
+
+    .carrito-motivo-field {
+        max-width: 100%;
+    }
+
+    .carrito-motivo {
+        font-size: 0.95rem;
+    }
+
+    .carrito-botones {
         flex-direction: column;
-        align-items: stretch;
+        width: 100%;
+    }
+
+    .btn-ver-detalle,
+    .btn-finalizar {
+        width: 100%;
+        box-sizing: border-box;
+        text-align: center;
     }
 }

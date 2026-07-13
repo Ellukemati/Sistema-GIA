@@ -106,20 +106,26 @@
     font-size: 0.95rem;
     font-weight: 700;
     text-decoration: none;
-    color: var(--color-surface);
+    color: white !important;
     background-color: var(--color-primary);
     border: 1.5px solid var(--color-primary);
     border-radius: var(--radius-sm);
     cursor: pointer;
-    transition: background-color 0.15s ease;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.btn-manual:visited {
+    color: white !important;
 }
 
 .btn-manual:hover {
+    color: white !important;
     background-color: var(--color-primary-hover);
+    text-decoration: none;
 }
 
 .btn-manual--disabled {
-    color: var(--color-muted);
+    color: var(--color-muted) !important;
     background-color: var(--color-bg);
     border-color: var(--color-border);
     cursor: not-allowed;
@@ -127,22 +133,28 @@
 }
 
 .btn-manual--peligro {
+    color: white !important;
     background-color: var(--color-danger, #c0392b);
     border-color: var(--color-danger, #c0392b);
 }
 
 .btn-manual--peligro:hover {
+    color: white !important;
     background-color: var(--color-danger-hover, #a93226);
 }
 
 .btn-manual--secundario {
-    color: var(--color-primary);
+    color: var(--color-primary) !important;
     background-color: var(--color-surface);
     border-color: var(--color-primary);
 }
 
+.btn-manual--secundario:visited {
+    color: var(--color-primary) !important;
+}
+
 .btn-manual--secundario:hover {
-    color: var(--color-surface);
+    color: var(--color-surface) !important;
     background-color: var(--color-primary);
 }
 

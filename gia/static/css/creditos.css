@@ -1,0 +1,160 @@
+.creditos-page {
+    width: 100%;
+    max-width: 1040px;
+    margin: var(--spacing-lg) auto;
+    padding: 0 var(--spacing-md);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.creditos-hero {
+    text-align: center;
+}
+
+.creditos-logo {
+    width: 90px;
+    margin-bottom: var(--spacing-sm);
+}
+
+.creditos-titulo {
+    margin: 0 0 4px;
+    font-size: 1.6rem;
+}
+
+.creditos-subtitulo {
+    margin: 0 0 var(--spacing-md);
+    color: var(--color-muted);
+    font-weight: 600;
+}
+
+.creditos-descripcion {
+    max-width: 640px;
+    margin: 0 auto;
+    line-height: 1.5;
+}
+
+.creditos-meta {
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-md);
+}
+
+.creditos-badge {
+    padding: 4px 14px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    background-color: var(--color-bg);
+    color: var(--color-primary);
+    border: 1.5px solid var(--color-border);
+}
+
+.creditos-badge--accent {
+    background-color: var(--color-accent);
+    color: #fff;
+    border-color: var(--color-accent);
+}
+
+.creditos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.creditos-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    background-color: var(--color-surface);
+    border: 1.5px solid var(--color-border);
+    border-top: 4px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-lg) var(--spacing-md);
+    box-sizing: border-box;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.creditos-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 145, 213, 0.15);
+}
+
+.creditos-avatar {
+    font-size: 2.4rem;
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: var(--color-bg);
+    margin-bottom: var(--spacing-sm);
+}
+
+.creditos-nombre {
+    margin: 0 0 2px;
+    font-size: 1.05rem;
+}
+
+.creditos-legajo {
+    font-size: 0.8rem;
+    color: var(--color-muted);
+    margin-bottom: 2px;
+}
+
+.creditos-links {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+}
+
+.creditos-email {
+    font-size: 0.85rem;
+    color: var(--color-muted);
+    margin-bottom: var(--spacing-sm);
+    word-break: break-all;
+}
+
+.creditos-link {
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    background-color: var(--color-bg);
+    border: 1px solid var(--color-border);
+    text-decoration: none !important;
+    color: var(--color-text);
+    transition: all 0.15s ease;
+}
+
+.creditos-link:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.creditos-agradecimiento {
+    margin: 0;
+    line-height: 1.5;
+}
+
+.creditos-copyright {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--color-muted);
+    margin: var(--spacing-md) 0 var(--spacing-xl);
+}
+
+@media (max-width: 768px) {
+    .creditos-page {
+        margin: var(--spacing-md) auto;
+    }
+
+    .creditos-grid {
+        grid-template-columns: 1fr;
+    }
+}

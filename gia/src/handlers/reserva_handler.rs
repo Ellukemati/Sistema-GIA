@@ -6,6 +6,7 @@ use std::io::Read;
 use std::sync::mpsc::SyncSender;
 use tera::Context;
 
+use crate::models::reserva_view::ReservaView;
 use crate::templates;
 use crate::{
     repository::{
@@ -18,16 +19,20 @@ use crate::{
     service::modelo_service::ModeloService,
     service::pdf_worker_service::PdfRequest,
     service::reserva_service::ReservaService,
-    utils::{Carrito, cookie_carrito, cookie_carrito_vacio, extraer_token_sesion, leer_carrito},
+    utils::{
+        Carrito, cookie_carrito, cookie_carrito_vacio, extraer_token_sesion, leer_carrito,
+        usuario_actual,
+    },
 };
 
 pub struct ReservaHandler;
-use crate::models::reserva_view::ReservaView;
 impl ReservaHandler {
     pub fn mostrar_formulario_reserva(request: &Request, conn: &Connection) -> Response {
         if let Err(response) = Self::obtener_usuario_sesion(request, conn) {
             return response;
         }
+
+        let usuario_opt = usuario_actual(request, conn).ok();
 
         let fecha_minima = (Local::now().date_naive() + Duration::days(5))
             .format("%Y-%m-%d")
@@ -39,14 +44,19 @@ impl ReservaHandler {
 
         let carrito = leer_carrito(request);
 
-        // Con fechas en el carrito listamos solo los modelos disponibles para ese
-        // rango; sin fechas, listamos todos los modelos.
+        let buscar = request.get_param("buscar").unwrap_or_default();
+        let categoria = request.get_param("categoria").unwrap_or_default();
+        let orden = request.get_param("orden").unwrap_or_default();
+
         let grupos = if carrito.tiene_fechas() {
             let inicio = carrito.fecha_inicio.clone().unwrap_or_default();
             let fin = carrito.fecha_fin.clone().unwrap_or_default();
-            ModeloService::listar_cards_disponibles_agrupadas(conn, &inicio, &fin, "")
+
+            ModeloService::filtrar_y_ordenar_cards_disponibles(
+                conn, &inicio, &fin, &buscar, &categoria, &orden,
+            )
         } else {
-            ModeloService::listar_cards_agrupadas(conn)
+            ModeloService::filtrar_y_ordenar_cards(conn, &buscar, &categoria, &orden)
         };
 
         let grupos = match grupos {
@@ -56,18 +66,35 @@ impl ReservaHandler {
             }
         };
 
+        let categorias = ModeloService::obtener_lista_categorias(conn);
+
         let mut ctx = Context::new();
-        ctx.insert("busqueda", "");
+
+        ctx.insert("busqueda", &buscar);
+        ctx.insert("categoria", &categoria);
+        ctx.insert("orden", &orden);
+        ctx.insert("categorias", &categorias);
+
         ctx.insert("fecha_minima", &fecha_minima);
         ctx.insert("fecha_maxima", &fecha_maxima);
         ctx.insert("grupos", &grupos);
+
         ctx.insert(
             "fecha_inicio",
             &carrito.fecha_inicio.clone().unwrap_or_default(),
         );
         ctx.insert("fecha_fin", &carrito.fecha_fin.clone().unwrap_or_default());
+
+        ctx.insert("motivo", &carrito.motivo.clone().unwrap_or_default());
         ctx.insert("carrito_cantidad", &carrito.ejemplares.len());
         ctx.insert("oob", &false);
+
+        if let Some(ref usuario) = usuario_opt {
+            ctx.insert("usuario_actual", usuario);
+        }
+
+        ctx.insert("avatar_cache_buster", &0);
+
         templates::response_html(templates::render("reserva_formulario.html", &ctx))
     }
 
@@ -84,29 +111,31 @@ impl ReservaHandler {
         let inicio = request.get_param("fecha_inicio").unwrap_or_default();
         let fin = request.get_param("fecha_fin").unwrap_or_default();
         let buscar = request.get_param("buscar").unwrap_or_default();
+        let categoria = request.get_param("categoria").unwrap_or_default();
+        let orden = request.get_param("orden").unwrap_or_default();
+        let motivo = leer_carrito(request).motivo;
 
         // Cambiar la fecha reinicia el carrito: las fechas nuevas reemplazan a las
-        // anteriores y se vacia la lista de ejemplares.
+        // anteriores y se vacía la lista de ejemplares.
         let (grupos_res, carrito) = if inicio.trim().is_empty() || fin.trim().is_empty() {
-            // Sin fechas (el usuario las limpio): listamos todos los modelos.
             (
-                if buscar.trim().is_empty() {
-                    ModeloService::listar_cards_agrupadas(conn)
-                } else {
-                    ModeloService::listar_cards_filtradas(conn, &buscar)
-                },
+                ModeloService::filtrar_y_ordenar_cards(conn, &buscar, &categoria, &orden),
                 Carrito {
                     fecha_inicio: None,
                     fecha_fin: None,
+                    motivo,
                     ejemplares: Vec::new(),
                 },
             )
         } else if Self::fechas_validas(&inicio, &fin) {
             (
-                ModeloService::listar_cards_disponibles_agrupadas(conn, &inicio, &fin, &buscar),
+                ModeloService::filtrar_y_ordenar_cards_disponibles(
+                    conn, &inicio, &fin, &buscar, &categoria, &orden,
+                ),
                 Carrito {
                     fecha_inicio: Some(inicio.clone()),
                     fecha_fin: Some(fin.clone()),
+                    motivo,
                     ejemplares: Vec::new(),
                 },
             )
@@ -126,6 +155,8 @@ impl ReservaHandler {
 
         let mut ctx_modelos = Context::new();
         ctx_modelos.insert("grupos", &grupos);
+        ctx_modelos.insert("busqueda", &buscar);
+
         let modelos_html = match templates::render("partials/reserva_modelos.html", &ctx_modelos) {
             Ok(h) => h,
             Err(e) => {
@@ -134,11 +165,11 @@ impl ReservaHandler {
             }
         };
 
-        // Resumen del carrito (vacio) actualizado fuera de banda (hx-swap-oob).
         let mut ctx_resumen = Context::new();
-        ctx_modelos.insert("busqueda", &buscar);
         ctx_resumen.insert("carrito_cantidad", &0usize);
+        ctx_resumen.insert("motivo", &carrito.motivo.clone().unwrap_or_default());
         ctx_resumen.insert("oob", &true);
+
         let resumen_html = match templates::render("partials/carrito_resumen.html", &ctx_resumen) {
             Ok(h) => h,
             Err(e) => {
@@ -159,15 +190,15 @@ impl ReservaHandler {
         let inicio = request.get_param("fecha_inicio").unwrap_or_default();
         let fin = request.get_param("fecha_fin").unwrap_or_default();
         let buscar = request.get_param("buscar").unwrap_or_default();
+        let categoria = request.get_param("categoria").unwrap_or_default();
+        let orden = request.get_param("orden").unwrap_or_default();
 
         let grupos = if inicio.trim().is_empty() || fin.trim().is_empty() {
-            if buscar.trim().is_empty() {
-                ModeloService::listar_cards_agrupadas(conn)
-            } else {
-                ModeloService::listar_cards_filtradas(conn, &buscar)
-            }
+            ModeloService::filtrar_y_ordenar_cards(conn, &buscar, &categoria, &orden)
         } else {
-            ModeloService::listar_cards_disponibles_agrupadas(conn, &inicio, &fin, &buscar)
+            ModeloService::filtrar_y_ordenar_cards_disponibles(
+                conn, &inicio, &fin, &buscar, &categoria, &orden,
+            )
         };
 
         let grupos = match grupos {
@@ -187,6 +218,7 @@ impl ReservaHandler {
             }
         }
     }
+
     /// Valida que ambas fechas esten presentes, sean parseables y que fin sea
     /// posterior a inicio. Las cotas (min/max) las aplica el input del formulario.
     fn fechas_validas(inicio: &str, fin: &str) -> bool {
@@ -315,10 +347,34 @@ impl ReservaHandler {
             .with_additional_header("Set-Cookie", cookie_carrito(&carrito))
     }
 
+    pub fn actualizar_motivo_carrito(request: &Request, conn: &Connection) -> Response {
+        if let Err(response) = Self::obtener_usuario_sesion(request, conn) {
+            return response;
+        }
+
+        let mut carrito = leer_carrito(request);
+
+        let mut body = String::new();
+        if let Some(mut reader) = request.data() {
+            let _ = reader.read_to_string(&mut body);
+        }
+
+        let datos = Self::parsear_formulario(&body);
+
+        carrito.motivo = datos
+            .get("motivo")
+            .cloned()
+            .filter(|m| !m.trim().is_empty());
+
+        Response::text("").with_additional_header("Set-Cookie", cookie_carrito(&carrito))
+    }
+
     pub fn mostrar_carrito(request: &Request, conn: &Connection) -> Response {
         if let Err(response) = Self::obtener_usuario_sesion(request, conn) {
             return response;
         }
+
+        let usuario_opt = usuario_actual(request, conn).ok();
 
         let carrito = leer_carrito(request);
 
@@ -330,13 +386,22 @@ impl ReservaHandler {
         };
 
         let mut ctx = Context::new();
+
         ctx.insert("items", &items);
         ctx.insert(
             "fecha_inicio",
             &carrito.fecha_inicio.clone().unwrap_or_default(),
         );
         ctx.insert("fecha_fin", &carrito.fecha_fin.clone().unwrap_or_default());
+        ctx.insert("motivo", &carrito.motivo.clone().unwrap_or_default());
         ctx.insert("carrito_cantidad", &carrito.ejemplares.len());
+
+        if let Some(ref usuario) = usuario_opt {
+            ctx.insert("usuario_actual", usuario);
+        }
+
+        ctx.insert("avatar_cache_buster", &0);
+
         templates::response_html(templates::render("carrito_detalle.html", &ctx))
     }
 
@@ -375,12 +440,7 @@ impl ReservaHandler {
                 }
             };
 
-        let mut body = String::new();
-        if let Some(mut reader) = request.data() {
-            let _ = reader.read_to_string(&mut body);
-        }
-        let datos = Self::parsear_formulario(&body);
-        let motivo = datos.get("motivo").cloned();
+        let motivo = carrito.motivo.clone();
 
         match ReservaService::crear_reserva(
             conn,
@@ -542,6 +602,8 @@ impl ReservaHandler {
             Err(r) => return r,
         };
 
+        let usuario_opt = usuario_actual(request, conn).ok();
+
         let reservas = match ReservaService::obtener_reservas_usuario(conn, id_usuario) {
             Ok(r) => r,
             Err(e) => {
@@ -570,11 +632,12 @@ impl ReservaHandler {
             };
 
             let equipos =
-                ReservaInstrumentoRepository::obtener_nombres_equipos_reserva(conn, reserva.id)
+                ReservaInstrumentoRepository::obtener_detalle_equipos_reserva(conn, reserva.id)
                     .unwrap_or(vec![]);
 
             let inicio = NaiveDate::parse_from_str(&reserva.fecha_inicio, "%Y-%m-%d").unwrap();
             let fin = NaiveDate::parse_from_str(&reserva.fecha_fin, "%Y-%m-%d").unwrap();
+
             let dias = (fin - inicio).num_days();
 
             let creada =
@@ -590,10 +653,20 @@ impl ReservaHandler {
                 format!("Hace {} días", dias_desde)
             };
 
+            let fecha_inicio = NaiveDate::parse_from_str(&reserva.fecha_inicio, "%Y-%m-%d")
+                .unwrap()
+                .format("%d-%m-%Y")
+                .to_string();
+
+            let fecha_fin = NaiveDate::parse_from_str(&reserva.fecha_fin, "%Y-%m-%d")
+                .unwrap()
+                .format("%d-%m-%Y")
+                .to_string();
+
             reservas_vista.push(ReservaView {
                 id: reserva.id,
-                fecha_inicio: reserva.fecha_inicio,
-                fecha_fin: reserva.fecha_fin,
+                fecha_inicio,
+                fecha_fin,
                 estado: reserva.estado.clone(),
                 texto_estado: texto_estado.to_string(),
                 clase_estado: clase_estado.to_string(),
@@ -607,12 +680,16 @@ impl ReservaHandler {
         let mut ctx = Context::new();
         ctx.insert("reservas", &reservas_vista);
 
+        if let Some(ref usuario) = usuario_opt {
+            ctx.insert("usuario_actual", usuario);
+        }
+
+        ctx.insert("avatar_cache_buster", &0);
+
         let html = match templates::render("mis_reservas.html", &ctx) {
             Ok(html) => html,
-
             Err(e) => {
                 eprintln!("ERROR TERA: {:?}", e);
-
                 return Response::text(format!("Error Tera: {:?}", e)).with_status_code(500);
             }
         };

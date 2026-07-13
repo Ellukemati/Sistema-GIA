@@ -1,7 +1,7 @@
 use crate::constants::EXPIRACION_SESION;
 use crate::repository::{
-    image_repository::ImageRepository, sesion_repository::SesionRepository,
-    usuario_repository::UsuarioRepository,
+    image_repository::ImageRepository, reserva_repository::ReservaRepository,
+    sesion_repository::SesionRepository, usuario_repository::UsuarioRepository,
 };
 use crate::service::{auth_service::AuthService, image_service::procesar_avatar};
 use crate::templates;
@@ -67,11 +67,26 @@ impl AuthHandler {
         {
             let mut ctx = Context::new();
             ctx.insert("usuario_actual", &usuario);
+
             let cache_buster = std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .map(|duracion| duracion.as_secs())
                 .unwrap_or(0);
             ctx.insert("avatar_cache_buster", &cache_buster);
+
+            if usuario.es_admin() {
+                let reservas_pendientes = ReservaRepository::listar_por_estado(conn, "pendiente")
+                    .map(|lista| lista.len())
+                    .unwrap_or(0);
+
+                let docentes_pendientes = UsuarioRepository::listar_profesores_pendientes(conn)
+                    .map(|lista| lista.len())
+                    .unwrap_or(0);
+
+                ctx.insert("reservas_pendientes_count", &reservas_pendientes);
+                ctx.insert("docentes_pendientes_count", &docentes_pendientes);
+            }
+
             return templates::response_html(templates::render("home.html", &ctx));
         }
         Response::redirect_302("/ingreso")

@@ -19,7 +19,7 @@ pub fn dispatch(
     conn: Arc<Mutex<Connection>>,
     pdf_tx: SyncSender<PdfRequest>,
 ) -> Response {
-    let response = static_routes::router(request);
+    let response = static_routes::router(request, Arc::clone(&conn));
     if response.status_code != 404 {
         return response;
     }
