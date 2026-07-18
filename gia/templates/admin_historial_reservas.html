@@ -48,9 +48,13 @@
             <option value="desc" {% if direccion=="desc" %}selected{% endif %}>Descendente</option>
         </select>
 
-        <button type="submit" class="btn-primary">
+        <button type="submit" class="btn-filtrar">
             Filtrar
         </button>
+
+        <a href="/admin/historial-reservas" class="btn-limpiar">
+            Limpiar filtros
+        </a>
 
     </form>
 
@@ -110,6 +114,10 @@
 
                         {{ fin[2] }}-{{ fin[1] }}-{{ fin[0] }}
 
+                        <div class="badge">
+                            ⏱ {{ reserva.dias }} día(s)
+                        </div>
+
                     </td>
 
                     <td data-label="Estado">
@@ -137,7 +145,7 @@
 
                     </td>
 
-                    <td data-label="Aprobación y Firma" class="col-fecha">
+                    <td data-label="Aprobación y firma" class="col-fecha">
 
                         {% if reserva.momento_confirmacion and reserva.momento_confirmacion != "---" %}
 

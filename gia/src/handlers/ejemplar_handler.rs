@@ -286,10 +286,14 @@ impl EjemplarHandler {
     }
 
     fn parsear_formulario_ejemplar(request: &Request) -> Result<DatosFormularioEjemplar, Response> {
-        let mut multipart = multipart::get_multipart_input(request).map_err(|_| templates::response_mensaje_error_con_status("Error", "Fallo multipart", 400))?;
-        let (mut modelo_id_raw, mut numero_serie, mut codigo_qr, mut patrimonio) = (String::new(), None, None, None);
+        let mut multipart = multipart::get_multipart_input(request).map_err(|_| {
+            templates::response_mensaje_error_con_status("Error", "Fallo multipart", 400)
+        })?;
+        let (mut modelo_id_raw, mut numero_serie, mut codigo_qr, mut patrimonio) =
+            (String::new(), None, None, None);
         let (mut observaciones, mut tiene_accesorios, mut accesorios) = (None, String::new(), None);
-        let (mut esta_disponible, mut ubicacion, mut lista_imagenes_bytes) = (String::new(), None, Vec::new());
+        let (mut esta_disponible, mut ubicacion, mut lista_imagenes_bytes) =
+            (String::new(), None, Vec::new());
 
         while let Some(mut field) = multipart.next() {
             let name = field.headers.name.to_string();
@@ -310,14 +314,38 @@ impl EjemplarHandler {
                 }
             } else if name == "imagenes[]" && field.headers.filename.is_some() {
                 let mut foto = Vec::new();
-                if field.data.read_to_end(&mut foto).is_ok() && !foto.is_empty() { lista_imagenes_bytes.push(foto); }
+                if field.data.read_to_end(&mut foto).is_ok() && !foto.is_empty() {
+                    lista_imagenes_bytes.push(foto);
+                }
             }
         }
 
-        let modelo_id = modelo_id_raw.parse::<i64>().map_err(|_| templates::response_mensaje_error_con_status("Error", "Modelo inválido", 400))?;
-        let accesorios = if tiene_accesorios == "si" { if accesorios.is_none() { return Err(templates::response_mensaje_error("Error", "Indique accesorios")); } accesorios } else { None };
-        
-        Ok(DatosFormularioEjemplar { modelo_id, numero_serie, codigo_qr, patrimonio, observaciones, accesorios, esta_disponible: parsear_esta_disponible(&esta_disponible), ubicacion, lista_imagenes_bytes })
+        let modelo_id = modelo_id_raw.parse::<i64>().map_err(|_| {
+            templates::response_mensaje_error_con_status("Error", "Modelo inválido", 400)
+        })?;
+        let accesorios = if tiene_accesorios == "si" {
+            if accesorios.is_none() {
+                return Err(templates::response_mensaje_error(
+                    "Error",
+                    "Indique accesorios",
+                ));
+            }
+            accesorios
+        } else {
+            None
+        };
+
+        Ok(DatosFormularioEjemplar {
+            modelo_id,
+            numero_serie,
+            codigo_qr,
+            patrimonio,
+            observaciones,
+            accesorios,
+            esta_disponible: parsear_esta_disponible(&esta_disponible),
+            ubicacion,
+            lista_imagenes_bytes,
+        })
     }
 
     fn crear_ejemplar_data_desde_formulario(

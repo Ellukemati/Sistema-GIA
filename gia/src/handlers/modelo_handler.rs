@@ -280,29 +280,64 @@ impl ModeloHandler {
     pub fn mostrar_detalle(request: &Request, conn: &Connection, id: i64) -> Response {
         let modelo = match ModeloRepository::buscar_por_id(conn, id) {
             Ok(Some(m)) if !m.eliminado => m,
-            Ok(Some(_)) | Ok(None) => return templates::response_mensaje_error_con_status("No encontrado", "El modelo no existe.", 404),
-            Err(e) => return templates::response_mensaje_error_con_status("Error", &e.to_string(), 500),
+            Ok(Some(_)) | Ok(None) => {
+                return templates::response_mensaje_error_con_status(
+                    "No encontrado",
+                    "El modelo no existe.",
+                    404,
+                );
+            }
+            Err(e) => {
+                return templates::response_mensaje_error_con_status("Error", &e.to_string(), 500);
+            }
         };
-        let es_admin = usuario_actual(request, conn).map(|u| u.es_admin()).unwrap_or(false);
-        let ejemplares = match if es_admin { EjemplarService::listar_ejemplares_para_detalle(conn, id) } else { EjemplarService::listar_ejemplares_basico(conn, id) } {
-            Ok(e) => e, Err(e) => return templates::response_mensaje_error("Error", &e),
+        let es_admin = usuario_actual(request, conn)
+            .map(|u| u.es_admin())
+            .unwrap_or(false);
+        let ejemplares = match if es_admin {
+            EjemplarService::listar_ejemplares_para_detalle(conn, id)
+        } else {
+            EjemplarService::listar_ejemplares_basico(conn, id)
+        } {
+            Ok(e) => e,
+            Err(e) => return templates::response_mensaje_error("Error", &e),
         };
 
         let ctx = Self::armar_contexto_detalle(conn, modelo, ejemplares, es_admin);
         templates::response_html(templates::render("modelo_detalle.html", &ctx))
     }
 
-    fn armar_contexto_detalle(conn: &Connection, modelo: crate::models::modelo::Modelo, ejemplares: Vec<crate::service::ejemplar_service::EjemplarDTO>, es_admin: bool) -> Context {
+    fn armar_contexto_detalle(
+        conn: &Connection,
+        modelo: crate::models::modelo::Modelo,
+        ejemplares: Vec<crate::service::ejemplar_service::EjemplarDTO>,
+        es_admin: bool,
+    ) -> Context {
         let id = modelo.id;
-        let imagen = match ImageRepository::existe_imagen_principal_modelo(conn, id) { Ok(true) => Some(format!("/imagenes/modelos/{}/0", id)), _ => None };
-        let cantidad_imagenes = ImageRepository::listar_ordenes_modelo(conn, id).map(|o| o.len()).unwrap_or(0);
+        let imagen = match ImageRepository::existe_imagen_principal_modelo(conn, id) {
+            Ok(true) => Some(format!("/imagenes/modelos/{}/0", id)),
+            _ => None,
+        };
+        let cantidad_imagenes = ImageRepository::listar_ordenes_modelo(conn, id)
+            .map(|o| o.len())
+            .unwrap_or(0);
         let tiene_manual = ModeloRepository::tiene_manual(conn, id).unwrap_or(false);
-        let tiene_ejemplares_activos = if es_admin { EjemplarRepository::tiene_ejemplares_activos(conn, id).unwrap_or(true) } else { false };
+        let tiene_ejemplares_activos = if es_admin {
+            EjemplarRepository::tiene_ejemplares_activos(conn, id).unwrap_or(true)
+        } else {
+            false
+        };
 
         let mut ctx = Context::new();
-        ctx.insert("modelo", &modelo); ctx.insert("imagen", &imagen); ctx.insert("cantidad_imagenes", &cantidad_imagenes);
-        ctx.insert("tiene_manual", &tiene_manual); ctx.insert("ejemplares", &ejemplares); ctx.insert("con_fechas", &false);
-        ctx.insert("es_admin", &es_admin); ctx.insert("mostrar_edicion", &es_admin); ctx.insert("tiene_ejemplares_activos", &tiene_ejemplares_activos);
+        ctx.insert("modelo", &modelo);
+        ctx.insert("imagen", &imagen);
+        ctx.insert("cantidad_imagenes", &cantidad_imagenes);
+        ctx.insert("tiene_manual", &tiene_manual);
+        ctx.insert("ejemplares", &ejemplares);
+        ctx.insert("con_fechas", &false);
+        ctx.insert("es_admin", &es_admin);
+        ctx.insert("mostrar_edicion", &es_admin);
+        ctx.insert("tiene_ejemplares_activos", &tiene_ejemplares_activos);
         ctx
     }
 
@@ -342,30 +377,46 @@ impl ModeloHandler {
         let mut multipart = multipart::get_multipart_input(request).map_err(|_| {
             templates::response_mensaje_error_con_status("Error", "Formato multipart inválido", 400)
         })?;
-        
+
         let mut datos = DatosFormularioModelo {
-            marca: String::new(), nombre_modelo: String::new(), categoria: None, 
-            descripcion: None, manual_bytes: Vec::new(), lista_imagenes_bytes: Vec::new(),
+            marca: String::new(),
+            nombre_modelo: String::new(),
+            categoria: None,
+            descripcion: None,
+            manual_bytes: Vec::new(),
+            lista_imagenes_bytes: Vec::new(),
         };
 
         while let Some(mut field) = multipart.next() {
             let name = field.headers.name.to_string(); // <- Esta es la clave para que compile
             match name.as_str() {
-                "marca" if field.is_text() => { let _ = field.data.read_to_string(&mut datos.marca); },
-                "nombre_modelo" if field.is_text() => { let _ = field.data.read_to_string(&mut datos.nombre_modelo); },
+                "marca" if field.is_text() => {
+                    let _ = field.data.read_to_string(&mut datos.marca);
+                }
+                "nombre_modelo" if field.is_text() => {
+                    let _ = field.data.read_to_string(&mut datos.nombre_modelo);
+                }
                 "categoria" if field.is_text() => {
                     let mut cat = String::new();
-                    if field.data.read_to_string(&mut cat).is_ok() && !cat.trim().is_empty() { datos.categoria = Some(cat); }
-                },
+                    if field.data.read_to_string(&mut cat).is_ok() && !cat.trim().is_empty() {
+                        datos.categoria = Some(cat);
+                    }
+                }
                 "descripcion" if field.is_text() => {
                     let mut desc = String::new();
-                    if field.data.read_to_string(&mut desc).is_ok() && !desc.trim().is_empty() { datos.descripcion = Some(desc); }
-                },
-                "manual_pdf" if field.headers.filename.is_some() => { let _ = field.data.read_to_end(&mut datos.manual_bytes); },
+                    if field.data.read_to_string(&mut desc).is_ok() && !desc.trim().is_empty() {
+                        datos.descripcion = Some(desc);
+                    }
+                }
+                "manual_pdf" if field.headers.filename.is_some() => {
+                    let _ = field.data.read_to_end(&mut datos.manual_bytes);
+                }
                 "imagenes[]" if field.headers.filename.is_some() => {
                     let mut foto = Vec::new();
-                    if field.data.read_to_end(&mut foto).is_ok() && !foto.is_empty() { datos.lista_imagenes_bytes.push(foto); }
-                },
+                    if field.data.read_to_end(&mut foto).is_ok() && !foto.is_empty() {
+                        datos.lista_imagenes_bytes.push(foto);
+                    }
+                }
                 _ => {}
             }
         }

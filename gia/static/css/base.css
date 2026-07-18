@@ -117,7 +117,9 @@ h1 {
 }
 
 .nav-left-zone {
-    justify-content: flex-start;
+    gap: var(--spacing-md);
+    min-width: 320px;
+    z-index: 10;
 }
 
 .nav-left-zone:empty {
@@ -126,7 +128,6 @@ h1 {
 
 .nav-user-zone {
     justify-content: flex-end;
-    padding-right: 12px;
 }
 
 .nav-brand {
@@ -226,6 +227,12 @@ h1 {
     background-color: var(--color-surface);
     border: 1.5px solid var(--color-primary);
     transition: all 0.15s ease;
+    font-weight: 700;
+    text-decoration: none;
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 0.95rem;
+    white-space: nowrap;
 }
 
 .main-navbar .btn-volver:hover {
@@ -293,7 +300,7 @@ h1 {
     }
 
     .nav-logo-large {
-        height: 44px;
+        height: 50px;
         width: auto;
     }
 

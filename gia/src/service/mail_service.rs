@@ -26,16 +26,19 @@ pub struct MailtrapProvider;
 
 impl MailtrapProvider {
     fn autenticar_smtp() -> Result<SmtpTransport, String> {
-        let mail_user = env::var("MAILTRAP_USER").expect("Falta MAILTRAP_USER en el .env");
-        let mail_pass = env::var("MAILTRAP_PASSWORD").expect("Falta MAILTRAP_PASSWORD en el .env");
+        let mail_user = env::var("MAILTRAP_USER")
+            .map_err(|_| "No está definida la variable MAILTRAP_USER".to_string())?;
+
+        let mail_pass = env::var("MAILTRAP_PASSWORD")
+            .map_err(|_| "No está definida la variable MAILTRAP_PASSWORD".to_string())?;
 
         let creds = Credentials::new(mail_user, mail_pass);
-        let transport = SmtpTransport::starttls_relay("sandbox.smtp.mailtrap.io")
+
+        Ok(SmtpTransport::starttls_relay("sandbox.smtp.mailtrap.io")
             .map_err(|e| format!("Error en host SMTP: {}", e))?
             .port(2525)
             .credentials(creds)
-            .build();
-        Ok(transport)
+            .build())
     }
 }
 

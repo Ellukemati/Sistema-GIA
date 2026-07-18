@@ -1,61 +1,46 @@
-<nav class="main-navbar"
-    style="background-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); border-bottom: 2px solid var(--color-border); padding: 0 var(--spacing-lg); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 1000; box-shadow: var(--shadow-soft); min-height: 80px; box-sizing: border-box;">
+<nav class="main-navbar">
 
-    <div class="nav-left-zone"
-        style="display: flex; align-items: center; gap: var(--spacing-md); min-width: 320px; z-index: 10;">
+    <div class="nav-left-zone">
         {% if usuario_actual and not en_perfil %}
-        <a href="/perfil" class="profile-action-card" title="Editar mi perfil"
-            style="display: flex; align-items: center; gap: var(--spacing-md); padding: 6px 12px; border-radius: var(--radius-md); border: 1.5px solid transparent; transition: all 0.2s ease; background-color: var(--color-bg); text-decoration: none;">
-            <div class="avatar-container" style="position: relative; display: inline-flex;">
+        <a href="/perfil" class="profile-action-card" title="Editar mi perfil">
+            <div class="avatar-container">
                 <img src="/imagenes/avatares/{{ usuario_actual.legajo }}?v={{ avatar_cache_buster | default(value=0) }}"
                     alt="Avatar" class="profile-avatar"
-                    style="width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--color-primary);"
                     onerror="this.onerror=null; this.src='/static/img/avatardefault.avif';">
-                <span class="badge-edit-gear"
-                    style="position: absolute; bottom: -2px; right: -2px; background: white; border: 1px solid var(--color-border); border-radius: 50%; font-size: 0.7rem; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center;">⚙️</span>
+                <span class="badge-edit-gear">⚙️</span>
             </div>
-            <div class="profile-info-text" style="display: flex; flex-direction: column;">
-                <span class="profile-welcome" style="font-size: 0.9rem; color: var(--color-text);">Hola, <strong>{{
-                        usuario_actual.nombre }}</strong></span>
-                <span class="profile-role"
-                    style="font-size: 0.75rem; color: var(--color-muted); font-weight: 700; text-transform: uppercase;">{%
-                    if usuario_actual.tipo == "A" %}Administrador{% else %}Docente{% endif %}</span>
+            <div class="profile-info-text">
+                <span class="profile-welcome">Hola, <strong>{{ usuario_actual.nombre }}</strong></span>
+                <span class="profile-role">{% if usuario_actual.tipo == "A" %}Administrador{% else %}Docente{% endif
+                    %}</span>
             </div>
         </a>
         {% elif not usuario_actual %}
-        <a href="/ingreso" class="btn-volver"
-            style="font-weight: 700; text-decoration: none; padding: 8px 16px; border: 1.5px solid var(--color-primary); border-radius: var(--radius-sm); font-size: 0.95rem; background-color: var(--color-surface); white-space: nowrap; color: var(--color-primary);">
+        <a href="/ingreso" class="btn-volver">
             Iniciar sesión
         </a>
         {% endif %}
 
         {% if usuario_actual and not en_home %}
-        <a href="/inicio" class="btn-volver btn-inicio-nav"
-            style="font-weight: 700; text-decoration: none; padding: 8px 16px; border: 1.5px solid var(--color-primary); border-radius: var(--radius-sm); font-size: 0.95rem; background-color: var(--color-surface); white-space: nowrap; color: var(--color-primary);">
+        <a href="/inicio" class="btn-volver btn-inicio-nav">
             <span class="texto-largo-inicio">Ir al Inicio</span>
             <span class="texto-corto-inicio" style="display: none;">Inicio</span>
         </a>
         {% endif %}
     </div>
 
-    <div class="nav-brand"
-        style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 5;">
+    <div class="nav-brand">
         <a href="{% if usuario_actual %}/inicio{% else %}/{% endif %}" class="nav-brand-link" title="Ir al inicio">
-            <img src="/static/img/logo_gia_transparente.png" alt="GIA" class="nav-logo-large"
-                style="height: 65px; width: auto; object-fit: contain; display: block;">
+            <img src="/static/img/logo_gia_transparente.png" alt="GIA" class="nav-logo-large">
         </a>
     </div>
 
-    <div class="nav-user-zone"
-        style="display: flex; align-items: center; justify-content: flex-end; min-width: 320px; z-index: 10; margin-left: auto;">
-        <div class="darkmode-switch-wrapper" title="Cambiar tema visual"
-            style="display: flex; align-items: center; gap: var(--spacing-xs); background-color: var(--color-bg); padding: 6px 12px; border-radius: var(--radius-md); border: 1.5px solid var(--color-border);">
+    <div class="nav-user-zone">
+        <div class="darkmode-switch-wrapper" title="Cambiar tema visual">
             <span class="switch-icon">☀️</span>
-            <label class="theme-switch" for="checkbox-theme"
-                style="display: inline-block; height: 20px; position: relative; width: 38px;">
+            <label class="theme-switch" for="checkbox-theme">
                 <input type="checkbox" id="checkbox-theme" onclick="toggleDarkMode()" style="display:none;">
-                <span class="slider round"
-                    style="background-color: #ccc; bottom: 0; cursor: pointer; left: 0; position: absolute; right: 0; top: 0; transition: .2s; border-radius: 20px;"></span>
+                <span class="slider round"></span>
             </label>
             <span class="switch-icon">🌙</span>
         </div>

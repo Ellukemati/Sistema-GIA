@@ -1,12 +1,26 @@
-use chrono::{Datelike, NaiveDate};
+use chrono::{DateTime, Datelike, FixedOffset, NaiveDate, NaiveDateTime, TimeZone, Utc};
 use rouille::{Request, Response};
 use rusqlite::Connection;
+use std::collections::HashMap;
 
+use crate::constants::OFFSET_ARG;
 use crate::models::usuario::Usuario;
 use crate::repository::{
     sesion_repository::SesionRepository, usuario_repository::UsuarioRepository,
 };
 use crate::templates;
+
+pub fn parsear_formulario(b: &str) -> HashMap<String, String> {
+    b.split('&')
+        .filter_map(|par| {
+            let mut pt = par.split('=');
+            Some((
+                pt.next()?.to_string(),
+                pt.next()?.replace("%40", "@").replace("+", " "),
+            ))
+        })
+        .collect()
+}
 
 /// Extrae el valor de una cookie por su clave de los headers HTTP manualmente
 pub fn extraer_cookie(request: &Request, clave: &str) -> Option<String> {
@@ -77,6 +91,32 @@ pub fn formatear_rango_fechas(fecha_inicio_str: &str, fecha_fin_str: &str) -> St
             "desde el {} de {} hasta el {} de {}",
             dia_ini, mes_ini, dia_fin, mes_fin
         )
+    }
+}
+
+pub fn ahora_utc_string() -> String {
+    Utc::now()
+        .naive_utc()
+        .format("%Y-%m-%d %H:%M:%S")
+        .to_string()
+}
+
+/// Convierte un instante UTC a la zona horaria de Argentina.
+pub fn a_zona_arg(dt: DateTime<Utc>) -> DateTime<FixedOffset> {
+    dt.with_timezone(&FixedOffset::west_opt(OFFSET_ARG).unwrap())
+}
+
+/// Convierte un string "YYYY-MM-DD HH:MM:SS" guardado en UTC a hora ARG
+/// formateada igual. Para mostrar cualquier timestamp de la DB en el front.
+pub fn utc_str_a_arg(fecha: &str) -> String {
+    if fecha.is_empty() || fecha == "---" {
+        return fecha.to_string();
+    }
+    match NaiveDateTime::parse_from_str(fecha, "%Y-%m-%d %H:%M:%S") {
+        Ok(ndt) => a_zona_arg(Utc.from_utc_datetime(&ndt))
+            .format("%Y-%m-%d %H:%M:%S")
+            .to_string(),
+        Err(_) => fecha.to_string(),
     }
 }
 
