@@ -41,16 +41,6 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
             AuthHandler::procesar_cambio_password(request, &conn_guard)
         },
 
-        (GET) (/registro-invitacion) => {
-            let conn_guard = conn.lock().unwrap();
-            AuthHandler::mostrar_formulario_registro_invitacion(request, &conn_guard)
-        },
-
-        (POST) (/registro-invitacion) => {
-            let conn_guard = conn.lock().unwrap();
-            AuthHandler::procesar_registro_invitacion(request, &conn_guard)
-        },
-
         (GET) (/) => {
             AuthHandler::mostrar_bienvenida()
         },
@@ -77,6 +67,18 @@ pub fn router(request: &Request, conn: Arc<Mutex<Connection>>) -> Response {
             let conn_guard = conn.lock().unwrap();
             AuthHandler::procesar_logout(request, &conn_guard)
         },
+
+        /*
+        (GET) (/registro-invitacion) => {
+            let conn_guard = conn.lock().unwrap();
+            AuthHandler::mostrar_formulario_registro_invitacion(request, &conn_guard)
+        },
+
+        (POST) (/registro-invitacion) => {
+            let conn_guard = conn.lock().unwrap();
+            AuthHandler::procesar_registro_invitacion(request, &conn_guard)
+        },
+        */
 
         _ => Response::empty_404()
     )

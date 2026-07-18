@@ -170,8 +170,10 @@ impl AuthHandler {
         }
     }
 
-    /// Registro privado por invitación de un administrador
-    /// Viene de un enlace por email. Como fue enviada por un administrador, se aprueba de inmediato
+    /*
+     * Registro por invitación de un administrador
+     * Viene de un enlace por email. Como fue enviada por un administrador, se aprueba de inmediato
+
     pub fn procesar_registro_invitacion(request: &Request, conn: &Connection) -> Response {
         let mut data = match rouille::input::multipart::get_multipart_input(request) {
             Ok(d) => d,
@@ -249,6 +251,7 @@ impl AuthHandler {
             Err(e) => templates::response_mensaje_error("No se pudo completar el registro", &e),
         }
     }
+    */
 
     pub fn procesar_login(request: &Request, conn: &Connection) -> Response {
         let mut body = String::new();
@@ -351,7 +354,12 @@ impl AuthHandler {
             }
         };
 
-        let (mut nombre, mut apellido, mut password, mut password_repetida) = (usuario.nombre.clone(), usuario.apellido.clone(), String::new(), String::new());
+        let (mut nombre, mut apellido, mut password, mut password_repetida) = (
+            usuario.nombre.clone(),
+            usuario.apellido.clone(),
+            String::new(),
+            String::new(),
+        );
         let mut avatar_bytes: Option<Vec<u8>> = None;
         let mut flag_eliminar_avatar = String::new();
 

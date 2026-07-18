@@ -80,7 +80,7 @@ impl ModeloService {
 
         let modelo_temporal = Modelo {
             id: 0,
-            marca: data.marca, // Aquí se mueve data.marca
+            marca: data.marca,                 // Aquí se mueve data.marca
             nombre_modelo: data.nombre_modelo, // Aquí se mueve data.nombre_modelo
             categoria: data.categoria,
             descripcion: data.descripcion,
@@ -90,12 +90,15 @@ impl ModeloService {
         match ModeloRepository::crear(conn, &modelo_temporal) {
             Ok(id_real) => {
                 // 2. Ahora usamos las variables que clonamos arriba
-                crate::logger::info(&format!("Nuevo modelo creado: {} {} (ID: {})", marca_para_log, nombre_para_log, id_real));
+                crate::logger::info(&format!(
+                    "Nuevo modelo creado: {} {} (ID: {})",
+                    marca_para_log, nombre_para_log, id_real
+                ));
                 Ok(Modelo {
                     id: id_real,
                     ..modelo_temporal
                 })
-            },
+            }
             Err(e) => Err(format!("Error en la base de datos al crear modelo: {}", e)),
         }
     }

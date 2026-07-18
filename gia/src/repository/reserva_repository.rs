@@ -19,17 +19,18 @@ pub struct ReservaRepository;
 impl ReservaRepository {
     pub fn crear(conn: &Connection, reserva: &Reserva) -> SqlResult<i64> {
         conn.execute(
-            "INSERT INTO reservas (id_usuario, fecha_inicio, fecha_fin, estado, motivo)
-             VALUES (?1, ?2, ?3, ?4, ?5)",
+            "INSERT INTO reservas (
+                id_usuario, fecha_inicio, fecha_fin, estado, motivo, momento_creacion
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
             params![
                 reserva.id_usuario,
                 reserva.fecha_inicio,
                 reserva.fecha_fin,
                 reserva.estado,
                 reserva.motivo,
+                reserva.momento_creacion,
             ],
         )?;
-
         Ok(conn.last_insert_rowid())
     }
 
@@ -69,10 +70,10 @@ impl ReservaRepository {
     ) -> Result<Vec<Reserva>, rusqlite::Error> {
         let mut stmt = conn.prepare(
             "SELECT id, id_usuario, fecha_inicio, fecha_fin, estado, motivo,
-                momento_creacion, momento_confirmacion, id_admin_aprobador
-         FROM reservas
-         WHERE id_usuario = ?
-         ORDER BY id DESC",
+                        momento_creacion, momento_confirmacion, id_admin_aprobador
+                FROM reservas
+                WHERE id_usuario = ?
+                ORDER BY id DESC",
         )?;
 
         let mapped_rows = stmt.query_map([id_usuario], Reserva::from_row)?;
@@ -94,7 +95,9 @@ impl ReservaRepository {
                 fecha_fin,
                 estado,
                 motivo,
-                momento_creacion
+                momento_creacion,
+                momento_confirmacion,
+                id_admin_aprobador
             FROM reservas
             ORDER BY momento_creacion DESC",
         )?;
@@ -309,6 +312,29 @@ impl ReservaRepository {
                 row.get(4)?,
                 row.get(5)?,
             ))
+        )
+    }
+
+    pub fn concluir_reservas_expiradas(conn: &Connection, hoy_arg: &str) -> SqlResult<usize> {
+        conn.execute(
+            "UPDATE reservas SET estado = 'concluida' 
+         WHERE estado = 'activa' AND fecha_fin < ?1",
+            params![hoy_arg],
+        )
+    }
+
+    pub fn actualizar_fecha_sinc(conn: &Connection, fecha: &str) -> SqlResult<usize> {
+        conn.execute(
+            "UPDATE configuracion SET valor = ?1 WHERE clave = 'ultima_sincronizacion'",
+            params![fecha],
+        )
+    }
+
+    pub fn obtener_ultima_sincronizacion(conn: &Connection) -> SqlResult<String> {
+        conn.query_row(
+            "SELECT valor FROM configuracion WHERE clave = 'ultima_sincronizacion'",
+            [],
+            |r| r.get(0),
         )
     }
 }

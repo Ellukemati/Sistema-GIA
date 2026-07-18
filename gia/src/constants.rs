@@ -1,4 +1,11 @@
-/// Rutas y optimizacion de imagenes
+/// Rutas de archivos y configuraciones de entorno
+pub const DB_PATH_DEFAULT: &str = "data/gia.db";
+pub const SERVER_ADDRESS_DEFAULT: &str = "0.0.0.0:8080";
+
+/// Para mostrar la hora de Argentina
+pub const OFFSET_ARG: i32 = 3 * 3600;
+
+/// Optimización de imagenes
 pub const STATIC_DIR: &str = "static";
 pub const INSTRUMENTOS_MAX_DIMENSION: u32 = 1200;
 pub const AVATARES_MAX_DIMENSION: u32 = 256;
@@ -26,10 +33,10 @@ pub const ESTADO_CANCELADA: &str = "cancelada";
 pub const ESTADO_CONCLUIDA: &str = "concluida";
 
 /// Seguridad y Tiempos de Expiración (Tokens de acceso y restablecimiento)
-pub const EXPIRACION_SESION: i64 = 7200; // Sesiones de 2 horas de duración
+pub const EXPIRACION_SESION: i64 = 10800; // Sesiones de 3 horas de duración
 pub const EXPIRACION_RESTABLECIMIENTO_PASSWORD_SEGUNDOS: i64 = 900; // 15 minutos
-pub const EXPIRACION_INVITACION_SEGUNDOS: i64 = 86400; // 24 horas
-pub const BCRYPT_COST_FACTOR: u32 = 4;
+// pub const EXPIRACION_INVITACION: i64 = 86400; // 24 horas
+pub const BCRYPT_COST_FACTOR: u32 = 10;
 
 /// Textos de correo electrónico
 pub const MAIL_EMISOR: &str = "No-Responder <no-responder@gia.fi.uba.ar>";
@@ -39,6 +46,6 @@ pub const PIE_AUTOMATICO: &str = "---\nEste es un mensaje automático enviado po
 /// Configuración de constantes para testing
 // Si MOCK_MAILS es true, se imprime el contenido del mail en la consola en lugar de enviarlo realmente,
 // y se simula que todos los envíos fueron exitosos. Para desarrollar sin agotar la cuota de Mailtrap.
-pub const MOCK_MAILS: bool = true;
+pub const MOCK_MAILS: bool = false;
 // Si PDF_TESTING es true, se generan los PDFs y se guardan en disco.
-pub const PDF_TESTING: bool = true;
+pub const PDF_TESTING: bool = false;

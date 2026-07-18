@@ -2,17 +2,18 @@ use bcrypt::{hash, verify};
 use rusqlite::Connection;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::constants::{
-    BCRYPT_COST_FACTOR, EXPIRACION_INVITACION_SEGUNDOS,
-    EXPIRACION_RESTABLECIMIENTO_PASSWORD_SEGUNDOS,
-};
-use crate::models::invitacion::Invitacion;
+use crate::constants::{BCRYPT_COST_FACTOR, EXPIRACION_RESTABLECIMIENTO_PASSWORD_SEGUNDOS};
 use crate::models::usuario::Usuario;
-use crate::repository::invitacion_repository::InvitacionRepository;
 use crate::repository::sesion_repository::SesionRepository;
 use crate::repository::token_repository::TokenRepository;
 use crate::repository::usuario_repository::UsuarioRepository;
 use crate::service::mail_service::MailService;
+
+/*
+use crate::constants::EXPIRACION_INVITACION;
+use crate::models::invitacion::Invitacion;
+use crate::repository::invitacion_repository::InvitacionRepository;
+*/
 
 pub struct AuthService;
 
@@ -228,7 +229,15 @@ impl AuthService {
         Ok(())
     }
 
-    /// INVITACIÓN DE NUEVOS USUARIOS POR MAIL
+    fn hashear_password(password: &str) -> String {
+        hash(password, BCRYPT_COST_FACTOR).unwrap_or_else(|_| String::new())
+    }
+
+    fn verificar_password(password: &str, hash_guardado: &str) -> bool {
+        verify(password, hash_guardado).unwrap_or(false)
+    }
+
+    /* INVITACIÓN DE NUEVOS USUARIOS POR MAIL
     pub fn invitar_usuario(conn: &Connection, email: &str, tipo: &str) -> Result<(), String> {
         if !Self::validar_email_fiuba(email) {
             return Err("El email debe ser FIUBA.".to_string());
@@ -325,14 +334,7 @@ impl AuthService {
 
         Ok(())
     }
-
-    fn hashear_password(password: &str) -> String {
-        hash(password, BCRYPT_COST_FACTOR).unwrap_or_else(|_| String::new())
-    }
-
-    fn verificar_password(password: &str, hash_guardado: &str) -> bool {
-        verify(password, hash_guardado).unwrap_or(false)
-    }
+    */
 }
 
 #[cfg(test)]
@@ -620,6 +622,7 @@ mod tests {
         );
     }
 
+    /*
     #[test]
     #[ignore]
     fn test_circuito_invitacion_admin() {
@@ -777,4 +780,5 @@ mod tests {
             "El enlace de invitación es inválido o ha expirado."
         );
     }
+    */
 }

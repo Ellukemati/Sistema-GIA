@@ -1,7 +1,7 @@
 #![cfg(test)]
 use gia::constants::MOCK_MAILS;
 use gia::models::usuario::Usuario;
-use gia::service::mail_service::MailService; // 🌟 Importamos el modelo de usuario real para el test de admins
+use gia::service::mail_service::MailService;
 
 // Ignorado para no enviar mails reales a Mailtrap durante pruebas automáticas (salvo usando cargo test -- --include-ignored),
 // pero se puede ejecutar manualmente para verificar el flujo completo. MOCK_MAILS = true para no enviar mails a Mailtrap.

@@ -1,14 +1,14 @@
+pub mod logger;
 use dotenvy::dotenv;
+use gia::constants::{DB_PATH_DEFAULT, SERVER_ADDRESS_DEFAULT};
 use gia::{db, server};
 use std::env;
-pub mod logger;
 
 fn main() {
     dotenv().ok();
 
-    // Leer las variables (con un valor por defecto por si el .env falla
-    let db_path = env::var("DB_PATH").unwrap_or_else(|_| "data/gia.db".to_string());
-    let address = env::var("ADDRESS").unwrap_or_else(|_| "0.0.0.0:8080".to_string());
+    let db_path = env::var("DB_PATH").unwrap_or_else(|_| DB_PATH_DEFAULT.to_string());
+    let address = env::var("ADDRESS").unwrap_or_else(|_| SERVER_ADDRESS_DEFAULT.to_string());
 
     let _conn = match db::init_db(&db_path) {
         Ok(c) => {
