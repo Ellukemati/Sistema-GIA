@@ -74,14 +74,13 @@ impl ModeloService {
             return Err("El nombre del modelo no puede estar vacio.".to_string());
         }
 
-        // 1. Clonamos los datos ANTES de crear el modelo, para que el logger los tenga disponibles
         let marca_para_log = data.marca.clone();
         let nombre_para_log = data.nombre_modelo.clone();
 
         let modelo_temporal = Modelo {
             id: 0,
-            marca: data.marca,                 // Aquí se mueve data.marca
-            nombre_modelo: data.nombre_modelo, // Aquí se mueve data.nombre_modelo
+            marca: data.marca,
+            nombre_modelo: data.nombre_modelo,
             categoria: data.categoria,
             descripcion: data.descripcion,
             eliminado: false,
@@ -89,7 +88,6 @@ impl ModeloService {
 
         match ModeloRepository::crear(conn, &modelo_temporal) {
             Ok(id_real) => {
-                // 2. Ahora usamos las variables que clonamos arriba
                 crate::logger::info(&format!(
                     "Nuevo modelo creado: {} {} (ID: {})",
                     marca_para_log, nombre_para_log, id_real
