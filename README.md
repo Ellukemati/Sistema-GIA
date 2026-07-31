@@ -1,6 +1,6 @@
-# 🎻 Sistema GIA — Gestión de Instrumental de Agrimensura
+# 🛠️ Sistema GIA — Gestión de Instrumental de Agrimensura
 
-> Plataforma web para la administración y reserva del instrumental del Departamento de Agrimensura (FIUBA): catálogo de equipos, reservas, aprobaciones y comprobantes con firma institucional. Construida en **Rust** con arquitectura en capas.
+> Plataforma web para la administración y reserva del instrumental del Departamento de Agrimensura de la FIUBA: catálogo de equipos, reservas, aprobaciones y generación de comprobantes en PDF. Construida en **Rust** con arquitectura en capas.
 
 ![Rust](https://img.shields.io/badge/Rust-000000?style=flat&logo=rust&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-07405E?style=flat&logo=sqlite&logoColor=white)
@@ -194,10 +194,10 @@ El hook ejecuta automáticamente `cargo fmt`, `cargo clippy` y `cargo test` ante
 
 | Nombre | Email | Padrón |
 |---|---|---|
+| Matias Ezequiel Dundic | mdundic@fi.uba.ar | 110773 |
 | Franco Lamas | flamas@fi.uba.ar | 112306 |
 | Gerónimo Fanti | gfanti@fi.uba.ar | 109712 |
 | Oliverio Mourier | omourier@fi.uba.ar | 106758 |
-| Matias Ezequiel Dundic | mdundic@fi.uba.ar | 110773 |
 
 ### Mi contribución
 
