@@ -1,0 +1,7 @@
+[2026-07-30 21:40:14] INFO: Admin maestro creado exitosamente (Email: admin@fi.uba.ar | Clave: admin123)
+[2026-07-30 21:40:14] INFO: Base de datos inicializada correctamente en: data/gia.db
+[2026-07-30 21:40:14] INFO: Servidor GIA escuchando en: 0.0.0.0:8080
+[2026-07-30 21:42:11] INFO: Inicio de sesión exitoso: admin@fi.uba.ar
+[2026-07-30 21:43:01] INFO: Base de datos inicializada correctamente en: data/gia.db
+[2026-07-30 21:43:01] INFO: Servidor GIA escuchando en: 0.0.0.0:8080
+[2026-07-30 21:43:11] INFO: Inicio de sesión exitoso: admin@fi.uba.ar
